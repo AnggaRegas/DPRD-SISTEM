@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Sistem Pengarsipan Dokumen DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #f4f6f9;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f4f6f9;
+      transition: margin-left 0.25s ease;
+    }
+    .main-content.sidebar-collapsed {
+      margin-left: 78px;
+    }
+    .dashboard-page {
+      padding: 32px;
+      max-width: 1400px;
+    }
+    .welcome-section {
+      margin-bottom: 22px;
+    }
+    .welcome-section h1 {
+      margin: 0 0 7px;
+      font-size: 24px;
+      color: #1e293b;
+    }
+    .welcome-section p {
+      margin: 0;
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .stat-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
+    }
+    .stat-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stat-icon.dewan { background: #eff6ff; color: #1e40af; }
+    .stat-icon.doc { background: #ecfdf5; color: #047857; }
+    .stat-icon.kat { background: #fef3c7; color: #b45309; }
+    .stat-icon svg { width: 22px; height: 22px; }
+    .stat-info span { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }
+    .stat-info strong { font-size: 22px; font-weight: 700; color: #1e293b; }
+    .dashboard-box {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+    .dashboard-box h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: #1e293b;
+    }
+    .dashboard-box p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #64748b;
+    }
+    .quick-title {
+      margin-bottom: 15px;
+    }
+    .quick-title h2 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      color: #1e293b;
+    }
+    .quick-title p {
+      margin: 0;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .quick-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .quick-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      background: #1e3a8a;
+      color: white;
+      border-radius: 7px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+    }
+    .quick-button:hover {
+      background: #1d4ed8;
+    }
+    .quick-button.secondary {
+      background: #fff;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+    .quick-button.secondary:hover {
+      background: #f8fafc;
+    }
+    .quick-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .quick-icon svg {
+      width: 17px;
+      height: 17px;
+    }
+    @media (max-width: 900px) {
+      .main-content { margin-left: 220px; }
+      .main-content.sidebar-collapsed { margin-left: 78px; }
+      .dashboard-page { padding: 25px; }
+    }
+    @media (max-width: 650px) {
+      .main-content { margin-left: 78px; }
+      .main-content.sidebar-collapsed { margin-left: 78px; }
+      .dashboard-page { padding: 20px; }
+      .welcome-section h1 { font-size: 21px; }
+      .quick-actions { flex-direction: column; }
+      .quick-button { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <section class="dashboard-page">
+      <!-- WELCOME -->
+      <div class="welcome-section">
+        <h1 id="welcomeGreeting">Selamat Datang</h1>
+        <p>Sistem Pengarsipan Bagian Fasilitasi Penganggaran dan Pengawasan DPRD.</p>
+      </div>
+
+      <!-- STATISTIK KARTU -->
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon dewan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="3"/>
+              <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span>Anggota Dewan</span>
+            <strong id="statDewanCount">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon doc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span>Total Dokumen Arsip</span>
+            <strong id="statDocCount">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon kat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span>Kategori Dokumen</span>
+            <strong id="statKatCount">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFORMASI SISTEM -->
+      <div class="dashboard-box">
+        <h2>Sistem Pengarsipan Dokumen</h2>
+        <p>Sistem ini digunakan untuk membantu Bagian Fasilitasi Penganggaran dan Pengawasan dalam mengelola dan menyimpan dokumen secara terstruktur, aman di Google Drive, dan tersimpan di database Google Sheets.</p>
+        <p style="margin-top: 8px;">Data anggota Dewan dapat dikelola melalui menu <strong>Anggota Dewan</strong>. Setiap anggota Dewan memiliki halaman arsip untuk mengelola dokumen yang berkaitan dengan anggota tersebut.</p>
+        <p style="margin-top: 8px;">Dokumen dapat dikelompokkan berdasarkan kategori dokumen, tahun anggaran, dan folder spesifik sehingga memudahkan proses penyimpanan, pencarian, dan pengelolaan arsip secara terpusat.</p>
+      </div>
+
+      <!-- AKSES CEPAT -->
+      <div class="dashboard-box">
+        <div class="quick-title">
+          <h2>Akses Cepat</h2>
+          <p>Gunakan menu berikut untuk mengelola data sistem.</p>
+        </div>
+
+        <div class="quick-actions">
+          <a href="tambah_dokumen.html" class="quick-button">
+            <span class="quick-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </span>
+            Tambah Dokumen
+          </a>
+
+          <a href="dewan.html" class="quick-button secondary">
+            <span class="quick-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="3"/>
+                <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/>
+              </svg>
+            </span>
+            Kelola Anggota Dewan
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api } from './assets/js/api.js';
+
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('dashboard');
+      if (user.nama) {
+        document.getElementById('welcomeGreeting').textContent = `Selamat Datang, ${user.nama}`;
+      }
+
+      // Muat data statistik dashboard
+      loadDashboardStats();
+    }
+
+    async function loadDashboardStats() {
+      try {
+        const res = await api.getDashboardData();
+        if (res && res.success && res.data) {
+          document.getElementById('statDewanCount').textContent = res.data.totalDewan || 0;
+          document.getElementById('statDocCount').textContent = res.data.totalDokumen || 0;
+          document.getElementById('statKatCount').textContent = res.data.totalKategori || 0;
+        }
+      } catch (e) {
+        console.error('Gagal memuat statistik dashboard:', e);
+      }
+    }
+  </script>
+</body>
+</html>

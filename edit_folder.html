@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Folder - Sistem Pengarsipan DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f5f7fb;
+      transition: margin-left .25s ease;
+    }
+    .main-content.sidebar-collapsed { margin-left: 78px; }
+    .page-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 {
+      margin: 0 0 8px;
+      color: #172554;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    @media (max-width: 650px) {
+      .main-content { margin-left: 78px; }
+      .page-container { padding: 20px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <div class="page-container">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a>
+          <span>/</span>
+          <a href="dewan.html">Anggota Dewan</a>
+          <span>/</span>
+          <span>Edit Folder</span>
+        </div>
+        <h1>Edit Folder Dokumen</h1>
+        <p>Ubah nama folder atau hapus folder beserta seluruh dokumen di dalamnya.</p>
+      </div>
+
+      <div class="form-box">
+        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
+
+        <form id="editFolderForm">
+          <div class="form-group">
+            <label for="inputFolderLama">Nama Folder Saat Ini</label>
+            <input type="text" id="inputFolderLama" readonly style="background:#f8fafc; color:#64748b;">
+          </div>
+
+          <div class="form-group">
+            <label for="inputFolderBaru">Nama Folder Baru <span class="required">*</span></label>
+            <input type="text" id="inputFolderBaru" required>
+          </div>
+
+          <div class="form-actions" style="justify-content: space-between;">
+            <div style="display:flex; gap:10px;">
+              <button type="submit" id="btnSubmit" class="btn btn-primary">Simpan Perubahan</button>
+              <button type="button" onclick="window.history.back()" class="btn btn-reset">Batal</button>
+            </div>
+            <button type="button" id="btnDeleteFolder" class="btn btn-danger">Hapus Folder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api } from './assets/js/api.js';
+
+    requireAuth();
+    renderSidebar('dewan');
+
+    const params = new URLSearchParams(window.location.search);
+    const dewanId = params.get('dewan_id');
+    const kategoriId = params.get('kategori_id');
+    const tahun = params.get('tahun');
+    const namaFolder = params.get('nama_folder');
+
+    if (!dewanId || !kategoriId || !tahun || !namaFolder) {
+      window.location.replace('dewan.html');
+    }
+
+    const inputFolderLama = document.getElementById('inputFolderLama');
+    const inputFolderBaru = document.getElementById('inputFolderBaru');
+    const form = document.getElementById('editFolderForm');
+    const alertBox = document.getElementById('alertBox');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnDelete = document.getElementById('btnDeleteFolder');
+
+    inputFolderLama.value = namaFolder;
+    inputFolderBaru.value = namaFolder;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.style.display = 'none';
+
+      const namaBaru = inputFolderBaru.value.trim();
+      if (!namaBaru) {
+        alertBox.textContent = 'Nama folder wajib diisi.';
+        alertBox.style.display = 'flex';
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Menyimpan...';
+
+      try {
+        const res = await api.updateFolder(dewanId, kategoriId, parseInt(tahun, 10), namaFolder, namaBaru);
+        if (res && res.success) {
+          window.location.replace(`dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`);
+        } else {
+          alertBox.textContent = res.message || 'Gagal mengubah folder.';
+          alertBox.style.display = 'flex';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Simpan Perubahan';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Terjadi kesalahan.';
+        alertBox.style.display = 'flex';
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Simpan Perubahan';
+      }
+    });
+
+    btnDelete.addEventListener('click', async () => {
+      const yakin = confirm(`Peringatan: Menghapus folder "${namaFolder}" akan menghapus seluruh dokumen di dalamnya. Anda yakin?`);
+      if (!yakin) return;
+
+      btnDelete.disabled = true;
+      btnDelete.textContent = 'Menghapus...';
+
+      try {
+        const res = await api.deleteFolder(dewanId, kategoriId, parseInt(tahun, 10), namaFolder);
+        if (res && res.success) {
+          window.location.replace(`dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`);
+        } else {
+          alert(res.message || 'Gagal menghapus folder.');
+          btnDelete.disabled = false;
+          btnDelete.textContent = 'Hapus Folder';
+        }
+      } catch (e) {
+        alert(e.message || 'Gagal menghapus folder.');
+        btnDelete.disabled = false;
+        btnDelete.textContent = 'Hapus Folder';
+      }
+    });
+  </script>
+</body>
+</html>

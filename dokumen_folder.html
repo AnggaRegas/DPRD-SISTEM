@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dokumen Folder - Sistem Pengarsipan DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f5f7fb;
+      transition: margin-left .25s ease;
+    }
+    .main-content.sidebar-collapsed { margin-left: 78px; }
+    .page-container {
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .page-header h1 {
+      margin: 0 0 6px;
+      color: #172554;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .page-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 13px;
+    }
+    .file-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .file-badge:hover {
+      background: #dbeafe;
+    }
+    .action-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    @media (max-width: 650px) {
+      .main-content { margin-left: 78px; }
+      .page-container { padding: 20px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <div class="page-container">
+      <div class="page-header">
+        <div>
+          <div class="breadcrumb">
+            <a href="dashboard.html">Dashboard</a>
+            <span>/</span>
+            <a href="dewan.html">Anggota Dewan</a>
+            <span>/</span>
+            <a href="#" id="breadcrumbArsipLink">Arsip Dewan</a>
+            <span>/</span>
+            <a href="#" id="breadcrumbKatLink">Kategori</a>
+            <span>/</span>
+            <a href="#" id="breadcrumbTahunLink">Tahun</a>
+            <span>/</span>
+            <span id="breadcrumbFolderName">Folder</span>
+          </div>
+          <h1 id="pageTitleFolder">Nama Folder</h1>
+          <p id="pageSubtitleDetails">Memuat informasi...</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <a href="#" id="btnEditFolder" class="btn btn-reset">Edit Folder</a>
+          <a href="#" id="btnTambahDokumen" class="btn btn-primary">+ Tambah Dokumen</a>
+        </div>
+      </div>
+
+      <section class="content-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Daftar Dokumen Arsip</h2>
+            <p>Dokumen yang tersimpan aman di Google Drive.</p>
+          </div>
+          <div class="panel-actions">
+            <div class="total-badge">
+              Total Dokumen: <span id="totalDocCount">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="loadingIndicator" class="loading-indicator">
+          <div class="spinner"></div> Memuat daftar dokumen...
+        </div>
+
+        <div id="tableContainer" class="table-box" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Nama Dokumen</th>
+                <th>Keterangan</th>
+                <th>Berkas File</th>
+                <th>Tanggal Upload</th>
+                <th style="width: 140px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="docTableBody"></tbody>
+          </table>
+
+          <div class="table-footer">
+            <span id="footerCount">Menampilkan 0 dokumen</span>
+            <span>Sistem Pengarsipan DPRD</span>
+          </div>
+        </div>
+
+        <div id="emptyContainer" class="empty-data" style="display:none;">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <h3>Belum Ada Dokumen di Folder Ini</h3>
+          <p>Klik tombol <strong>+ Tambah Dokumen</strong> untuk mengunggah berkas arsip pertama ke Google Drive.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api } from './assets/js/api.js';
+
+    requireAuth();
+    renderSidebar('dewan');
+
+    const params = new URLSearchParams(window.location.search);
+    const dewanId = params.get('dewan_id');
+    const kategoriId = params.get('kategori_id');
+    const tahun = params.get('tahun');
+    const namaFolder = params.get('nama_folder');
+
+    if (!dewanId || !kategoriId || !tahun || !namaFolder) {
+      window.location.replace('dewan.html');
+    }
+
+    const breadcrumbArsipLink = document.getElementById('breadcrumbArsipLink');
+    const breadcrumbKatLink = document.getElementById('breadcrumbKatLink');
+    const breadcrumbTahunLink = document.getElementById('breadcrumbTahunLink');
+    const breadcrumbFolderName = document.getElementById('breadcrumbFolderName');
+    const pageTitleFolder = document.getElementById('pageTitleFolder');
+    const pageSubtitleDetails = document.getElementById('pageSubtitleDetails');
+    const btnEditFolder = document.getElementById('btnEditFolder');
+    const btnTambahDokumen = document.getElementById('btnTambahDokumen');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const tableContainer = document.getElementById('tableContainer');
+    const emptyContainer = document.getElementById('emptyContainer');
+    const docTableBody = document.getElementById('docTableBody');
+    const totalDocCount = document.getElementById('totalDocCount');
+    const footerCount = document.getElementById('footerCount');
+
+    breadcrumbArsipLink.href = `arsip_dewan.html?id=${dewanId}`;
+    breadcrumbKatLink.href = `kategori_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`;
+    breadcrumbTahunLink.href = `dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`;
+    breadcrumbTahunLink.textContent = `Tahun ${tahun}`;
+    breadcrumbFolderName.textContent = namaFolder;
+    pageTitleFolder.textContent = namaFolder;
+
+    btnEditFolder.href = `edit_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`;
+    btnTambahDokumen.href = `tambah_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`;
+
+    loadDokumen();
+
+    async function loadDokumen() {
+      loadingIndicator.style.display = 'flex';
+      tableContainer.style.display = 'none';
+      emptyContainer.style.display = 'none';
+
+      try {
+        const [resDewan, resDocs] = await Promise.all([
+          api.getDewanById(dewanId),
+          api.getDokumenList({
+            dewan_id: dewanId,
+            kategori_id: kategoriId,
+            tahun: tahun,
+            nama_folder: namaFolder
+          })
+        ]);
+
+        if (resDewan && resDewan.success && resDewan.data) {
+          pageSubtitleDetails.textContent = `Anggota Dewan: ${resDewan.data.nama} • Tahun: ${tahun}`;
+        }
+
+        loadingIndicator.style.display = 'none';
+
+        if (resDocs && resDocs.success && Array.isArray(resDocs.data)) {
+          const docs = resDocs.data;
+          totalDocCount.textContent = docs.length;
+
+          if (docs.length === 0) {
+            emptyContainer.style.display = 'block';
+            tableContainer.style.display = 'none';
+          } else {
+            emptyContainer.style.display = 'none';
+            tableContainer.style.display = 'block';
+            footerCount.textContent = `Menampilkan ${docs.length} dokumen`;
+
+            docTableBody.innerHTML = docs.map((doc, idx) => {
+              const fileLink = doc.view_url || doc.direct_url || '#';
+              const formattedDate = doc.tanggal_upload
+                ? new Date(doc.tanggal_upload).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+                : '-';
+
+              return `
+                <tr>
+                  <td class="number-cell">${idx + 1}</td>
+                  <td><strong>${escapeHtml(doc.nama_dokumen || '-')}</strong></td>
+                  <td style="color:#64748b; font-size:12px;">${escapeHtml(doc.keterangan || '-')}</td>
+                  <td>
+                    ${doc.nama_file ? `
+                      <a href="${fileLink}" target="_blank" rel="noopener noreferrer" class="file-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px;">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                          <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        <span>${escapeHtml(doc.nama_file)}</span>
+                      </a>
+                    ` : '<span style="color:#94a3b8;">Tidak ada file</span>'}
+                  </td>
+                  <td style="color:#64748b; font-size:12px;">${formattedDate}</td>
+                  <td>
+                    <div class="action-btns">
+                      <a href="edit_dokumen.html?id=${doc.id}" class="btn btn-reset btn-sm">Edit</a>
+                      <button type="button" class="btn btn-danger btn-sm" onclick="window.hapusDokumen(${doc.id}, '${escapeJs(doc.nama_dokumen)}')">Hapus</button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+      } catch (err) {
+        loadingIndicator.style.display = 'none';
+        emptyContainer.style.display = 'block';
+        console.error(err);
+      }
+    }
+
+    window.hapusDokumen = async (id, nama) => {
+      const yakin = confirm(`Apakah Anda yakin ingin menghapus dokumen "${nama}" dari sistem dan Google Drive?`);
+      if (!yakin) return;
+
+      try {
+        const res = await api.deleteDokumen(id);
+        if (res && res.success) {
+          loadDokumen();
+        } else {
+          alert(res.message || 'Gagal menghapus dokumen.');
+        }
+      } catch (e) {
+        alert(e.message || 'Gagal menghapus dokumen.');
+      }
+    };
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escapeJs(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+  </script>
+</body>
+</html>

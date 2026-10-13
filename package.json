@@ -1,0 +1,16 @@
+{
+  "name": "dprd-sistem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem Informasi Pengarsipan Dokumen DPRD - Bagian Fasilitasi Penganggaran dan Pengawasan",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node tests/test-flow.js"
+  },
+  "devDependencies": {
+    "vite": "^5.4.8"
+  }
+}

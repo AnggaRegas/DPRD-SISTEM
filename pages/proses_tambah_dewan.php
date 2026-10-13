@@ -1,4 +1,3 @@
-```php
 <?php
 session_start();
 
@@ -138,4 +137,3 @@ mysqli_stmt_close($stmt);
 header("Location: tambah_dewan.php?error=gagal_simpan");
 exit;
 ?>
-```

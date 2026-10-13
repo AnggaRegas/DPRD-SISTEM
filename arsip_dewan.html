@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arsip Dewan - Sistem Pengarsipan Dokumen DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f5f7fb;
+      transition: margin-left .25s ease;
+    }
+    .main-content.sidebar-collapsed { margin-left: 78px; }
+    .page-container {
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+    .profile-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 26px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+    }
+    .profile-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .profile-avatar {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: #1e3a8a;
+      color: white;
+      font-size: 26px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(30, 58, 138, 0.25);
+    }
+    .profile-info h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      color: #1e293b;
+    }
+    .profile-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .profile-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .profile-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 650px) {
+      .main-content { margin-left: 78px; }
+      .page-container { padding: 20px 14px; }
+      .profile-card { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <div class="page-container">
+      <div class="breadcrumb">
+        <a href="dashboard.html">Dashboard</a>
+        <span>/</span>
+        <a href="dewan.html">Anggota Dewan</a>
+        <span>/</span>
+        <span id="breadcrumbDewanName">Arsip Dewan</span>
+      </div>
+
+      <!-- KARTU PROFIL ANGGOTA DEWAN -->
+      <div class="profile-card" id="profileCard">
+        <div class="profile-left">
+          <div class="profile-avatar" id="avatarInitial">D</div>
+          <div class="profile-info">
+            <h1 id="dewanNameTitle">Memuat nama...</h1>
+            <div class="profile-meta">
+              <span class="profile-badge" id="dewanJabatanBadge">-</span>
+              <span id="dewanPartaiText">Partai -</span>
+              <span>•</span>
+              <span id="dewanPeriodeText">Periode -</span>
+              <span>•</span>
+              <span>Pendamping: <strong id="dewanPengawasText">-</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <a href="#" id="btnTambahDokumenTop" class="btn btn-primary">
+            + Tambah Dokumen
+          </a>
+          <a href="#" id="btnEditDewanTop" class="btn btn-reset">
+            Edit Profil
+          </a>
+          <a href="#" id="btnTambahKategoriTop" class="btn btn-reset">
+            + Kategori Baru
+          </a>
+        </div>
+      </div>
+
+      <!-- DAFTAR KATEGORI DOKUMEN -->
+      <section class="content-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Kategori Dokumen Arsip</h2>
+            <p>Pilih kategori dokumen di bawah ini untuk melihat arsip berdasarkan tahun dan folder.</p>
+          </div>
+          <div class="panel-actions">
+            <div class="total-badge">
+              Total Kategori: <span id="totalKategoriCount">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 22px;">
+          <div id="loadingIndicator" class="loading-indicator">
+            <div class="spinner"></div> Memuat kategori dokumen...
+          </div>
+
+          <div id="kategoriGrid" class="grid-container" style="display:none;"></div>
+
+          <div id="emptyKategori" class="empty-data" style="display:none;">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <h3>Belum Ada Kategori Dokumen</h3>
+            <p>Tambahkan kategori baru untuk mulai mengarsipkan dokumen anggota dewan ini.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api } from './assets/js/api.js';
+
+    requireAuth();
+    renderSidebar('dewan');
+
+    const params = new URLSearchParams(window.location.search);
+    const dewanId = params.get('id');
+
+    if (!dewanId) {
+      window.location.replace('dewan.html');
+    }
+
+    const breadcrumbName = document.getElementById('breadcrumbDewanName');
+    const avatarInitial = document.getElementById('avatarInitial');
+    const nameTitle = document.getElementById('dewanNameTitle');
+    const jabatanBadge = document.getElementById('dewanJabatanBadge');
+    const partaiText = document.getElementById('dewanPartaiText');
+    const periodeText = document.getElementById('dewanPeriodeText');
+    const pengawasText = document.getElementById('dewanPengawasText');
+    const btnTambahDokumen = document.getElementById('btnTambahDokumenTop');
+    const btnEditDewan = document.getElementById('btnEditDewanTop');
+    const btnTambahKategori = document.getElementById('btnTambahKategoriTop');
+    const kategoriGrid = document.getElementById('kategoriGrid');
+    const emptyKategori = document.getElementById('emptyKategori');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const totalKategoriCount = document.getElementById('totalKategoriCount');
+
+    btnTambahDokumen.href = `tambah_dokumen.html?dewan_id=${dewanId}`;
+    btnEditDewan.href = `edit_dewan.html?id=${dewanId}`;
+    btnTambahKategori.href = `tambah_kategori.html?dewan_id=${dewanId}`;
+
+    loadArsip();
+
+    async function loadArsip() {
+      try {
+        // Ambil data dewan
+        const resDewan = await api.getDewanById(dewanId);
+        if (resDewan && resDewan.success && resDewan.data) {
+          const d = resDewan.data;
+          breadcrumbName.textContent = d.nama || 'Arsip Dewan';
+          nameTitle.textContent = d.nama || '-';
+          avatarInitial.textContent = (d.nama || 'D').charAt(0).toUpperCase();
+          jabatanBadge.textContent = d.jabatan || 'Anggota DPRD';
+          partaiText.textContent = d.nama_partai || 'Partai -';
+          periodeText.textContent = d.periode || '2024–2029';
+          pengawasText.textContent = d.nama_pengawas || 'Belum ditentukan';
+        }
+
+        // Ambil kategori beserta jumlah dokumennya untuk anggota dewan ini
+        const resKat = await api.getKategoriWithDocCount(dewanId);
+        loadingIndicator.style.display = 'none';
+
+        if (resKat && resKat.success && Array.isArray(resKat.data)) {
+          const categories = resKat.data;
+          totalKategoriCount.textContent = categories.length;
+
+          if (categories.length === 0) {
+            emptyKategori.style.display = 'block';
+            kategoriGrid.style.display = 'none';
+          } else {
+            emptyKategori.style.display = 'none';
+            kategoriGrid.style.display = 'grid';
+            kategoriGrid.innerHTML = categories.map((k) => `
+              <a href="kategori_dokumen.html?dewan_id=${dewanId}&kategori_id=${k.id}" class="item-card">
+                <div class="item-card-header">
+                  <div class="item-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="item-card-title">${escapeHtml(k.nama_kategori)}</div>
+                    <div class="item-card-desc">Arsip dokumen resmi dewan</div>
+                  </div>
+                </div>
+                <div class="item-card-footer">
+                  <span class="doc-count-badge">${k.jumlah_dokumen || 0} Dokumen</span>
+                  <span style="color:#2563eb; font-weight:600;">Buka Arsip &rarr;</span>
+                </div>
+              </a>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        loadingIndicator.style.display = 'none';
+        emptyKategori.style.display = 'block';
+        console.error(err);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

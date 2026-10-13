@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Anggota Dewan - Sistem Pengarsipan DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f5f7fb;
+      transition: margin-left .25s ease;
+    }
+    .main-content.sidebar-collapsed { margin-left: 78px; }
+    .page-container {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 {
+      margin: 0 0 8px;
+      color: #172554;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .page-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 13px;
+    }
+    @media (max-width: 650px) {
+      .main-content { margin-left: 78px; }
+      .page-container { padding: 20px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <div class="page-container">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a>
+          <span>/</span>
+          <a href="dewan.html">Anggota Dewan</a>
+          <span>/</span>
+          <span>Edit Dewan</span>
+        </div>
+        <h1>Edit Profil Anggota Dewan</h1>
+        <p>Perbarui informasi biodata, jabatan, dan partai politik anggota DPRD.</p>
+      </div>
+
+      <div class="form-box">
+        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
+        <div id="loadingBox" class="loading-indicator">
+          <div class="spinner"></div> Memuat data anggota dewan...
+        </div>
+
+        <form id="editDewanForm" style="display:none;">
+          <input type="hidden" id="dewanId">
+
+          <div class="form-group">
+            <label for="nama">Nama Lengkap & Gelar <span class="required">*</span></label>
+            <input type="text" id="nama" name="nama" required>
+          </div>
+
+          <div class="form-group">
+            <label for="jabatan">Jabatan di DPRD <span class="required">*</span></label>
+            <input type="text" id="jabatan" name="jabatan" required>
+          </div>
+
+          <div class="form-group">
+            <label for="periode">Periode Masa Jabatan <span class="required">*</span></label>
+            <input type="text" id="periode" name="periode" required>
+          </div>
+
+          <div class="form-group">
+            <label for="nama_partai">Partai Politik <span class="required">*</span></label>
+            <select id="nama_partai" name="nama_partai" required>
+              <option value="">-- Pilih Partai Politik --</option>
+              <option value="Partai Golongan Karya">Partai Golongan Karya</option>
+              <option value="Partai Nasional Demokrat">Partai Nasional Demokrat</option>
+              <option value="Partai Gerakan Indonesia Raya">Partai Gerakan Indonesia Raya</option>
+              <option value="Partai Keadilan Sejahtera">Partai Keadilan Sejahtera</option>
+              <option value="Partai Demokrasi Indonesia Perjuangan">Partai Demokrasi Indonesia Perjuangan</option>
+              <option value="Partai Kebangkitan Bangsa">Partai Kebangkitan Bangsa</option>
+              <option value="Partai Amanat Nasional">Partai Amanat Nasional</option>
+              <option value="Partai Demokrat">Partai Demokrat</option>
+              <option value="Partai Persatuan Pembangunan">Partai Persatuan Pembangunan</option>
+              <option value="Partai Gelombang Rakyat Indonesia">Partai Gelombang Rakyat Indonesia</option>
+              <option value="Partai Hati Nurani Rakyat">Partai Hati Nurani Rakyat</option>
+              <option value="Partai Bulan Bintang">Partai Bulan Bintang</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="nama_pengawas">Pendamping / Pengawas (Opsional)</label>
+            <input type="text" id="nama_pengawas" name="nama_pengawas">
+          </div>
+
+          <div class="form-group">
+            <label for="keterangan">Keterangan / Catatan (Opsional)</label>
+            <textarea id="keterangan" name="keterangan" rows="3"></textarea>
+          </div>
+
+          <div class="form-actions" style="justify-content: space-between;">
+            <div style="display:flex; gap:10px;">
+              <button type="submit" id="btnSubmit" class="btn btn-primary">Simpan Perubahan</button>
+              <a href="dewan.html" class="btn btn-reset">Batal</a>
+            </div>
+            <button type="button" id="btnDelete" class="btn btn-danger">Hapus Anggota</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api } from './assets/js/api.js';
+
+    requireAuth();
+    renderSidebar('dewan');
+
+    const params = new URLSearchParams(window.location.search);
+    const dewanId = params.get('id');
+
+    if (!dewanId) {
+      window.location.replace('dewan.html');
+    }
+
+    const form = document.getElementById('editDewanForm');
+    const alertBox = document.getElementById('alertBox');
+    const loadingBox = document.getElementById('loadingBox');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnDelete = document.getElementById('btnDelete');
+
+    loadData();
+
+    async function loadData() {
+      try {
+        const res = await api.getDewanById(dewanId);
+        if (res && res.success && res.data) {
+          const d = res.data;
+          document.getElementById('dewanId').value = d.id;
+          document.getElementById('nama').value = d.nama || '';
+          document.getElementById('jabatan').value = d.jabatan || '';
+          document.getElementById('periode').value = d.periode || '';
+          document.getElementById('nama_partai').value = d.nama_partai || '';
+          document.getElementById('nama_pengawas').value = d.nama_pengawas || '';
+          document.getElementById('keterangan').value = d.keterangan || '';
+
+          loadingBox.style.display = 'none';
+          form.style.display = 'block';
+        } else {
+          alertBox.textContent = res.message || 'Data dewan tidak ditemukan.';
+          alertBox.style.display = 'flex';
+          loadingBox.style.display = 'none';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Gagal memuat data.';
+        alertBox.style.display = 'flex';
+        loadingBox.style.display = 'none';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.style.display = 'none';
+
+      const data = {
+        id: dewanId,
+        nama: document.getElementById('nama').value.trim(),
+        jabatan: document.getElementById('jabatan').value.trim(),
+        periode: document.getElementById('periode').value.trim(),
+        nama_partai: document.getElementById('nama_partai').value,
+        nama_pengawas: document.getElementById('nama_pengawas').value.trim(),
+        keterangan: document.getElementById('keterangan').value.trim()
+      };
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Menyimpan...';
+
+      try {
+        const res = await api.updateDewan(data);
+        if (res && res.success) {
+          window.location.replace(`arsip_dewan.html?id=${dewanId}`);
+        } else {
+          alertBox.textContent = res.message || 'Gagal memperbarui data.';
+          alertBox.style.display = 'flex';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Simpan Perubahan';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Terjadi kesalahan jaringan.';
+        alertBox.style.display = 'flex';
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Simpan Perubahan';
+      }
+    });
+
+    btnDelete.addEventListener('click', async () => {
+      const namaDewan = document.getElementById('nama').value;
+      const yakin = confirm(`Apakah Anda yakin ingin menghapus data anggota dewan "${namaDewan}" beserta seluruh dokumen arsipnya?`);
+      if (!yakin) return;
+
+      btnDelete.disabled = true;
+      btnDelete.textContent = 'Menghapus...';
+
+      try {
+        const res = await api.deleteDewan(dewanId);
+        if (res && res.success) {
+          window.location.replace('dewan.html');
+        } else {
+          alert(res.message || 'Gagal menghapus dewan.');
+          btnDelete.disabled = false;
+          btnDelete.textContent = 'Hapus Anggota';
+        }
+      } catch (e) {
+        alert(e.message || 'Gagal menghapus dewan.');
+        btnDelete.disabled = false;
+        btnDelete.textContent = 'Hapus Anggota';
+      }
+    });
+  </script>
+</body>
+</html>

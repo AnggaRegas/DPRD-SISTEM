@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Kategori - Sistem Pengarsipan DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f5f7fb;
+      transition: margin-left .25s ease;
+    }
+    .main-content.sidebar-collapsed { margin-left: 78px; }
+    .page-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 {
+      margin: 0 0 8px;
+      color: #172554;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    @media (max-width: 650px) {
+      .main-content { margin-left: 78px; }
+      .page-container { padding: 20px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <div class="page-container">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a>
+          <span>/</span>
+          <a href="dewan.html">Anggota Dewan</a>
+          <span>/</span>
+          <span>Edit Kategori</span>
+        </div>
+        <h1>Edit Kategori Dokumen</h1>
+        <p>Perbarui atau hapus kategori pengarsipan dokumen.</p>
+      </div>
+
+      <div class="form-box">
+        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
+        <div id="loadingBox" class="loading-indicator">
+          <div class="spinner"></div> Memuat kategori...
+        </div>
+
+        <form id="editKatForm" style="display:none;">
+          <div class="form-group">
+            <label for="inputNamaKategori">Nama Kategori Dokumen <span class="required">*</span></label>
+            <input type="text" id="inputNamaKategori" required>
+          </div>
+
+          <div class="form-actions" style="justify-content: space-between;">
+            <div style="display:flex; gap:10px;">
+              <button type="submit" id="btnSubmit" class="btn btn-primary">Simpan Perubahan</button>
+              <button type="button" onclick="window.history.back()" class="btn btn-reset">Batal</button>
+            </div>
+            <button type="button" id="btnDeleteKat" class="btn btn-danger">Hapus Kategori</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api } from './assets/js/api.js';
+
+    requireAuth();
+    renderSidebar('dewan');
+
+    const params = new URLSearchParams(window.location.search);
+    const katId = params.get('id');
+
+    if (!katId) {
+      window.location.replace('dewan.html');
+    }
+
+    const form = document.getElementById('editKatForm');
+    const inputNama = document.getElementById('inputNamaKategori');
+    const alertBox = document.getElementById('alertBox');
+    const loadingBox = document.getElementById('loadingBox');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnDelete = document.getElementById('btnDeleteKat');
+
+    loadKategori();
+
+    async function loadKategori() {
+      try {
+        const res = await api.getKategoriList();
+        if (res && res.success && Array.isArray(res.data)) {
+          const matched = res.data.find((k) => String(k.id) === String(katId));
+          if (matched) {
+            inputNama.value = matched.nama_kategori || '';
+            loadingBox.style.display = 'none';
+            form.style.display = 'block';
+          } else {
+            alertBox.textContent = 'Kategori tidak ditemukan.';
+            alertBox.style.display = 'flex';
+            loadingBox.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Gagal memuat kategori.';
+        alertBox.style.display = 'flex';
+        loadingBox.style.display = 'none';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.style.display = 'none';
+
+      const nama = inputNama.value.trim();
+      if (!nama) {
+        alertBox.textContent = 'Nama kategori wajib diisi.';
+        alertBox.style.display = 'flex';
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Menyimpan...';
+
+      try {
+        const res = await api.updateKategori(katId, nama);
+        if (res && res.success) {
+          window.history.back();
+        } else {
+          alertBox.textContent = res.message || 'Gagal memperbarui kategori.';
+          alertBox.style.display = 'flex';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Simpan Perubahan';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Terjadi kesalahan.';
+        alertBox.style.display = 'flex';
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Simpan Perubahan';
+      }
+    });
+
+    btnDelete.addEventListener('click', async () => {
+      const yakin = confirm('Apakah Anda yakin ingin menghapus kategori ini? Kategori yang masih memiliki dokumen tidak dapat dihapus.');
+      if (!yakin) return;
+
+      btnDelete.disabled = true;
+      btnDelete.textContent = 'Menghapus...';
+
+      try {
+        const res = await api.deleteKategori(katId);
+        if (res && res.success) {
+          window.history.back();
+        } else {
+          alert(res.message || 'Gagal menghapus kategori.');
+          btnDelete.disabled = false;
+          btnDelete.textContent = 'Hapus Kategori';
+        }
+      } catch (e) {
+        alert(e.message || 'Gagal menghapus kategori.');
+        btnDelete.disabled = false;
+        btnDelete.textContent = 'Hapus Kategori';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Dokumen - Sistem Pengarsipan DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f5f7fb;
+      transition: margin-left .25s ease;
+    }
+    .main-content.sidebar-collapsed { margin-left: 78px; }
+    .page-container {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 {
+      margin: 0 0 8px;
+      color: #172554;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .page-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 13px;
+    }
+    .current-file-box {
+      padding: 12px 16px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    @media (max-width: 650px) {
+      .main-content { margin-left: 78px; }
+      .page-container { padding: 20px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <div class="page-container">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a>
+          <span>/</span>
+          <a href="dewan.html">Anggota Dewan</a>
+          <span>/</span>
+          <span>Edit Dokumen</span>
+        </div>
+        <h1>Edit Dokumen Arsip</h1>
+        <p>Perbarui informasi metadata dokumen atau ganti berkas fisik di Google Drive.</p>
+      </div>
+
+      <div class="form-box">
+        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
+        <div id="loadingBox" class="loading-indicator">
+          <div class="spinner"></div> Memuat data dokumen...
+        </div>
+
+        <form id="editDokumenForm" style="display:none;">
+          <input type="hidden" id="docId">
+
+          <div class="form-group">
+            <label for="inputNamaDokumen">Nama / Judul Dokumen <span class="required">*</span></label>
+            <input type="text" id="inputNamaDokumen" required>
+          </div>
+
+          <div class="form-group">
+            <label for="selectKategori">Kategori Dokumen <span class="required">*</span></label>
+            <select id="selectKategori" required></select>
+          </div>
+
+          <div class="form-group">
+            <label for="inputTahun">Tahun Dokumen <span class="required">*</span></label>
+            <input type="number" id="inputTahun" min="1900" max="2100" required>
+          </div>
+
+          <div class="form-group">
+            <label>Berkas Fisik Saat Ini</label>
+            <div class="current-file-box">
+              <span id="currentFileName">Memuat nama berkas...</span>
+              <a href="#" id="currentFileLink" target="_blank" rel="noopener noreferrer" style="color:#2563eb; font-weight:600;">Lihat Berkas &rarr;</a>
+            </div>
+            <label for="inputFileBaru" style="margin-top:10px;">Ganti Berkas (Opsional)</label>
+            <input type="file" id="inputFileBaru" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
+            <small>Kosongkan jika tidak ingin mengganti berkas yang ada di Google Drive.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="inputKeterangan">Keterangan / Catatan</label>
+            <textarea id="inputKeterangan" rows="3"></textarea>
+          </div>
+
+          <div class="form-actions" style="justify-content: space-between;">
+            <div style="display:flex; gap:10px;">
+              <button type="submit" id="btnSubmitEdit" class="btn btn-primary">Simpan Perubahan</button>
+              <button type="button" id="btnBatal" class="btn btn-reset">Batal</button>
+            </div>
+            <button type="button" id="btnDeleteDoc" class="btn btn-danger">Hapus Dokumen</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api, fileToBase64 } from './assets/js/api.js';
+
+    requireAuth();
+    renderSidebar('dewan');
+
+    const params = new URLSearchParams(window.location.search);
+    const docId = params.get('id');
+
+    if (!docId) {
+      window.location.replace('dewan.html');
+    }
+
+    const form = document.getElementById('editDokumenForm');
+    const alertBox = document.getElementById('alertBox');
+    const loadingBox = document.getElementById('loadingBox');
+    const inputNamaDokumen = document.getElementById('inputNamaDokumen');
+    const selectKategori = document.getElementById('selectKategori');
+    const inputTahun = document.getElementById('inputTahun');
+    const currentFileName = document.getElementById('currentFileName');
+    const currentFileLink = document.getElementById('currentFileLink');
+    const inputFileBaru = document.getElementById('inputFileBaru');
+    const inputKeterangan = document.getElementById('inputKeterangan');
+    const btnSubmit = document.getElementById('btnSubmitEdit');
+    const btnBatal = document.getElementById('btnBatal');
+    const btnDelete = document.getElementById('btnDeleteDoc');
+
+    let currentDoc = null;
+
+    loadData();
+
+    async function loadData() {
+      try {
+        const [resDoc, resKat] = await Promise.all([
+          api.getDokumenById(docId),
+          api.getKategoriList()
+        ]);
+
+        if (resKat && resKat.success && Array.isArray(resKat.data)) {
+          selectKategori.innerHTML = resKat.data.map((k) => `<option value="${k.id}">${k.nama_kategori}</option>`).join('');
+        }
+
+        if (resDoc && resDoc.success && resDoc.data) {
+          currentDoc = resDoc.data;
+          inputNamaDokumen.value = currentDoc.nama_dokumen || '';
+          selectKategori.value = currentDoc.kategori_id || '';
+          inputTahun.value = currentDoc.tahun || '';
+          inputKeterangan.value = currentDoc.keterangan || '';
+          currentFileName.textContent = currentDoc.nama_file || 'Tidak ada berkas fisik';
+          currentFileLink.href = currentDoc.view_url || currentDoc.direct_url || '#';
+
+          loadingBox.style.display = 'none';
+          form.style.display = 'block';
+        } else {
+          alertBox.textContent = resDoc.message || 'Dokumen tidak ditemukan.';
+          alertBox.style.display = 'flex';
+          loadingBox.style.display = 'none';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Gagal memuat dokumen.';
+        alertBox.style.display = 'flex';
+        loadingBox.style.display = 'none';
+      }
+    }
+
+    btnBatal.addEventListener('click', () => {
+      window.history.back();
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.style.display = 'none';
+
+      const updateData = {
+        id: docId,
+        nama_dokumen: inputNamaDokumen.value.trim(),
+        kategori_id: selectKategori.value,
+        tahun: parseInt(inputTahun.value, 10),
+        keterangan: inputKeterangan.value.trim()
+      };
+
+      if (!updateData.nama_dokumen) {
+        alertBox.textContent = 'Nama dokumen wajib diisi.';
+        alertBox.style.display = 'flex';
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Menyimpan...';
+
+      try {
+        if (inputFileBaru.files && inputFileBaru.files[0]) {
+          const file = inputFileBaru.files[0];
+          updateData.fileName = file.name;
+          updateData.base64 = await fileToBase64(file);
+          btnSubmit.textContent = 'Mengganti berkas di Google Drive...';
+        }
+
+        const res = await api.updateDokumen(updateData);
+        if (res && res.success) {
+          window.history.back();
+        } else {
+          alertBox.textContent = res.message || 'Gagal memperbarui dokumen.';
+          alertBox.style.display = 'flex';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Simpan Perubahan';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Terjadi kesalahan jaringan.';
+        alertBox.style.display = 'flex';
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Simpan Perubahan';
+      }
+    });
+
+    btnDelete.addEventListener('click', async () => {
+      const yakin = confirm(`Apakah Anda yakin ingin menghapus dokumen "${currentDoc?.nama_dokumen}" dari Google Drive dan database?`);
+      if (!yakin) return;
+
+      btnDelete.disabled = true;
+      btnDelete.textContent = 'Menghapus...';
+
+      try {
+        const res = await api.deleteDokumen(docId);
+        if (res && res.success) {
+          window.history.back();
+        } else {
+          alert(res.message || 'Gagal menghapus dokumen.');
+          btnDelete.disabled = false;
+          btnDelete.textContent = 'Hapus Dokumen';
+        }
+      } catch (e) {
+        alert(e.message || 'Gagal menghapus dokumen.');
+        btnDelete.disabled = false;
+        btnDelete.textContent = 'Hapus Dokumen';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-```php
 <?php
 session_start();
 
@@ -334,4 +333,3 @@ $daftar_partai = [
 
 </body>
 </html>
-```

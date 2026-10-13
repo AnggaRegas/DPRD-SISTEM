@@ -1,4 +1,3 @@
-```php
 <?php
 session_start();
 
@@ -848,4 +847,3 @@ $total_data = $query ? mysqli_num_rows($query) : 0;
 
 </body>
 </html>
-```

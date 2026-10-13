@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anggota Dewan - Sistem Pengarsipan Dokumen DPRD</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #334155;
+    }
+    .main-content {
+      margin-left: 250px;
+      min-height: 100vh;
+      background: #f5f7fb;
+      transition: margin-left .25s ease;
+    }
+    .main-content.sidebar-collapsed {
+      margin-left: 78px;
+    }
+    .dewan-page {
+      width: 100%;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .page-heading { min-width: 0; }
+    .page-header h1 {
+      margin: 0 0 8px;
+      color: #172554;
+      font-size: 25px;
+      font-weight: 700;
+      letter-spacing: -.4px;
+    }
+    .page-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 38px;
+      padding: 9px 15px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+    .btn-primary { background: #1e3a8a; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-reset { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+    .btn-reset:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .belum-ditentukan { color: #94a3b8; font-style: italic; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <main class="main-content" id="mainContent">
+    <section class="dewan-page">
+      <header class="page-header">
+        <div class="page-heading">
+          <div class="breadcrumb">
+            <a href="dashboard.html">Dashboard</a>
+            <span>/</span>
+            <span>Anggota Dewan</span>
+          </div>
+          <h1>Anggota Dewan</h1>
+          <p>Kelola data anggota DPRD, jabatan, pendamping, dan informasi partai politik.</p>
+        </div>
+      </header>
+
+      <section class="content-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Daftar Anggota Dewan</h2>
+            <p>Informasi anggota dewan untuk periode 2024–2029.</p>
+          </div>
+          <div class="panel-actions">
+            <div class="total-badge">
+              Total dewan: <span id="totalDewanText">0</span>
+            </div>
+            <a href="tambah_dewan.html" class="btn btn-primary">
+              <span aria-hidden="true">+</span> Tambah Dewan
+            </a>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <form id="searchForm" class="search-form">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-4-4"></path>
+              </svg>
+              <input type="text" id="searchInput" placeholder="Cari nama anggota dewan..." autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-primary">Cari</button>
+            <button type="button" id="btnResetSearch" class="btn btn-reset" style="display:none;">Reset</button>
+          </form>
+        </div>
+
+        <div id="searchInfo" class="search-result-info" style="display:none;"></div>
+
+        <div id="loadingIndicator" class="loading-indicator">
+          <div class="spinner"></div> Memuat data anggota dewan...
+        </div>
+
+        <div id="tableContainer" class="table-box" style="display:none;">
+          <table id="tabelDewan">
+            <thead>
+              <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Nama Dewan</th>
+                <th>Jabatan</th>
+                <th>Periode</th>
+                <th>Pendamping</th>
+                <th>Nama Partai</th>
+                <th style="width: 140px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="dewanTableBody"></tbody>
+          </table>
+
+          <div class="table-footer">
+            <span id="footerCount">Menampilkan 0 data anggota dewan</span>
+            <span>Sistem Pengarsipan DPRD</span>
+          </div>
+        </div>
+
+        <div id="emptyContainer" class="empty-data" style="display:none;">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="10" cy="10" r="6"></circle>
+              <path d="m15 15 5 5"></path>
+            </svg>
+          </div>
+          <h3 id="emptyTitle">Belum ada data anggota dewan</h3>
+          <p id="emptyDesc">Tambahkan data anggota dewan untuk mulai menggunakan halaman ini.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+    import { api } from './assets/js/api.js';
+
+    requireAuth();
+    renderSidebar('dewan');
+
+    let allDewan = [];
+
+    const loadingEl = document.getElementById('loadingIndicator');
+    const tableContainer = document.getElementById('tableContainer');
+    const emptyContainer = document.getElementById('emptyContainer');
+    const tableBody = document.getElementById('dewanTableBody');
+    const totalDewanText = document.getElementById('totalDewanText');
+    const footerCount = document.getElementById('footerCount');
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const btnResetSearch = document.getElementById('btnResetSearch');
+    const searchInfo = document.getElementById('searchInfo');
+
+    loadDewan();
+
+    async function loadDewan(search = '') {
+      loadingEl.style.display = 'flex';
+      tableContainer.style.display = 'none';
+      emptyContainer.style.display = 'none';
+
+      try {
+        const res = await api.getDewanList(search);
+        if (res && res.success && Array.isArray(res.data)) {
+          allDewan = res.data;
+          renderTable(allDewan, search);
+        } else {
+          showEmpty('Gagal memuat data', res.message || 'Terjadi kesalahan sistem.');
+        }
+      } catch (err) {
+        showEmpty('Koneksi Gagal', err.message || 'Gagal memuat data dewan.');
+      } finally {
+        loadingEl.style.display = 'none';
+      }
+    }
+
+    function renderTable(data, search = '') {
+      totalDewanText.textContent = data.length;
+
+      if (search) {
+        btnResetSearch.style.display = 'inline-flex';
+        searchInfo.style.display = 'block';
+        searchInfo.innerHTML = `Hasil pencarian untuk <strong>"${escapeHtml(search)}"</strong>. Ditemukan ${data.length} data.`;
+      } else {
+        btnResetSearch.style.display = 'none';
+        searchInfo.style.display = 'none';
+      }
+
+      if (data.length === 0) {
+        if (search) {
+          showEmpty(
+            'Data anggota dewan tidak ditemukan',
+            `Tidak ada anggota dewan dengan kata kunci "${escapeHtml(search)}". Coba gunakan kata kunci lain.`
+          );
+        } else {
+          showEmpty('Belum ada data anggota dewan', 'Tambahkan data anggota dewan untuk mulai mengelola arsip.');
+        }
+        return;
+      }
+
+      tableContainer.style.display = 'block';
+      emptyContainer.style.display = 'none';
+      footerCount.textContent = `Menampilkan ${data.length} data anggota dewan`;
+
+      tableBody.innerHTML = data.map((row, idx) => `
+        <tr>
+          <td class="number-cell">${idx + 1}</td>
+          <td>
+            <a href="arsip_dewan.html?id=${row.id}" class="dewan-name">
+              ${escapeHtml(row.nama || '-')}
+            </a>
+          </td>
+          <td class="jabatan-text">${escapeHtml(row.jabatan || '-')}</td>
+          <td class="periode-text">${escapeHtml(row.periode || '-')}</td>
+          <td>
+            ${row.nama_pengawas ? escapeHtml(row.nama_pengawas) : '<span class="belum-ditentukan">Belum ditentukan</span>'}
+          </td>
+          <td class="party-text">
+            ${row.nama_partai ? escapeHtml(row.nama_partai) : '<span class="belum-ditentukan">Belum diisi</span>'}
+          </td>
+          <td>
+            <a href="arsip_dewan.html?id=${row.id}" class="lihat-arsip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px; height:13px;">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Lihat Arsip
+            </a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function showEmpty(title, desc) {
+      tableContainer.style.display = 'none';
+      emptyContainer.style.display = 'block';
+      document.getElementById('emptyTitle').textContent = title;
+      document.getElementById('emptyDesc').innerHTML = desc;
+    }
+
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = searchInput.value.trim();
+      loadDewan(val);
+    });
+
+    btnResetSearch.addEventListener('click', () => {
+      searchInput.value = '';
+      loadDewan('');
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Pengarsipan Dokumen DPRD</title>
+  <script type="module">
+    import { getStoredToken } from './assets/js/auth.js';
+    const token = getStoredToken();
+    if (token) {
+      window.location.replace('dashboard.html');
+    } else {
+      window.location.replace('login.html');
+    }
+  </script>
+</head>
+<body style="background:#f4f6f9; display:flex; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; color:#64748b;">
+  <p>Memuat Sistem Pengarsipan Dokumen DPRD...</p>
+</body>
+</html>

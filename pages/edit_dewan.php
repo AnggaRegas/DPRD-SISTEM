@@ -1,4 +1,3 @@
-```php
 <?php
 session_start();
 
@@ -509,4 +508,3 @@ document.addEventListener('keydown', function(event) {
 
 </body>
 </html>
-```

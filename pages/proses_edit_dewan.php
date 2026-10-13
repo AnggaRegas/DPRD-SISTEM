@@ -1,4 +1,3 @@
-```php
 <?php
 
 session_start();
@@ -197,4 +196,3 @@ header("Location: edit_dewan.php?id=$id&error=gagal_simpan");
 exit;
 
 ?>
-```
