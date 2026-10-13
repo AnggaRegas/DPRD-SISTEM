@@ -1,5 +1,5 @@
+```php
 <?php
-
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -9,25 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once "../config/database.php";
 
-
-/* =====================================================
-   DATA USER
-===================================================== */
-
-$nama_user = $_SESSION['nama'] ?? 'Staff';
-$role      = $_SESSION['role'] ?? 'Staff';
-
-
-/* =====================================================
-   PENCARIAN
-===================================================== */
-
 $keyword = trim($_GET['cari'] ?? '');
-
-
-/* =====================================================
-   URUTAN JABATAN
-===================================================== */
 
 $order_jabatan = "
     CASE
@@ -41,1253 +23,829 @@ $order_jabatan = "
     END
 ";
 
-
-/* =====================================================
-   AMBIL DATA ANGGOTA DEWAN
-===================================================== */
-
 if ($keyword !== '') {
-
-    $keyword_sql = mysqli_real_escape_string(
+    $stmt = mysqli_prepare(
         $conn,
-        $keyword
+        "SELECT * FROM dewan
+         WHERE nama LIKE ?
+         ORDER BY $order_jabatan ASC, jabatan ASC, nama ASC"
     );
 
-    $query = mysqli_query(
-        $conn,
-        "SELECT *
-         FROM dewan
-         WHERE nama LIKE '%$keyword_sql%'
-         ORDER BY
-            $order_jabatan ASC,
-            jabatan ASC,
-            nama ASC"
-    );
-
+    $cari = "%{$keyword}%";
+    mysqli_stmt_bind_param($stmt, "s", $cari);
+    mysqli_stmt_execute($stmt);
+    $query = mysqli_stmt_get_result($stmt);
 } else {
-
     $query = mysqli_query(
         $conn,
-        "SELECT *
-         FROM dewan
-         ORDER BY
-            $order_jabatan ASC,
-            jabatan ASC,
-            nama ASC"
+        "SELECT * FROM dewan
+         ORDER BY $order_jabatan ASC, jabatan ASC, nama ASC"
     );
-
 }
 
+function tampilkan($nilai)
+{
+    return htmlspecialchars(
+        (string)($nilai ?? ''),
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
+
+$total_data = $query ? mysqli_num_rows($query) : 0;
 ?>
 
 <!DOCTYPE html>
-
 <html lang="id">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>Anggota Dewan</title>
 
-    <title>
-        Anggota Dewan
-    </title>
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css"
-    >
+    <link rel="stylesheet" href="../assets/css/style.css">
 
     <style>
-
-        /* =====================================================
-           RESET
-        ===================================================== */
-
         * {
             box-sizing: border-box;
         }
 
-        html,
         body {
             margin: 0;
-            padding: 0;
-        }
-
-        body {
-            background: #f4f6f9;
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
+            background: #f5f7fb;
+            font-family: Arial, Helvetica, sans-serif;
             color: #334155;
         }
-
-
-        /* =====================================================
-           MAIN CONTENT
-        ===================================================== */
 
         .main-content {
             margin-left: 250px;
             min-height: 100vh;
-            background: #f4f6f9;
-            transition:
-                margin-left 0.25s ease;
+            background: #f5f7fb;
+            transition: margin-left .25s ease;
         }
 
         .main-content.sidebar-collapsed {
             margin-left: 78px;
         }
 
-
-        /* =====================================================
-           PAGE
-        ===================================================== */
-
         .dewan-page {
-            padding: 32px;
+            width: 100%;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 26px 24px;
         }
 
-
-        /* =====================================================
-           HEADER
-        ===================================================== */
+        /* HEADER */
 
         .page-header {
-            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .page-heading {
+            min-width: 0;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .breadcrumb a {
+            color: #64748b;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            color: #1e3a8a;
         }
 
         .page-header h1 {
-            margin: 0 0 7px;
-            font-size: 24px;
-            color: #1e293b;
+            margin: 0 0 8px;
+            color: #172554;
+            font-size: 25px;
+            font-weight: 700;
+            letter-spacing: -.4px;
         }
 
         .page-header p {
             margin: 0;
             color: #64748b;
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.7;
         }
 
-
-        /* =====================================================
-           NAVIGASI KEMBALI
-        ===================================================== */
-
-        .back-navigation {
-            margin-bottom: 18px;
-        }
-
-        .back-navigation a {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 9px 14px;
-            background: #1e3a8a;
-            color: white;
-            text-decoration: none;
-            border-radius: 7px;
-            font-size: 13px;
-            font-weight: 600;
-            transition:
-                background-color 0.2s ease;
-        }
-
-        .back-navigation a:hover {
-            background: #1d4ed8;
-        }
-
-
-        /* =====================================================
-           TOOLBAR
-        ===================================================== */
-
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 14px;
-        }
-
-
-        /* =====================================================
-           SEARCH
-        ===================================================== */
-
-        .search-box {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            flex: 1;
-        }
-
-        .search-form {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .search-box input {
-            width: 320px;
-            height: 42px;
-            border:
-                1px solid
-                #d1d5db;
-            border-radius: 7px;
-            padding:
-                0 14px;
-            outline: none;
-            font-size: 13px;
-            background: white;
-            color: #334155;
-        }
-
-        .search-box input:focus {
-            border-color:
-                #1e3a8a;
-            box-shadow:
-                0 0 0 2px
-                rgba(30,58,138,0.08);
-        }
-
-        .search-box input::placeholder {
-            color: #94a3b8;
-        }
-
-
-        /* =====================================================
-           TOMBOL CARI
-        ===================================================== */
-
-        .btn-search {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            height: 42px;
-            padding:
-                0 15px;
-            border: none;
-            border-radius: 7px;
-            background: #1e3a8a;
-            color: white;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .btn-search:hover {
-            background: #1d4ed8;
-        }
-
-
-        /* =====================================================
-           RESET SEARCH
-        ===================================================== */
-
-        .btn-reset {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 42px;
-            padding:
-                0 14px;
-            border-radius: 7px;
-            background: #64748b;
-            color: white;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .btn-reset:hover {
-            background: #475569;
-        }
-
-
-        /* =====================================================
-           BUTTON
-        ===================================================== */
+        /* BUTTON */
 
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border: none;
-            border-radius: 7px;
-            padding:
-                11px 15px;
-            text-decoration: none;
-            font-size: 13px;
+            gap: 7px;
+            min-height: 38px;
+            padding: 9px 13px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 12px;
             font-weight: 600;
-            cursor: pointer;
+            text-decoration: none;
             white-space: nowrap;
+            cursor: pointer;
+            transition: background .2s ease, border-color .2s ease;
         }
 
         .btn-primary {
             background: #1e3a8a;
-            color: white;
+            color: #fff;
         }
 
         .btn-primary:hover {
             background: #1d4ed8;
         }
 
+        .btn-reset {
+            background: #fff;
+            border-color: #e2e8f0;
+            color: #475569;
+        }
 
-        /* =====================================================
-           TABLE BOX
-        ===================================================== */
+        .btn-reset:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        /* PANEL */
+
+        .content-panel {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 12px rgba(15, 23, 42, .035);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 18px;
+            border-bottom: 1px solid #edf0f5;
+        }
+
+        .panel-title h2 {
+            margin: 0 0 6px;
+            color: #1e293b;
+            font-size: 15px;
+        }
+
+        .panel-title p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .total-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: 7px;
+            background: #eff6ff;
+            color: #1e40af;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .total-badge span {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* TOOLBAR */
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 14px 18px;
+            background: #fff;
+            border-bottom: 1px solid #edf0f5;
+        }
+
+        .search-form {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
+            flex: 1;
+        }
+
+        .search-input-wrap {
+            position: relative;
+            width: 300px;
+            max-width: 100%;
+        }
+
+        .search-input-wrap svg {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            transform: translateY(-50%);
+            stroke: #94a3b8;
+            pointer-events: none;
+        }
+
+        .search-form input {
+            width: 100%;
+            height: 38px;
+            padding: 0 12px 0 35px;
+            border: 1px solid #dbe2ea;
+            border-radius: 8px;
+            background: #fff;
+            color: #334155;
+            font-size: 12px;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .search-form input::placeholder {
+            color: #a0aaba;
+        }
+
+        .search-form input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .10);
+        }
+
+        .search-result-info {
+            padding: 11px 18px;
+            background: #f8fbff;
+            border-bottom: 1px solid #e5edf9;
+            color: #475569;
+            font-size: 11px;
+        }
+
+        .search-result-info strong {
+            color: #1e3a8a;
+        }
+
+        /* TABLE */
 
         .table-box {
             width: 100%;
-            background: white;
-            border:
-                1px solid
-                #e5e7eb;
-            border-radius: 10px;
-            overflow: hidden;
+            overflow-x: hidden;
         }
-
-
-        /* =====================================================
-           TABLE
-        ===================================================== */
 
         table {
             width: 100%;
-            border-collapse: collapse;
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0;
             table-layout: fixed;
         }
 
-        th {
+        thead th {
+            padding: 12px 7px;
             background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
             text-align: left;
-            font-size: 13px;
-            font-weight: 600;
-            color: #475569;
-            padding: 13px;
-            border-bottom:
-                1px solid
-                #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
         }
 
-        td {
-            padding: 13px;
-            font-size: 13px;
-            border-bottom:
-                1px solid
-                #f1f5f9;
+        tbody td {
+            padding: 12px 7px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #475569;
+            font-size: 11px;
+            line-height: 1.65;
             vertical-align: middle;
-            color: #475569;
+            overflow-wrap: anywhere;
+            word-break: normal;
         }
 
-        tr:last-child td {
+        tbody tr {
+            transition: background .15s ease;
+        }
+
+        tbody tr:hover td {
+            background: #f8fbff;
+        }
+
+        tbody tr:last-child td {
             border-bottom: none;
         }
 
-        tr:hover td {
-            background: #f8fafc;
-        }
-
-
-        /* =====================================================
-           LEBAR KOLOM
-        ===================================================== */
+        /* LEBAR KOLOM */
 
         th:nth-child(1),
         td:nth-child(1) {
-            width: 5%;
+            width: 4%;
+            text-align: center;
         }
 
         th:nth-child(2),
         td:nth-child(2) {
-            width: 25%;
+            width: 21%;
         }
 
         th:nth-child(3),
         td:nth-child(3) {
-            width: 22%;
+            width: 16%;
         }
 
         th:nth-child(4),
         td:nth-child(4) {
-            width: 12%;
+            width: 10%;
         }
 
         th:nth-child(5),
         td:nth-child(5) {
-            width: 22%;
+            width: 19%;
         }
 
         th:nth-child(6),
         td:nth-child(6) {
-            width: 14%;
+            width: 17%;
         }
 
+        th:nth-child(7),
+        td:nth-child(7) {
+            width: 13%;
+        }
 
-        /* =====================================================
-           NAMA DEWAN
-        ===================================================== */
+        .number-cell {
+            color: #94a3b8;
+            font-weight: 600;
+        }
 
         .dewan-name {
-            font-weight: 600;
             color: #1e3a8a;
+            font-size: 11px;
+            font-weight: 700;
             text-decoration: none;
         }
 
         .dewan-name:hover {
+            color: #2563eb;
             text-decoration: underline;
         }
 
+        .jabatan-text {
+            color: #334155;
+            font-weight: 500;
+        }
 
-        /* =====================================================
-           PENGAWAS
-        ===================================================== */
-
-        .pendamping-name {
-            color: #374151;
+        .periode-text,
+        .party-text {
+            color: #64748b;
         }
 
         .belum-ditentukan {
             color: #94a3b8;
+            font-style: italic;
         }
 
-
-        /* =====================================================
-           LIHAT ARSIP
-        ===================================================== */
+        /* AKSI */
 
         .lihat-arsip {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            background: #1e3a8a;
-            color: white;
+            justify-content: center;
+            gap: 4px;
+            max-width: 100%;
+            padding: 7px 8px;
+            border: 1px solid #dbeafe;
+            border-radius: 7px;
+            background: #eff6ff;
+            color: #1e40af;
+            font-size: 10px;
+            font-weight: 700;
             text-decoration: none;
-            font-weight: 600;
-            font-size: 12px;
-            padding:
-                8px 11px;
-            border-radius: 6px;
-            white-space: nowrap;
+            white-space: normal;
+            line-height: 1.4;
+            transition: background .2s, border-color .2s;
         }
 
         .lihat-arsip:hover {
-            background: #1d4ed8;
+            background: #dbeafe;
+            border-color: #bfdbfe;
         }
 
+        .lihat-arsip svg {
+            width: 13px;
+            height: 13px;
+            min-width: 13px;
+            stroke: currentColor;
+        }
 
-        /* =====================================================
-           EMPTY DATA
-        ===================================================== */
+        /* DATA KOSONG */
 
         .empty-data {
+            padding: 45px 20px;
             text-align: center;
-            padding: 50px;
-            color: #64748b;
         }
 
         .empty-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 14px;
+            border-radius: 14px;
+            background: #eff6ff;
+            color: #2563eb;
         }
 
-        .empty-data strong {
-            color: #475569;
+        .empty-icon svg {
+            width: 25px;
+            height: 25px;
+            stroke: currentColor;
+        }
+
+        .empty-data h3 {
+            margin: 0 0 7px;
+            color: #334155;
             font-size: 14px;
         }
 
         .empty-data p {
-            font-size: 13px;
-        }
-
-
-        /* =====================================================
-           HASIL PENCARIAN
-        ===================================================== */
-
-        .search-result-info {
-            padding:
-                13px 15px;
-            background: #eff6ff;
-            border-bottom:
-                1px solid
-                #dbeafe;
-            color: #1e3a8a;
-            font-size: 13px;
-        }
-
-        .search-result-info strong {
-            font-weight: 600;
-        }
-
-
-        /* =====================================================
-           PENCARIAN TIDAK DITEMUKAN
-        ===================================================== */
-
-        .search-not-found {
-            text-align: center;
-            padding: 55px 20px;
-            color: #64748b;
-        }
-
-        .search-not-found-icon {
-            font-size: 42px;
-            margin-bottom: 12px;
-        }
-
-        .search-not-found h3 {
-            margin:
-                0 0 7px;
-            color: #475569;
-            font-size: 16px;
-        }
-
-        .search-not-found p {
             margin: 0;
-            font-size: 13px;
-            line-height: 1.6;
+            color: #94a3b8;
+            font-size: 11px;
+            line-height: 1.7;
         }
 
+        /* FOOTER */
 
-        /* =====================================================
-           RESPONSIVE
-        ===================================================== */
+        .table-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 18px;
+            border-top: 1px solid #edf0f5;
+            background: #fff;
+            color: #94a3b8;
+            font-size: 10px;
+        }
 
-        @media (max-width: 900px) {
+        /* LAYAR MENENGAH */
 
-            .main-content {
-                margin-left: 220px;
-            }
-
-            .main-content.sidebar-collapsed {
-                margin-left: 78px;
-            }
-
+        @media (max-width: 1100px) {
             .dewan-page {
-                padding: 25px;
+                padding: 20px 14px;
             }
 
+            .panel-header,
+            .toolbar {
+                padding-left: 13px;
+                padding-right: 13px;
+            }
+
+            thead th {
+                padding: 10px 5px;
+                font-size: 9px;
+            }
+
+            tbody td {
+                padding: 10px 5px;
+                font-size: 10px;
+            }
+
+            .dewan-name {
+                font-size: 10px;
+            }
+
+            .lihat-arsip {
+                padding: 6px 5px;
+                font-size: 9px;
+                gap: 3px;
+            }
+
+            .lihat-arsip svg {
+                width: 11px;
+                height: 11px;
+                min-width: 11px;
+            }
         }
+
+        /* LAYAR KECIL */
 
         @media (max-width: 650px) {
-
-            .main-content {
-                margin-left: 78px;
-            }
-
+            .main-content,
             .main-content.sidebar-collapsed {
                 margin-left: 78px;
             }
 
             .dewan-page {
-                padding: 20px;
+                padding: 16px 10px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 14px;
+                margin-bottom: 18px;
             }
 
             .page-header h1 {
                 font-size: 21px;
             }
 
-            .toolbar {
+            .panel-header {
+                align-items: flex-start;
                 flex-direction: column;
-                align-items: stretch;
             }
 
-            .search-box {
+            .panel-actions {
                 width: 100%;
+                justify-content: space-between;
+            }
+
+            .toolbar {
+                align-items: stretch;
+                flex-direction: column;
             }
 
             .search-form {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+            }
+
+            .search-input-wrap {
                 width: 100%;
+                min-width: 0;
             }
 
-            .search-box input {
-                width: 100%;
+            .search-form .btn-reset {
+                grid-column: 1 / -1;
             }
 
-            .btn-search {
-                flex-shrink: 0;
+            .table-footer {
+                align-items: flex-start;
+                flex-direction: column;
             }
-
-            .toolbar > .btn {
-                width: 100%;
-            }
-
-            .table-box {
-                overflow-x: auto;
-            }
-
-            table {
-                min-width: 850px;
-            }
-
         }
-
     </style>
-
 </head>
-
 
 <body>
 
+<?php include "../includes/sidebar.php"; ?>
 
-<!-- =====================================================
-     SIDEBAR
-===================================================== -->
-
-<?php
-
-include "../includes/sidebar.php";
-
-?>
-
-
-<!-- =====================================================
-     MAIN CONTENT
-===================================================== -->
-
-<main
-    class="main-content"
-    id="mainContent"
->
-
+<main class="main-content" id="mainContent">
     <section class="dewan-page">
 
+        <header class="page-header">
+            <div class="page-heading">
+                <div class="breadcrumb">
+                    <a href="dashboard.php">Dashboard</a>
+                    <span>/</span>
+                    <span>Anggota Dewan</span>
+                </div>
 
-        <!-- =================================================
-             KEMBALI
-        ================================================== -->
+                <h1>Anggota Dewan</h1>
 
-        <div class="back-navigation">
+                <p>
+                    Kelola data anggota DPRD, jabatan, pendamping,
+                    dan informasi partai politik.
+                </p>
+            </div>
+        </header>
 
-            <a href="dashboard.php">
+        <section class="content-panel">
 
-                ← Kembali
+            <div class="panel-header">
+                <div class="panel-title">
+                    <h2>Daftar Anggota Dewan</h2>
+                    <p>Informasi anggota dewan untuk periode 2024–2029.</p>
+                </div>
 
-            </a>
+                <div class="panel-actions">
+                    <div class="total-badge">
+                        Total dewan:
+                        <span><?= $total_data ?></span>
+                    </div>
 
-        </div>
+                    <a href="tambah_dewan.php" class="btn btn-primary">
+                        <span aria-hidden="true">+</span>
+                        Tambah Dewan
+                    </a>
+                </div>
+            </div>
 
+            <div class="toolbar">
+                <form method="GET" action="dewan.php" class="search-form">
+                    <div class="search-input-wrap">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <path d="m20 20-4-4"></path>
+                        </svg>
 
-        <!-- =================================================
-             HEADER
-        ================================================== -->
+                        <input
+                            type="text"
+                            name="cari"
+                            value="<?= tampilkan($keyword) ?>"
+                            placeholder="Cari nama anggota dewan..."
+                            autocomplete="off"
+                            aria-label="Cari nama anggota dewan"
+                        >
+                    </div>
 
-        <div class="page-header">
-
-            <h1>
-                Anggota Dewan
-            </h1>
-
-            <p>
-                Daftar anggota Dewan beserta pendamping atau pengawas.
-            </p>
-
-        </div>
-
-
-        <!-- =================================================
-             TOOLBAR
-        ================================================== -->
-
-        <div class="toolbar">
-
-
-            <!-- SEARCH -->
-
-            <div class="search-box">
-
-                <form
-                    method="GET"
-                    action="dewan.php"
-                    class="search-form"
-                    id="searchForm"
-                >
-
-                    <input
-                        type="text"
-                        name="cari"
-                        id="searchDewan"
-                        value="<?php echo htmlspecialchars($keyword); ?>"
-                        placeholder="Cari nama anggota Dewan..."
-                        autocomplete="off"
-                    >
-
-                    <button
-                        type="submit"
-                        class="btn-search"
-                        id="btnCari"
-                    >
+                    <button type="submit" class="btn btn-primary">
                         Cari
                     </button>
 
-
-                    <?php if ($keyword !== '') { ?>
-
-                        <a
-                            href="dewan.php"
-                            class="btn-reset"
-                        >
+                    <?php if ($keyword !== ''): ?>
+                        <a href="dewan.php" class="btn btn-reset">
                             Reset
                         </a>
-
-                    <?php } ?>
-
+                    <?php endif; ?>
                 </form>
-
             </div>
 
+            <?php if ($keyword !== ''): ?>
+                <div class="search-result-info">
+                    Hasil pencarian untuk
+                    <strong>"<?= tampilkan($keyword) ?>"</strong>.
+                    Ditemukan <?= $total_data ?> data.
+                </div>
+            <?php endif; ?>
 
-            <!-- TAMBAH DEWAN -->
+            <?php if ($query && $total_data > 0): ?>
 
-            <a
-                href="tambah_dewan.php"
-                class="btn btn-primary"
-            >
-                + Tambah Dewan
-            </a>
-
-        </div>
-
-
-        <!-- =================================================
-             TABLE
-        ================================================== -->
-
-        <div class="table-box">
-
-            <?php
-
-            $jumlah_data = 0;
-
-            if ($query) {
-
-                $jumlah_data =
-                    mysqli_num_rows($query);
-
-            }
-
-
-            /* =================================================
-               JIKA PENCARIAN
-            ================================================= */
-
-            if ($keyword !== '') {
-
-
-                if ($jumlah_data > 0) {
-
-            ?>
-
-                    <div class="search-result-info">
-
-                        Hasil pencarian untuk:
-
-                        <strong>
-                            "<?php
-                            echo htmlspecialchars(
-                                $keyword
-                            );
-                            ?>"
-                        </strong>
-
-                    </div>
-
-
+                <div class="table-box">
                     <table id="tabelDewan">
-
                         <thead>
-
                             <tr>
-
-                                <th>
-                                    No
-                                </th>
-
-                                <th>
-                                    Nama Dewan
-                                </th>
-
-                                <th>
-                                    Jabatan
-                                </th>
-
-                                <th>
-                                    Periode
-                                </th>
-
-                                <th>
-                                    Pendamping / Pengawas
-                                </th>
-
-                                <th>
-                                    Aksi
-                                </th>
-
+                                <th>No.</th>
+                                <th>Nama Dewan</th>
+                                <th>Jabatan</th>
+                                <th>Periode</th>
+                                <th>Pendamping</th>
+                                <th>Nama Partai</th>
+                                <th>Aksi</th>
                             </tr>
-
                         </thead>
 
-
                         <tbody>
+                            <?php $no = 1; ?>
 
-                        <?php
+                            <?php while ($row = mysqli_fetch_assoc($query)): ?>
+                                <tr>
+                                    <td class="number-cell">
+                                        <?= $no++ ?>
+                                    </td>
 
-                        $no = 1;
+                                    <td>
+                                        <a
+                                            href="arsip_dewan.php?id=<?= (int)$row['id'] ?>"
+                                            class="dewan-name"
+                                        >
+                                            <?= tampilkan($row['nama'] ?? '-') ?>
+                                        </a>
+                                    </td>
 
-                        while (
-                            $row =
-                            mysqli_fetch_assoc(
-                                $query
-                            )
-                        ) {
+                                    <td class="jabatan-text">
+                                        <?= tampilkan($row['jabatan'] ?? '-') ?>
+                                    </td>
 
-                        ?>
+                                    <td class="periode-text">
+                                        <?= tampilkan($row['periode'] ?? '-') ?>
+                                    </td>
 
-                            <tr>
+                                    <td>
+                                        <?php if (!empty($row['nama_pengawas'])): ?>
+                                            <?= tampilkan($row['nama_pengawas']) ?>
+                                        <?php else: ?>
+                                            <span class="belum-ditentukan">
+                                                Belum ditentukan
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
 
-                                <td>
-                                    <?php
-                                    echo $no++;
-                                    ?>
-                                </td>
+                                    <td class="party-text">
+                                        <?php if (!empty($row['nama_partai'])): ?>
+                                            <?= tampilkan($row['nama_partai']) ?>
+                                        <?php else: ?>
+                                            <span class="belum-ditentukan">
+                                                Belum diisi
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
 
+                                    <td>
+                                        <a
+                                            href="arsip_dewan.php?id=<?= (int)$row['id'] ?>"
+                                            class="lihat-arsip"
+                                        >
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                aria-hidden="true"
+                                            >
+                                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </svg>
 
-                                <td>
-
-                                    <a
-                                        href="arsip_dewan.php?id=<?php echo intval($row['id']); ?>"
-                                        class="dewan-name"
-                                    >
-
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $row['nama'] ?? '-'
-                                        );
-                                        ?>
-
-                                    </a>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?php
-                                    echo htmlspecialchars(
-                                        $row['jabatan'] ?? '-'
-                                    );
-                                    ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?php
-                                    echo htmlspecialchars(
-                                        $row['periode'] ?? '-'
-                                    );
-                                    ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?php
-
-                                    if (
-                                        !empty(
-                                            $row['nama_pengawas']
-                                        )
-                                    ) {
-
-                                    ?>
-
-                                        <span class="pendamping-name">
-
-                                            <?php
-                                            echo htmlspecialchars(
-                                                $row['nama_pengawas']
-                                            );
-                                            ?>
-
-                                        </span>
-
-                                    <?php
-
-                                    } else {
-
-                                    ?>
-
-                                        <span class="belum-ditentukan">
-                                            Belum ditentukan
-                                        </span>
-
-                                    <?php
-
-                                    }
-
-                                    ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <a
-                                        href="arsip_dewan.php?id=<?php echo intval($row['id']); ?>"
-                                        class="lihat-arsip"
-                                    >
-                                        Lihat Arsip
-                                    </a>
-
-                                </td>
-
-                            </tr>
-
-                        <?php
-
-                        }
-
-                        ?>
-
+                                            Lihat Arsip
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
                         </tbody>
-
                     </table>
+                </div>
 
+                <div class="table-footer">
+                    <span>
+                        Menampilkan <?= $total_data ?> data anggota dewan
+                    </span>
 
-            <?php
+                    <span>
+                        Sistem Pengarsipan DPRD
+                    </span>
+                </div>
 
-                } else {
+            <?php else: ?>
 
-            ?>
+                <div class="empty-data">
+                    <div class="empty-icon">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="10" cy="10" r="6"></circle>
+                            <path d="m15 15 5 5"></path>
+                        </svg>
+                    </div>
 
-                    <div class="search-not-found">
-
-                        <div class="search-not-found-icon">
-                            🔍
-                        </div>
-
-                        <h3>
-                            Data anggota Dewan tidak ditemukan
-                        </h3>
-
+                    <?php if ($keyword !== ''): ?>
+                        <h3>Data anggota dewan tidak ditemukan</h3>
                         <p>
-
-                            Tidak ada anggota Dewan dengan nama
-
-                            <strong>
-                                "<?php
-                                echo htmlspecialchars(
-                                    $keyword
-                                );
-                                ?>"
-                            </strong>.
-
+                            Tidak ada anggota dewan dengan nama
+                            "<?= tampilkan($keyword) ?>".
+                            <br>
+                            Coba gunakan kata kunci yang berbeda.
                         </p>
-
-                    </div>
-
-            <?php
-
-                }
-
-
-            /* =================================================
-               JIKA TIDAK MENCARI
-            ================================================= */
-
-            } else {
-
-
-                if ($jumlah_data > 0) {
-
-            ?>
-
-                    <table id="tabelDewan">
-
-                        <thead>
-
-                            <tr>
-
-                                <th>
-                                    No
-                                </th>
-
-                                <th>
-                                    Nama Dewan
-                                </th>
-
-                                <th>
-                                    Jabatan
-                                </th>
-
-                                <th>
-                                    Periode
-                                </th>
-
-                                <th>
-                                    Pendamping / Pengawas
-                                </th>
-
-                                <th>
-                                    Aksi
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody>
-
-                        <?php
-
-                        $no = 1;
-
-                        while (
-                            $row =
-                            mysqli_fetch_assoc(
-                                $query
-                            )
-                        ) {
-
-                        ?>
-
-                            <tr>
-
-                                <td>
-
-                                    <?php
-                                    echo $no++;
-                                    ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <a
-                                        href="arsip_dewan.php?id=<?php echo intval($row['id']); ?>"
-                                        class="dewan-name"
-                                    >
-
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $row['nama'] ?? '-'
-                                        );
-                                        ?>
-
-                                    </a>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?php
-                                    echo htmlspecialchars(
-                                        $row['jabatan'] ?? '-'
-                                    );
-                                    ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?php
-                                    echo htmlspecialchars(
-                                        $row['periode'] ?? '-'
-                                    );
-                                    ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?php
-
-                                    if (
-                                        !empty(
-                                            $row['nama_pengawas']
-                                        )
-                                    ) {
-
-                                    ?>
-
-                                        <span class="pendamping-name">
-
-                                            <?php
-                                            echo htmlspecialchars(
-                                                $row['nama_pengawas']
-                                            );
-                                            ?>
-
-                                        </span>
-
-                                    <?php
-
-                                    } else {
-
-                                    ?>
-
-                                        <span class="belum-ditentukan">
-                                            Belum ditentukan
-                                        </span>
-
-                                    <?php
-
-                                    }
-
-                                    ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <a
-                                        href="arsip_dewan.php?id=<?php echo intval($row['id']); ?>"
-                                        class="lihat-arsip"
-                                    >
-                                        Lihat Arsip
-                                    </a>
-
-                                </td>
-
-                            </tr>
-
-                        <?php
-
-                        }
-
-                        ?>
-
-                        </tbody>
-
-                    </table>
-
-
-            <?php
-
-                } else {
-
-            ?>
-
-                    <div class="empty-data">
-
-                        <div class="empty-icon">
-                            👤
-                        </div>
-
-                        <strong>
-                            Belum ada data anggota Dewan
-                        </strong>
-
-                        <p style="margin-top: 8px;">
-                            Data anggota Dewan akan
-                            ditampilkan di halaman ini.
+                    <?php else: ?>
+                        <h3>Belum ada data anggota dewan</h3>
+                        <p>
+                            Tambahkan data anggota dewan untuk mulai
+                            menggunakan halaman ini.
                         </p>
+                    <?php endif; ?>
+                </div>
 
-                    </div>
+            <?php endif; ?>
 
-            <?php
-
-                }
-
-            }
-
-            ?>
-
-        </div>
-
+        </section>
     </section>
-
 </main>
 
-
-<!-- =====================================================
-     JAVASCRIPT PENCARIAN
-===================================================== -->
-
-<script>
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        const searchInput =
-            document.getElementById(
-                "searchDewan"
-            );
-
-        const btnCari =
-            document.getElementById(
-                "btnCari"
-            );
-
-        if (
-            !searchInput ||
-            !btnCari
-        ) {
-
-            return;
-
-        }
-
-
-        function tampilkanTombolCari() {
-
-            const nilai =
-                searchInput.value.trim();
-
-
-            if (nilai.length > 0) {
-
-                btnCari.style.display =
-                    "inline-flex";
-
-            } else {
-
-                btnCari.style.display =
-                    "none";
-
-            }
-
-        }
-
-
-        tampilkanTombolCari();
-
-
-        searchInput.addEventListener(
-            "input",
-            function () {
-
-                tampilkanTombolCari();
-
-            }
-        );
-
-    }
-);
-
-</script>
-
-
 </body>
-
 </html>
+```

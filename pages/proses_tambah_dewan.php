@@ -1,5 +1,5 @@
+```php
 <?php
-
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -9,159 +9,133 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once "../config/database.php";
 
-
-/* =====================================================
-   AMBIL DATA FORM
-===================================================== */
-
 $nama = trim($_POST['nama'] ?? '');
 $jabatan = trim($_POST['jabatan'] ?? '');
 $periode = trim($_POST['periode'] ?? '');
 $nama_pengawas = trim($_POST['nama_pengawas'] ?? '');
+$nama_partai = trim($_POST['nama_partai'] ?? '');
 $keterangan = trim($_POST['keterangan'] ?? '');
 
-
-/* =====================================================
-   CEK DATA WAJIB
-===================================================== */
-
+// Validasi data
 if ($nama === '') {
-
     header("Location: tambah_dewan.php?error=nama_kosong");
     exit;
-
 }
-
 
 if ($jabatan === '') {
-
     header("Location: tambah_dewan.php?error=jabatan_kosong");
     exit;
-
 }
-
 
 if ($periode === '') {
-
     header("Location: tambah_dewan.php?error=periode_kosong");
     exit;
-
 }
 
+if ($nama_partai === '') {
+    header("Location: tambah_dewan.php?error=partai_kosong");
+    exit;
+}
 
-/* =====================================================
-   CEK NAMA DEWAN SUDAH ADA ATAU BELUM
-===================================================== */
+// Daftar partai yang diperbolehkan
+$daftar_partai = [
+    'Partai Kebangkitan Bangsa',
+    'Partai Golongan Karya',
+    'Partai Nasional Demokrat',
+    'Partai Keadilan Sejahtera',
+    'Partai Amanat Nasional',
+    'Partai Persatuan Pembangunan',
+    'Partai Gerakan Indonesia Raya',
+    'Partai Gelombang Rakyat Indonesia',
+    'Partai Demokrasi Indonesia Perjuangan',
+    'Partai Hati Nurani Rakyat',
+    'Partai Demokrat',
+    'Partai Bulan Bintang'
+];
 
-$cek_sql = "
-    SELECT id
-    FROM dewan
-    WHERE nama = ?
-    LIMIT 1
-";
+if (!in_array($nama_partai, $daftar_partai, true)) {
+    header("Location: tambah_dewan.php?error=partai_kosong");
+    exit;
+}
 
-$cek_stmt = mysqli_prepare(
-    $conn,
-    $cek_sql
-);
+// Cek apakah nama anggota sudah terdaftar
+$sql_cek = "SELECT id FROM dewan WHERE nama = ? LIMIT 1";
+$stmt_cek = mysqli_prepare($conn, $sql_cek);
 
-mysqli_stmt_bind_param(
-    $cek_stmt,
-    "s",
-    $nama
-);
+if (!$stmt_cek) {
+    header("Location: tambah_dewan.php?error=gagal_simpan");
+    exit;
+}
 
-mysqli_stmt_execute($cek_stmt);
+mysqli_stmt_bind_param($stmt_cek, "s", $nama);
+mysqli_stmt_execute($stmt_cek);
+mysqli_stmt_store_result($stmt_cek);
 
-mysqli_stmt_store_result($cek_stmt);
-
-
-if (mysqli_stmt_num_rows($cek_stmt) > 0) {
-
-    mysqli_stmt_close($cek_stmt);
-
+if (mysqli_stmt_num_rows($stmt_cek) > 0) {
+    mysqli_stmt_close($stmt_cek);
     header("Location: tambah_dewan.php?error=nama_double");
     exit;
-
 }
 
+mysqli_stmt_close($stmt_cek);
 
-mysqli_stmt_close($cek_stmt);
-
-
-/* =====================================================
-   TENTUKAN URUTAN
-===================================================== */
-
-$urutan_sql = "
+// Menentukan urutan anggota berikutnya
+$sql_urutan = "
     SELECT COALESCE(MAX(urutan), 0) + 1 AS urutan_baru
     FROM dewan
 ";
 
-$urutan_result = mysqli_query(
-    $conn,
-    $urutan_sql
-);
+$result_urutan = mysqli_query($conn, $sql_urutan);
 
-$urutan_data = mysqli_fetch_assoc(
-    $urutan_result
-);
+if (!$result_urutan) {
+    header("Location: tambah_dewan.php?error=gagal_simpan");
+    exit;
+}
 
-$urutan = (int) $urutan_data['urutan_baru'];
+$data_urutan = mysqli_fetch_assoc($result_urutan);
+$urutan = (int) $data_urutan['urutan_baru'];
 
-
-/* =====================================================
-   SIMPAN DATA
-===================================================== */
-
+// Simpan seluruh data, termasuk nama partai
 $sql = "
-    INSERT INTO dewan
-    (
+    INSERT INTO dewan (
         nama,
         jabatan,
         urutan,
         periode,
         nama_pengawas,
+        nama_partai,
         keterangan
-    )
-    VALUES (?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
 ";
 
-$stmt = mysqli_prepare(
-    $conn,
-    $sql
-);
+$stmt = mysqli_prepare($conn, $sql);
+
+if (!$stmt) {
+    header("Location: tambah_dewan.php?error=gagal_simpan");
+    exit;
+}
 
 mysqli_stmt_bind_param(
     $stmt,
-    "ssisss",
+    "ssissss",
     $nama,
     $jabatan,
     $urutan,
     $periode,
     $nama_pengawas,
+    $nama_partai,
     $keterangan
 );
 
-
-/* =====================================================
-   HASIL SIMPAN
-===================================================== */
-
 if (mysqli_stmt_execute($stmt)) {
-
     mysqli_stmt_close($stmt);
-
     header("Location: dewan.php");
     exit;
-
-} else {
-
-    mysqli_stmt_close($stmt);
-
-    header("Location: tambah_dewan.php?error=gagal_simpan");
-    exit;
-
 }
 
+mysqli_stmt_close($stmt);
+
+header("Location: tambah_dewan.php?error=gagal_simpan");
+exit;
 ?>
+```

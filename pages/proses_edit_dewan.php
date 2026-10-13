@@ -1,3 +1,4 @@
+```php
 <?php
 
 session_start();
@@ -9,105 +10,121 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once "../config/database.php";
 
-
-/* =====================================================
+/* =========================================
    AMBIL DATA FORM
-===================================================== */
+========================================= */
 
-$id = intval($_POST['id'] ?? 0);
+$id = (int) ($_POST['id'] ?? 0);
 
 $nama = trim($_POST['nama'] ?? '');
-
 $jabatan = trim($_POST['jabatan'] ?? '');
-
 $periode = trim($_POST['periode'] ?? '');
-
 $nama_pengawas = trim($_POST['nama_pengawas'] ?? '');
-
+$nama_partai = trim($_POST['nama_partai'] ?? '');
 $keterangan = trim($_POST['keterangan'] ?? '');
 
-
-/* =====================================================
+/* =========================================
    CEK ID
-===================================================== */
+========================================= */
 
 if ($id <= 0) {
-
     header("Location: dewan.php");
-
     exit;
-
 }
 
-
-/* =====================================================
-   CEK DATA WAJIB
-===================================================== */
+/* =========================================
+   VALIDASI DATA WAJIB
+========================================= */
 
 if ($nama === '') {
-
-    header(
-        "Location: edit_dewan.php?id="
-        . $id
-        . "&error=nama_kosong"
-    );
-
+    header("Location: edit_dewan.php?id=$id&error=nama_kosong");
     exit;
-
 }
-
 
 if ($jabatan === '') {
-
-    header(
-        "Location: edit_dewan.php?id="
-        . $id
-        . "&error=jabatan_kosong"
-    );
-
+    header("Location: edit_dewan.php?id=$id&error=jabatan_kosong");
     exit;
-
 }
-
 
 if ($periode === '') {
-
-    header(
-        "Location: edit_dewan.php?id="
-        . $id
-        . "&error=periode_kosong"
-    );
-
+    header("Location: edit_dewan.php?id=$id&error=periode_kosong");
     exit;
-
 }
 
+if ($nama_partai === '') {
+    header("Location: edit_dewan.php?id=$id&error=partai_kosong");
+    exit;
+}
 
-/* =====================================================
-   CEK NAMA DOUBLE
-===================================================== */
+/* =========================================
+   VALIDASI PILIHAN PARTAI
+========================================= */
 
-/*
- * Cari apakah nama tersebut sudah digunakan
- * oleh anggota Dewan LAIN.
- *
- * id != id yang sedang diedit
- */
+$daftar_partai = [
+    'Partai Kebangkitan Bangsa',
+    'Partai Golongan Karya',
+    'Partai Nasional Demokrat',
+    'Partai Keadilan Sejahtera',
+    'Partai Amanat Nasional',
+    'Partai Persatuan Pembangunan',
+    'Partai Gerakan Indonesia Raya',
+    'Partai Gelombang Rakyat Indonesia',
+    'Partai Demokrasi Indonesia Perjuangan',
+    'Partai Hati Nurani Rakyat',
+    'Partai Demokrat',
+    'Partai Bulan Bintang'
+];
+
+if (!in_array($nama_partai, $daftar_partai, true)) {
+    header("Location: edit_dewan.php?id=$id&error=partai_kosong");
+    exit;
+}
+
+/* =========================================
+   CEK APAKAH ANGGOTA ADA
+========================================= */
+
+$cek_data = mysqli_prepare(
+    $conn,
+    "SELECT id FROM dewan WHERE id = ? LIMIT 1"
+);
+
+if (!$cek_data) {
+    header("Location: edit_dewan.php?id=$id&error=gagal_simpan");
+    exit;
+}
+
+mysqli_stmt_bind_param($cek_data, "i", $id);
+mysqli_stmt_execute($cek_data);
+mysqli_stmt_store_result($cek_data);
+
+$anggota_ada = mysqli_stmt_num_rows($cek_data) > 0;
+
+mysqli_stmt_close($cek_data);
+
+if (!$anggota_ada) {
+    header("Location: dewan.php");
+    exit;
+}
+
+/* =========================================
+   CEK NAMA ANGGOTA DUPLIKAT
+========================================= */
 
 $cek_sql = "
     SELECT id
     FROM dewan
     WHERE nama = ?
-    AND id != ?
+      AND id != ?
     LIMIT 1
 ";
 
+$cek_stmt = mysqli_prepare($conn, $cek_sql);
 
-$cek_stmt = mysqli_prepare(
-    $conn,
-    $cek_sql
-);
-
+if (!$cek_stmt) {
+    header("Location: edit_dewan.php?id=$id&error=gagal_simpan");
+    exit;
+}
 
 mysqli_stmt_bind_param(
     $cek_stmt,
@@ -116,110 +133,68 @@ mysqli_stmt_bind_param(
     $id
 );
 
-
-mysqli_stmt_execute(
-    $cek_stmt
-);
-
-
-mysqli_stmt_store_result(
-    $cek_stmt
-);
-
-
-/* =====================================================
-   JIKA NAMA DOUBLE
-===================================================== */
+mysqli_stmt_execute($cek_stmt);
+mysqli_stmt_store_result($cek_stmt);
 
 if (mysqli_stmt_num_rows($cek_stmt) > 0) {
-
     mysqli_stmt_close($cek_stmt);
 
-
-    header(
-        "Location: edit_dewan.php?id="
-        . $id
-        . "&error=nama_double"
-    );
-
-
+    header("Location: edit_dewan.php?id=$id&error=nama_double");
     exit;
-
 }
-
 
 mysqli_stmt_close($cek_stmt);
 
-
-/* =====================================================
-   UPDATE DATA
-===================================================== */
+/* =========================================
+   UPDATE DATA ANGGOTA DEWAN
+========================================= */
 
 $sql = "
     UPDATE dewan
-
     SET
         nama = ?,
         jabatan = ?,
         periode = ?,
         nama_pengawas = ?,
+        nama_partai = ?,
         keterangan = ?
-
     WHERE id = ?
 ";
 
+$stmt = mysqli_prepare($conn, $sql);
 
-$stmt = mysqli_prepare(
-    $conn,
-    $sql
-);
-
+if (!$stmt) {
+    header("Location: edit_dewan.php?id=$id&error=gagal_simpan");
+    exit;
+}
 
 mysqli_stmt_bind_param(
     $stmt,
-    "sssssi",
+    "ssssssi",
     $nama,
     $jabatan,
     $periode,
     $nama_pengawas,
+    $nama_partai,
     $keterangan,
     $id
 );
 
-
-/* =====================================================
+/* =========================================
    SIMPAN PERUBAHAN
-===================================================== */
+========================================= */
 
 if (mysqli_stmt_execute($stmt)) {
-
     mysqli_stmt_close($stmt);
 
-
-    header(
-        "Location: arsip_dewan.php?id="
-        . $id
-    );
-
-
+    header("Location: arsip_dewan.php?id=$id");
     exit;
-
 }
-
-
-/* =====================================================
-   JIKA GAGAL
-===================================================== */
 
 mysqli_stmt_close($stmt);
 
-
-header(
-    "Location: edit_dewan.php?id="
-    . $id
-    . "&error=gagal_simpan"
-);
-
+header("Location: edit_dewan.php?id=$id&error=gagal_simpan");
 exit;
 
 ?>
+```

@@ -1,687 +1,265 @@
+```php
 <?php
-
-
-
 session_start();
-
-
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
-
-
 require_once "../config/database.php";
-
-
-
-/* =====================================================
-   DATA USER
-===================================================== */
-
-$nama_user = $_SESSION['nama'] ?? 'Staff';
-
-$role      = $_SESSION['role'] ?? 'Staff';
-
-
-
-/* =====================================================
-   PESAN ERROR
-===================================================== */
 
 $error = $_GET['error'] ?? '';
 
-$error_message = '';
+$pesan = [
+    'nama_double' => 'Nama anggota Dewan sudah terdaftar.',
+    'nama_kosong' => 'Nama anggota Dewan wajib diisi.',
+    'jabatan_kosong' => 'Jabatan wajib diisi.',
+    'periode_kosong' => 'Periode wajib diisi.',
+    'partai_kosong' => 'Nama partai wajib dipilih.',
+    'gagal_simpan' => 'Data gagal disimpan. Periksa proses penyimpanan.'
+];
 
-
-
-if ($error === 'nama_double') {
-
-    $error_message =
-        "Nama anggota Dewan sudah terdaftar. Silakan gunakan nama yang berbeda.";
-
-} elseif ($error === 'nama_kosong') {
-
-    $error_message =
-        "Nama anggota Dewan wajib diisi.";
-
-} elseif ($error === 'jabatan_kosong') {
-
-    $error_message =
-        "Jabatan wajib diisi.";
-
-} elseif ($error === 'periode_kosong') {
-
-    $error_message =
-        "Periode wajib diisi.";
-
-} elseif ($error === 'gagal_simpan') {
-
-    $error_message =
-        "Data gagal disimpan. Silakan coba lagi.";
-
-}
-
-
-
+$daftar_partai = [
+    'Partai Kebangkitan Bangsa',
+    'Partai Golongan Karya',
+    'Partai Nasional Demokrat',
+    'Partai Keadilan Sejahtera',
+    'Partai Amanat Nasional',
+    'Partai Persatuan Pembangunan',
+    'Partai Gerakan Indonesia Raya',
+    'Partai Gelombang Rakyat Indonesia',
+    'Partai Demokrasi Indonesia Perjuangan',
+    'Partai Hati Nurani Rakyat',
+    'Partai Demokrat',
+    'Partai Bulan Bintang'
+];
 ?>
-
-
-
 <!DOCTYPE html>
-
-
-
 <html lang="id">
-
-
-
 <head>
-
-
-
     <meta charset="UTF-8">
-
-
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-
-
-    <title>
-        Tambah Anggota Dewan
-    </title>
-
-
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css"
-    >
-
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tambah Anggota Dewan</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
 
     <style>
-
-
-
-        /* =====================================================
-           RESET
-        ===================================================== */
-
         * {
             box-sizing: border-box;
         }
 
-
-
-        html,
         body {
             margin: 0;
-            padding: 0;
-        }
-
-
-
-        body {
             background: #f4f6f9;
-
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
-
+            font-family: Arial, Helvetica, sans-serif;
             color: #334155;
         }
 
-
-
-        /* =====================================================
-           MAIN CONTENT
-        ===================================================== */
-
         .main-content {
-
             margin-left: 250px;
-
             min-height: 100vh;
-
             background: #f4f6f9;
-
-            transition:
-                margin-left 0.25s ease;
-
         }
-
-
-
-        .main-content.sidebar-collapsed {
-
-            margin-left: 78px;
-
-        }
-
-
-
-        /* =====================================================
-           PAGE
-        ===================================================== */
 
         .page {
-
             padding: 32px;
-
         }
-
-
-
-        /* =====================================================
-           NAVIGASI KEMBALI
-        ===================================================== */
 
         .back-navigation {
-
             margin-bottom: 18px;
-
         }
-
-
 
         .back-navigation a {
-
-            display: inline-flex;
-
-            align-items: center;
-
-            gap: 5px;
-
+            display: inline-block;
             padding: 9px 14px;
-
             background: #1e3a8a;
-
             color: white;
-
             text-decoration: none;
-
             border-radius: 7px;
-
             font-size: 13px;
-
             font-weight: 600;
-
-            transition:
-                background-color 0.2s ease;
-
         }
-
-
-
-        .back-navigation a:hover {
-
-            background: #1d4ed8;
-
-        }
-
-
-
-        /* =====================================================
-           HEADER
-        ===================================================== */
 
         .page-header {
-
-            margin-bottom: 15px;
-
+            margin-bottom: 20px;
         }
-
-
 
         .page-header h1 {
-
-            margin:
-                0 0 7px;
-
+            margin: 0 0 7px;
             font-size: 24px;
-
             color: #1e293b;
-
         }
-
-
 
         .page-header p {
-
             margin: 0;
-
             color: #64748b;
-
             font-size: 13px;
-
             line-height: 1.6;
-
         }
-
-
-
-        /* =====================================================
-           FORM BOX
-        ===================================================== */
 
         .form-box {
-
-            background: white;
-
-            border:
-                1px solid
-                #e5e7eb;
-
-            border-radius: 10px;
-
-            padding: 25px;
-
             max-width: 700px;
-
+            padding: 25px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
         }
-
-
-
-        /* =====================================================
-           PESAN ERROR
-        ===================================================== */
 
         .error-message {
-
-            background: #fef2f2;
-
-            border:
-                1px solid
-                #fca5a5;
-
-            color: #b91c1c;
-
-            padding:
-                12px 14px;
-
-            border-radius: 7px;
-
-            font-size: 13px;
-
-            line-height: 1.5;
-
             margin-bottom: 20px;
-
+            padding: 12px 14px;
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 7px;
+            color: #b91c1c;
+            font-size: 13px;
         }
-
-
-
-        /* =====================================================
-           FORM GROUP
-        ===================================================== */
 
         .form-group {
-
             margin-bottom: 18px;
-
         }
-
-
 
         .form-group label {
-
             display: block;
-
-            font-size: 14px;
-
-            font-weight: 600;
-
             margin-bottom: 7px;
-
+            font-size: 14px;
+            font-weight: 600;
             color: #374151;
-
         }
-
-
 
         .form-group input,
+        .form-group select,
         .form-group textarea {
-
+            display: block;
             width: 100%;
-
-            box-sizing: border-box;
-
-            padding:
-                11px 13px;
-
-            border:
-                1px solid
-                #d1d5db;
-
+            min-height: 43px;
+            padding: 11px 13px;
+            border: 1px solid #cbd5e1;
             border-radius: 7px;
-
+            background-color: #fff;
+            color: #334155;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 14px;
-
         }
 
-
+        .form-group select {
+            appearance: auto;
+            -webkit-appearance: menulist;
+            cursor: pointer;
+        }
 
         .form-group textarea {
-
             min-height: 100px;
-
             resize: vertical;
-
         }
 
-
-
-        /* =====================================================
-           FORM ACTION
-        ===================================================== */
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: 2px solid #bfdbfe;
+            border-color: #1e3a8a;
+        }
 
         .form-actions {
-
             display: flex;
-
+            flex-wrap: wrap;
             gap: 10px;
-
             margin-top: 25px;
-
         }
-
-
-
-        /* =====================================================
-           BUTTON
-        ===================================================== */
 
         .btn {
-
             display: inline-block;
-
-            padding:
-                11px 17px;
-
-            border-radius: 7px;
-
-            text-decoration: none;
-
+            padding: 11px 17px;
             border: none;
-
-            cursor: pointer;
-
+            border-radius: 7px;
             font-size: 14px;
-
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
         }
-
-
-
-        /* =====================================================
-           BUTTON PRIMARY
-        ===================================================== */
 
         .btn-primary {
-
             background: #1e3a8a;
-
             color: white;
-
         }
-
-
 
         .btn-primary:hover {
-
             background: #1d4ed8;
-
         }
-
-
-
-        /* =====================================================
-           BUTTON SECONDARY
-        ===================================================== */
 
         .btn-secondary {
-
             background: #e5e7eb;
-
             color: #374151;
-
         }
-
-
-
-        .btn-secondary:hover {
-
-            background: #d1d5db;
-
-        }
-
-
-
-        /* =====================================================
-           RESPONSIVE
-        ===================================================== */
 
         @media (max-width: 900px) {
-
             .main-content {
-
                 margin-left: 220px;
-
             }
-
-
-
-            .main-content.sidebar-collapsed {
-
-                margin-left: 78px;
-
-            }
-
-
 
             .page {
-
                 padding: 25px;
-
             }
-
         }
-
-
 
         @media (max-width: 650px) {
-
             .main-content {
-
                 margin-left: 78px;
-
             }
-
-
-
-            .main-content.sidebar-collapsed {
-
-                margin-left: 78px;
-
-            }
-
-
 
             .page {
-
                 padding: 20px;
-
             }
-
-
 
             .form-box {
-
-                max-width: 100%;
-
+                padding: 18px;
             }
-
         }
-
-
-
     </style>
-
-
-
 </head>
-
-
-
 <body>
 
+<?php include "../includes/sidebar.php"; ?>
 
-
-<!-- =====================================================
-     SIDEBAR
-===================================================== -->
-
-<?php
-
-include "../includes/sidebar.php";
-
-?>
-
-
-
-<!-- =====================================================
-     MAIN CONTENT
-===================================================== -->
-
-<main
-    class="main-content"
-    id="mainContent"
->
-
-
-
+<main class="main-content" id="mainContent">
     <section class="page">
 
-
-
-        <!-- =================================================
-             KEMBALI
-        ================================================== -->
-
         <div class="back-navigation">
-
-            <a href="dewan.php">
-
-                ← Kembali
-
-            </a>
-
+            <a href="dewan.php">← Kembali</a>
         </div>
-
-
-
-        <!-- =================================================
-             HEADER
-        ================================================== -->
 
         <div class="page-header">
-
-            <h1>
-
-                Tambah Anggota Dewan
-
-            </h1>
-
-
-
-            <p>
-
-                Masukkan data anggota DPRD dan pengawas yang terkait.
-
-            </p>
-
+            <h1>Tambah Anggota Dewan</h1>
+            <p>Masukkan data anggota DPRD Kota Parepare periode 2024–2029.</p>
         </div>
-
-
-
-        <!-- =================================================
-             FORM
-        ================================================= -->
 
         <div class="form-box">
 
-
-
-            <!-- =================================================
-                 PESAN ERROR
-            ================================================== -->
-
-            <?php if ($error_message !== ''): ?>
-
+            <?php if (isset($pesan[$error])): ?>
                 <div class="error-message">
-
-                    ⚠️
-
-                    <?= htmlspecialchars($error_message) ?>
-
+                    <?= htmlspecialchars(
+                        $pesan[$error],
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ) ?>
                 </div>
-
             <?php endif; ?>
 
-
-
-            <form
-                action="proses_tambah_dewan.php"
-                method="POST"
-                id="formTambahDewan"
-            >
-
-
-
-                <!-- NAMA ANGGOTA DEWAN -->
+            <form action="proses_tambah_dewan.php" method="POST">
 
                 <div class="form-group">
-
-                    <label>
-
-                        Nama Anggota Dewan
-
-                    </label>
-
-
-
+                    <label for="nama">Nama Anggota Dewan</label>
                     <input
                         type="text"
                         name="nama"
                         id="nama"
-                        placeholder="Contoh: Ir. H. Kaharuddin Kadir, M.Si"
+                        placeholder="Masukkan nama anggota Dewan"
                         required
                     >
-
-
                 </div>
 
-
-
-                <!-- JABATAN -->
-
                 <div class="form-group">
-
-                    <label>
-
-                        Jabatan
-
-                    </label>
-
-
-
+                    <label for="jabatan">Jabatan</label>
                     <input
                         type="text"
                         name="jabatan"
@@ -689,249 +267,71 @@ include "../includes/sidebar.php";
                         placeholder="Contoh: Anggota"
                         required
                     >
-
-
                 </div>
 
-
-
-                <!-- PERIODE -->
-
                 <div class="form-group">
-
-                    <label>
-
-                        Periode
-
-                    </label>
-
-
-
+                    <label for="periode">Periode</label>
                     <input
                         type="text"
                         name="periode"
                         id="periode"
-                        placeholder="Contoh: 2024-2029"
+                        value="2024 - 2029"
                         required
                     >
-
-
                 </div>
 
-
-
-                <!-- NAMA PENGAWAS -->
-
                 <div class="form-group">
-
-                    <label>
-
-                        Nama Pengawas
-
-                    </label>
-
-
-
+                    <label for="nama_pengawas">Pendamping / Pengawas</label>
                     <input
                         type="text"
                         name="nama_pengawas"
                         id="nama_pengawas"
-                        placeholder="Masukkan nama pengawas"
+                        placeholder="Masukkan nama pendamping atau pengawas"
                     >
-
-
                 </div>
 
+                <div class="form-group">
+                    <label for="nama_partai">Nama Partai</label>
+                    <select name="nama_partai" id="nama_partai" required>
+                        <option value="">-- Pilih Nama Partai --</option>
 
-
-                <!-- KETERANGAN -->
+                        <?php foreach ($daftar_partai as $partai): ?>
+                            <option value="<?= htmlspecialchars(
+                                $partai,
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ) ?>">
+                                <?= htmlspecialchars(
+                                    $partai,
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
                 <div class="form-group">
-
-                    <label>
-
-                        Keterangan
-
-                    </label>
-
-
-
+                    <label for="keterangan">Keterangan</label>
                     <textarea
                         name="keterangan"
                         id="keterangan"
                         placeholder="Keterangan tambahan jika diperlukan"
                     ></textarea>
-
-
                 </div>
-
-
-
-                <!-- TOMBOL -->
 
                 <div class="form-actions">
-
-                    <a
-                        href="dewan.php"
-                        class="btn btn-secondary"
-                    >
-
-                        Batal
-
-                    </a>
-
-
-
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                    >
-
+                    <a href="dewan.php" class="btn btn-secondary">Batal</a>
+                    <button type="submit" class="btn btn-primary">
                         Simpan Data
-
                     </button>
-
                 </div>
 
-
-
             </form>
-
-
-
         </div>
-
-
-
     </section>
-
-
-
 </main>
 
-
-
-<script>
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    const fields = [
-        document.getElementById("nama"),
-        document.getElementById("jabatan"),
-        document.getElementById("periode"),
-        document.getElementById("nama_pengawas"),
-        document.getElementById("keterangan")
-    ];
-
-
-
-    fields.forEach(function (field, index) {
-
-        if (!field) return;
-
-
-
-        field.addEventListener("keydown", function (event) {
-
-
-            /* =================================================
-               PANAH BAWAH
-               Pindah ke kolom berikutnya
-            ================================================= */
-
-            if (event.key === "ArrowDown") {
-
-                event.preventDefault();
-
-                if (index < fields.length - 1) {
-
-                    fields[index + 1].focus();
-
-                }
-
-                return;
-
-            }
-
-
-
-            /* =================================================
-               PANAH ATAS
-               Kembali ke kolom sebelumnya
-            ================================================= */
-
-            if (event.key === "ArrowUp") {
-
-                event.preventDefault();
-
-                if (index > 0) {
-
-                    fields[index - 1].focus();
-
-                }
-
-                return;
-
-            }
-
-
-
-            /* =================================================
-               ENTER
-               Pindah ke kolom berikutnya.
-
-               Jika sudah di Keterangan,
-               Enter akan menyimpan form.
-            ================================================= */
-
-            if (event.key === "Enter") {
-
-                /*
-                 * Jika sedang berada di textarea Keterangan,
-                 * Enter digunakan untuk submit.
-                 */
-
-                if (field.id === "keterangan") {
-
-                    event.preventDefault();
-
-                    document
-                        .getElementById("formTambahDewan")
-                        .requestSubmit();
-
-                    return;
-
-                }
-
-
-
-                /*
-                 * Untuk input lainnya,
-                 * Enter pindah ke kolom berikutnya.
-                 */
-
-                event.preventDefault();
-
-                if (index < fields.length - 1) {
-
-                    fields[index + 1].focus();
-
-                }
-
-            }
-
-        });
-
-    });
-
-});
-
-</script>
-
-
-
 </body>
-
-
-
 </html>
+```
