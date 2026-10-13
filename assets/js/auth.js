@@ -1,5 +1,6 @@
 /**
  * Modul Autentikasi dan Guard Halaman
+ * Sistem Pengarsipan Dokumen DPRD Kota Parepare
  */
 import { api } from './api.js';
 
@@ -29,15 +30,37 @@ export function clearSession() {
 }
 
 /**
- * Guard Halaman: Jika belum login, redirect ke login.html
+ * Guard Halaman: Validasi sesi, kewajiban ganti password, dan hak akses peran (role)
  */
-export function requireAuth() {
+export function requireAuth(allowedRoles = null) {
   const user = getStoredUser();
   const token = getStoredToken();
+
   if (!user || !token) {
+    clearSession();
     window.location.replace('login.html');
     return null;
   }
+
+  // Jika akun diwajibkan ganti password pertama kali dan saat ini bukan di halaman profil
+  const currentPath = window.location.pathname.toLowerCase();
+  const isProfilePage = currentPath.includes('profil.html') || currentPath.endsWith('/profil');
+  if (user.mustChangePassword && !isProfilePage) {
+    window.location.replace('profil.html?wajib_ganti_password=1');
+    return null;
+  }
+
+  // Validasi role (jika dibatasi)
+  if (allowedRoles && Array.isArray(allowedRoles)) {
+    const userRole = (user.role || 'staff').toLowerCase();
+    const hasAccess = allowedRoles.map((r) => r.toLowerCase()).includes(userRole);
+    if (!hasAccess) {
+      alert('Akses Ditolak: Halaman ini hanya dapat diakses oleh administrator sistem.');
+      window.location.replace('dashboard.html');
+      return null;
+    }
+  }
+
   return user;
 }
 

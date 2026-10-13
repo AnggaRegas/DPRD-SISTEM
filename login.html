@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Sistem Pengarsipan Dokumen DPRD</title>
+  <title>Login - Sistem Pengarsipan Dokumen DPRD Kota Parepare</title>
   <link rel="stylesheet" href="./assets/css/style.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -46,9 +46,10 @@
       margin-bottom: 25px;
     }
     .login-left h1 {
-      font-size: 30px;
+      font-size: 28px;
       line-height: 1.3;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
+      font-weight: 700;
     }
     .login-left p {
       color: #dbeafe;
@@ -64,6 +65,7 @@
     .system-info p {
       font-size: 12px;
       color: #bfdbfe;
+      line-height: 1.6;
     }
     .login-right {
       padding: 55px;
@@ -155,18 +157,18 @@
   <div class="login-container">
     <!-- BAGIAN KIRI -->
     <div class="login-left">
-      <div class="logo-box">📁</div>
-      <h1>Sistem Pengarsipan</h1>
+      <div class="logo-box">🏛️</div>
+      <h1>DPRD KOTA PAREPARE</h1>
       <p>Bagian Fasilitasi Penganggaran dan Pengawasan</p>
       <div class="system-info">
-        <p>Sistem pengelolaan dan pengarsipan dokumen secara terstruktur untuk mendukung pengelolaan arsip DPRD secara online dan terpadu.</p>
+        <p>Sistem informasi pengarsipan dokumen dan risalah sidang dewan terintegrasi secara aman berbasis cloud storage.</p>
       </div>
     </div>
 
     <!-- BAGIAN KANAN -->
     <div class="login-right">
-      <h2>Selamat Datang</h2>
-      <p class="login-subtitle">Silakan masuk untuk mengakses sistem.</p>
+      <h2>Masuk ke Sistem</h2>
+      <p class="login-subtitle">Masukkan username dan password akun Anda.</p>
 
       <div id="alertBox" style="display:none;" class="alert-banner error"></div>
 
@@ -187,8 +189,8 @@
       </form>
 
       <div class="login-footer">
-        Sistem Pengarsipan DPRD<br>
-        Fasilitasi Penganggaran dan Pengawasan
+        Sistem Pengarsipan Dokumen DPRD Kota Parepare<br>
+        Sekretariat DPRD Kota Parepare
       </div>
     </div>
   </div>
@@ -197,7 +199,7 @@
     import { api } from './assets/js/api.js';
     import { saveSession, getStoredToken } from './assets/js/auth.js';
 
-    // Jika sudah login, langsung ke dashboard
+    // Jika sudah ada sesi aktif, periksa dan arahkan
     if (getStoredToken()) {
       window.location.replace('dashboard.html');
     }
@@ -226,12 +228,20 @@
         const res = await api.login(username, password);
         if (res && res.success && res.data && res.data.token) {
           saveSession(res.data.token, res.data.user);
-          window.location.replace('dashboard.html');
+
+          // Jika wajib ganti password awal
+          if (res.data.user && res.data.user.mustChangePassword) {
+            window.location.replace('profil.html?wajib_ganti_password=1');
+          } else {
+            window.location.replace('dashboard.html');
+          }
         } else {
-          showAlert(res.message || 'Username atau password salah.');
+          // Pesan kesalahan generik yang aman tanpa membocorkan eksistensi user
+          const msg = res && res.message ? res.message : 'Username atau password tidak valid.';
+          showAlert(msg);
         }
       } catch (err) {
-        showAlert(err.message || 'Gagal menghubungi server.');
+        showAlert('Layanan autentikasi sedang tidak tersedia. Silakan coba kembali.');
       } finally {
         btnSubmit.disabled = false;
         btnText.textContent = 'Masuk ke Sistem';

@@ -1,117 +1,183 @@
 /**
- * Test Otomatis Verifikasi Alur Sistem & Simulasi 5 Pengguna Bersamaan
+ * Suite Pengujian Otomatis Sistem Pengarsipan Dokumen DPRD Kota Parepare
+ * Memverifikasi Autentikasi, Hak Akses, Proteksi Integritas, CRUD, dan Konkurensi
  */
 import { api } from '../assets/js/api.js';
 
-console.log('=== MEMULAI TEST VERIFIKASI SISTEM ARSIP DPRD ===\n');
+console.log('=== MEMULAI TEST VERIFIKASI LENGKAP SISTEM ARSIP DPRD KOTA PAREPARE ===\n');
 
-async function runTests() {
+async function runAllTests() {
   let passed = 0;
   let failed = 0;
 
-  function assert(condition, name) {
+  function assert(condition, name, detail = '') {
     if (condition) {
       console.log(`[PASS] ${name}`);
       passed++;
     } else {
-      console.error(`[FAIL] ${name}`);
+      console.error(`[FAIL] ${name} ${detail ? '(' + detail + ')' : ''}`);
       failed++;
     }
   }
 
-  // 1. Test Login Gagal
-  const loginFail = await api.login('wrong_user', 'wrong_pass');
-  assert(!loginFail.success, 'Login gagal dengan kredensial salah');
+  // ================= 1. PENGUJIAN AUTENTIKASI & KEAMANAN =================
+  console.log('--- 1. Pengujian Autentikasi & Keamanan ---');
 
-  // 2. Test Login Berhasil
-  const loginSuccess = await api.login('staff', 'staff123');
-  assert(loginSuccess.success && loginSuccess.data?.token, 'Login berhasil dengan akun staff / staff123');
+  // Test 1: Login gagal dengan username salah
+  const loginNonexistent = await api.login('user_tidak_ada', 'SandiRahasia123!');
+  assert(!loginNonexistent.success, 'Login gagal untuk username tidak terdaftar');
+  assert(loginNonexistent.message === 'Username atau password tidak valid.', 'Pesan login gagal bersifat generik tanpa membocorkan data');
 
-  // 3. Test Dashboard Stats
-  const dashStats = await api.getDashboardData();
-  assert(dashStats.success && dashStats.data?.totalDewan >= 4, 'Data statistik dashboard berhasil diambil');
+  // Test 2: Login gagal dengan password salah
+  const loginWrongPass = await api.login('superadmin', 'PasswordSalah123');
+  assert(!loginWrongPass.success, 'Login gagal dengan password salah');
 
-  // 4. Test Ambil Daftar Anggota Dewan
+  // Test 3: Login berhasil dengan akun bootstrap superadmin
+  const loginSuper = await api.login('superadmin', 'SandiRahasia123!');
+  assert(loginSuper.success && loginSuper.data?.token, 'Login berhasil dengan akun superadmin');
+  assert(loginSuper.data?.user?.mustChangePassword === true, 'Akun bootstrap superadmin ditandai wajib ganti password');
+
+  // Test 4: Verifikasi sesi aktif
+  const checkSess = await api.checkSession();
+  assert(checkSess.success && checkSess.data?.username === 'superadmin', 'Sesi aktif berhasil diverifikasi');
+
+  // Test 5: Penggantian password dengan password lama yang benar
+  const changePass = await api.changePassword('SandiRahasia123!', 'SandiBaruSuperadmin2026!');
+  assert(changePass.success, 'Superadmin berhasil memperbarui kata sandi');
+  assert(changePass.data?.mustChangePassword === false, 'Flag mustChangePassword dinonaktifkan setelah penggantian');
+
+  // Test 6: Login kembali dengan password baru
+  const loginNewPass = await api.login('superadmin', 'SandiBaruSuperadmin2026!');
+  assert(loginNewPass.success, 'Login berhasil menggunakan password baru');
+
+  // ================= 2. PENGUJIAN ANGGOTA DEWAN & SEED DATA =================
+  console.log('\n--- 2. Pengujian Anggota DPRD Kota Parepare (2024 - 2029) ---');
+
+  // Test 7: Ambil daftar anggota dewan
   const dewanList = await api.getDewanList();
-  assert(dewanList.success && Array.isArray(dewanList.data) && dewanList.data.length > 0, 'Daftar anggota dewan berhasil dimuat');
+  assert(dewanList.success && Array.isArray(dewanList.data) && dewanList.data.length >= 4, 'Daftar anggota DPRD berhasil dimuat');
 
-  // 5. Test Pencarian Anggota Dewan
-  const dewanSearch = await api.getDewanList('Fajar');
-  assert(dewanSearch.success && dewanSearch.data.length >= 1, 'Pencarian nama anggota dewan ("Fajar") berhasil');
+  // Test 8: Pencarian anggota dewan berdasarkan nama / partai
+  const dewanSearch = await api.getDewanList('KAHARUDDIN');
+  assert(dewanSearch.success && dewanSearch.data.length >= 1, 'Pencarian nama Ketua DPRD ("KAHARUDDIN") berhasil');
 
-  // 6. Test Tambah Anggota Dewan
+  // Test 9: Tambah anggota dewan baru
   const newDewan = await api.createDewan({
-    nama: 'H. Test Anggota Dewan, S.T.',
-    jabatan: 'Anggota Komisi III',
-    periode: '2024–2029',
-    nama_partai: 'Partai Golongan Karya',
-    nama_pengawas: 'Staf Pengawas Uji',
-    keterangan: 'Data Uji Otomatis'
+    nomor_urut: 26,
+    nama: 'H. Anggota Uji Coba, S.T.',
+    jabatan: 'Anggota Komisi II',
+    periode: '2024 - 2029',
+    nama_pendamping: 'Staf Pendamping Uji',
+    nama_partai: 'Partai Golongan Karya'
   });
   assert(newDewan.success && newDewan.data?.id, 'Tambah anggota dewan berhasil');
   const testDewanId = newDewan.data?.id;
 
-  // 7. Test Ambil Kategori dengan Jumlah Dokumen
-  const katDocs = await api.getKategoriWithDocCount(testDewanId);
-  assert(katDocs.success && Array.isArray(katDocs.data) && katDocs.data.length > 0, 'Kategori dokumen arsip dengan hitungan berhasil dimuat');
+  // Test 10: Toggle status dewan (nonaktifkan / aktifkan)
+  const toggleDewan = await api.toggleDewanStatus(testDewanId, 'nonaktif');
+  assert(toggleDewan.success && toggleDewan.data?.status === 'nonaktif', 'Status anggota dewan berhasil dinonaktifkan');
 
-  // 8. Test Tambah Tahun Anggaran
-  const newTahun = await api.createTahun(testDewanId, 1, 2026);
-  assert(newTahun.success && newTahun.data?.tahun === 2026, 'Tambah folder tahun anggaran (2026) berhasil');
+  // ================= 3. PENGUJIAN KATEGORI ARSIP & INTEGRITAS =================
+  console.log('\n--- 3. Pengujian Kategori Arsip & Perlindungan Dependensi ---');
 
-  // 9. Test Tambah Folder Dokumen
-  const newFolder = await api.createFolder(testDewanId, 1, 2026, 'Masa Sidang Uji');
-  assert(newFolder.success && newFolder.data?.nama_folder === 'Masa Sidang Uji', 'Tambah folder dokumen ("Masa Sidang Uji") berhasil');
+  // Test 11: Ambil daftar kategori
+  const katList = await api.getKategoriList();
+  assert(katList.success && Array.isArray(katList.data) && katList.data.length >= 3, 'Kategori arsip resmi berhasil dimuat');
 
-  // 10. Test Unggah Dokumen Mock
+  // Test 12: Tambah kategori baru
+  const newKat = await api.createKategori('Arsip Uji Khusus 2026', 'Kategori pengujian verifikasi');
+  assert(newKat.success && newKat.data?.id, 'Tambah kategori baru berhasil');
+  const testKatId = newKat.data?.id;
+
+  // Test 13: Validasi duplikasi kategori (case-insensitive)
+  const dupKat = await api.createKategori('arsip uji khusus 2026');
+  assert(!dupKat.success, 'Sistem menolak duplikasi nama kategori');
+
+  // Test 14: Tambah tahun dan folder arsip
+  const newTahun = await api.createTahun(testDewanId, testKatId, 2026);
+  assert(newTahun.success && newTahun.data?.tahun === 2026, 'Tambah tahun anggaran (2026) berhasil');
+
+  const newFolder = await api.createFolder(testDewanId, testKatId, 2026, 'Masa Sidang Uji');
+  assert(newFolder.success && newFolder.data?.nama_folder === 'Masa Sidang Uji', 'Tambah folder dokumen berhasil');
+
+  // ================= 4. PENGUJIAN DOKUMEN ARSIP & DRIVE =================
+  console.log('\n--- 4. Pengujian Dokumen Arsip & Google Drive Metadata ---');
+
+  // Test 15: Unggah dokumen arsip
   const uploadDoc = await api.uploadDokumen({
     dewan_id: testDewanId,
-    kategori_id: 1,
+    kategori_id: testKatId,
     tahun: 2026,
     nama_folder: 'Masa Sidang Uji',
-    nama_dokumen: 'Dokumen Verifikasi Otomatis',
-    keterangan: 'Uji unggah berkas',
-    fileName: 'berkas_verifikasi.pdf',
+    nama_dokumen: 'Laporan Fasilitasi Pengawasan Masa Sidang',
+    keterangan: 'Dokumen uji verifikasi pengarsipan',
+    fileName: 'laporan_pengawasan_uji.pdf',
     base64: 'data:application/pdf;base64,JVBERi0xLjQKJeLjz9MKMSAwIG9ia...'
   });
-  assert(uploadDoc.success && uploadDoc.data?.id, 'Unggah dokumen arsip berhasil');
+  assert(uploadDoc.success && uploadDoc.data?.id, 'Unggah dokumen arsip fisik dan metadata berhasil');
   const testDocId = uploadDoc.data?.id;
 
-  // 11. Test Ambil Dokumen di Folder
-  const docList = await api.getDokumenList({
-    dewan_id: testDewanId,
-    kategori_id: 1,
-    tahun: 2026,
-    nama_folder: 'Masa Sidang Uji'
-  });
-  assert(docList.success && docList.data.length >= 1, 'Dokumen berhasil terdaftar di dalam folder');
+  // Test 16: Pengujian perlindungan dependensi: Hapus kategori yang memiliki dokumen HARUS DITOLAK
+  const delUsedKat = await api.deleteKategori(testKatId);
+  assert(!delUsedKat.success, 'Penghapusan kategori yang masih memiliki dokumen ditolak untuk melindungi data');
 
-  // 12. Test Hapus Dokumen
+  // Test 17: Pengujian perlindungan dependensi: Hapus dewan yang memiliki dokumen HARUS DITOLAK
+  const delUsedDewan = await api.deleteDewan(testDewanId);
+  assert(!delUsedDewan.success, 'Penghapusan dewan yang masih memiliki dokumen ditolak untuk melindungi arsip');
+
+  // Test 18: Hapus dokumen arsip
   const delDoc = await api.deleteDokumen(testDocId);
-  assert(delDoc.success, 'Hapus dokumen berhasil');
+  assert(delDoc.success, 'Dokumen arsip berhasil dihapus');
 
-  // 13. Test Hapus Anggota Dewan Uji
-  const delDewan = await api.deleteDewan(testDewanId);
-  assert(delDewan.success, 'Hapus anggota dewan uji berhasil');
+  // Test 19: Setelah dokumen dihapus, kategori uji dapat dihapus dengan aman
+  const delSafeKat = await api.deleteKategori(testKatId);
+  assert(delSafeKat.success, 'Kategori yang sudah tidak memiliki dokumen dapat dihapus dengan aman');
 
-  // 14. SIMULASI 5 PENGGUNA BERSAMAAN (CONCURRENCY TEST)
-  console.log('\n--- Menjalankan Simulasi 5 Pengguna Akses Bersamaan ---');
-  const userSimulations = [1, 2, 3, 4, 5].map(async (userNum) => {
-    const listRes = await api.getDewanList();
-    const dashRes = await api.getDashboardData();
-    const katRes = await api.getKategoriList();
-    return listRes.success && dashRes.success && katRes.success;
+  // Test 20: Hapus anggota dewan uji
+  const delSafeDewan = await api.deleteDewan(testDewanId);
+  assert(delSafeDewan.success, 'Anggota dewan uji berhasil dihapus');
+
+  // ================= 5. PENGUJIAN PENGGUNA & HAK AKSES =================
+  console.log('\n--- 5. Pengujian Manajemen Pengguna & Hak Akses ---');
+
+  // Test 21: Ambil daftar pengguna
+  const usersList = await api.getUserList();
+  assert(usersList.success && Array.isArray(usersList.data), 'Daftar pengguna sistem berhasil dimuat');
+
+  // Test 22: Tambah pengguna staf baru
+  const newStaff = await api.createUser({
+    username: 'staf_verifikasi',
+    nama: 'Staf Pengarsipan Uji',
+    password: 'PasswordStafUji123!',
+    role: 'staff'
+  });
+  assert(newStaff.success && newStaff.data?.username === 'staf_verifikasi', 'Penambahan akun staf baru berhasil');
+
+  // ================= 6. SIMULASI 5 PENGGUNA SIMULTAN (CONCURRENCY) =================
+  console.log('\n--- 6. Pengujian Simulasi 5 Pengguna Bersamaan ---');
+
+  const userSimulations = [1, 2, 3, 4, 5].map(async (uNum) => {
+    const listD = await api.getDewanList();
+    const dashD = await api.getDashboardData();
+    const katD = await api.getKategoriList();
+    return listD.success && dashD.success && katD.success;
   });
 
   const concurrentResults = await Promise.all(userSimulations);
-  const allSucceeded = concurrentResults.every((r) => r === true);
-  assert(allSucceeded, '5 Pengguna bersamaan sukses mengakses data secara simultan tanpa konflik');
+  const allConcurrentSuccess = concurrentResults.every((r) => r === true);
+  assert(allConcurrentSuccess, '5 Pengguna bersamaan sukses membaca dan mengakses data tanpa konflik');
 
-  console.log(`\nHASIL PENGUJIAN: ${passed} PASS, ${failed} FAIL`);
+  // Logout sesi
+  await api.logout();
+
+  console.log(`\n=======================================================`);
+  console.log(`HASIL TOTAL PENGUJIAN: ${passed} PASS, ${failed} FAIL`);
+  console.log(`=======================================================`);
+
   if (failed > 0) process.exit(1);
 }
 
-runTests().catch((e) => {
-  console.error('Test error:', e);
+runAllTests().catch((e) => {
+  console.error('Fatal Test Error:', e);
   process.exit(1);
 });

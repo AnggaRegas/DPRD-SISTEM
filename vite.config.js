@@ -20,7 +20,9 @@ export default defineConfig({
         tambah_kategori: resolve(__dirname, 'tambah_kategori.html'),
         edit_kategori: resolve(__dirname, 'edit_kategori.html'),
         edit_tahun: resolve(__dirname, 'edit_tahun.html'),
-        edit_folder: resolve(__dirname, 'edit_folder.html')
+        edit_folder: resolve(__dirname, 'edit_folder.html'),
+        profil: resolve(__dirname, 'profil.html'),
+        pengguna: resolve(__dirname, 'pengguna.html')
       }
     }
   }

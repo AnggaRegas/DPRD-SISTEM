@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kategori Dokumen - Sistem Pengarsipan DPRD</title>
+  <title>Kategori Arsip - DPRD Kota Parepare</title>
   <link rel="stylesheet" href="./assets/css/style.css">
   <style>
     * { box-sizing: border-box; }
@@ -13,50 +13,39 @@
       font-family: Arial, Helvetica, sans-serif;
       color: #334155;
     }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
     .page-container {
       width: 100%;
       max-width: 1600px;
       margin: 0 auto;
       padding: 26px 24px;
     }
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
+    .btn-action-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
-    .page-header h1 {
-      margin: 0 0 6px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .page-header p {
-      margin: 0;
-      color: #64748b;
-      font-size: 13px;
-    }
-    .modal-box {
-      width: 420px;
-      max-width: calc(100% - 40px);
+    .btn-icon {
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
       background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.20);
+      color: #475569;
+      cursor: pointer;
     }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
+    .btn-icon:hover { background: #f8fafc; }
+    .btn-icon.edit { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }
+    .btn-icon.delete { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+    .badge-status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
     }
+    .badge-status.aktif { background: #dcfce7; color: #15803d; }
+    .badge-status.nonaktif { background: #fee2e2; color: #b91c1c; }
   </style>
 </head>
 <body>
@@ -64,77 +53,105 @@
 
   <main class="main-content" id="mainContent">
     <div class="page-container">
-      <div class="page-header">
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
         <div>
           <div class="breadcrumb">
             <a href="dashboard.html">Dashboard</a>
             <span>/</span>
-            <a href="dewan.html">Anggota Dewan</a>
-            <span>/</span>
-            <a href="#" id="breadcrumbArsipLink">Arsip Dewan</a>
-            <span>/</span>
-            <span id="breadcrumbKatName">Kategori Dokumen</span>
+            <span>Kategori Arsip</span>
           </div>
-          <h1 id="pageTitleKat">Memuat kategori...</h1>
-          <p id="pageSubtitleDewan">Anggota Dewan: Memuat...</p>
+          <h1 style="font-size: 24px; font-weight: 700; color: #1e3a8a; margin: 6px 0;">Pengelolaan Kategori Dokumen Arsip</h1>
+          <p style="font-size: 13px; color: #64748b; margin: 0;">Kelola jenis dan klasifikasi dokumen arsip DPRD Kota Parepare.</p>
         </div>
-        <div>
-          <button type="button" id="btnBukaModalTahun" class="btn btn-primary">
-            + Tambah Tahun
-          </button>
-        </div>
+        <button type="button" class="btn btn-primary" id="btnOpenAddModal" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 8px; font-weight: 600;">
+          <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Tambah Kategori Baru
+        </button>
       </div>
 
-      <section class="content-panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <h2>Folder Tahun Anggaran</h2>
-            <p>Pilih tahun untuk membuka folder dokumen arsip terkait.</p>
-          </div>
-          <div class="panel-actions">
-            <div class="total-badge">
-              Total Tahun: <span id="totalTahunCount">0</span>
-            </div>
+      <div id="alertFeedback" style="display: none;" class="alert-banner"></div>
+
+      <section class="content-panel" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div class="toolbar" style="padding: 16px 20px; border-bottom: 1px solid #edf0f5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div style="font-size: 13px; color: #64748b;">
+            Total Kategori: <strong id="totalKatText" style="color: #1e3a8a;">0</strong> Kategori
           </div>
         </div>
 
-        <div style="padding: 22px;">
-          <div id="loadingIndicator" class="loading-indicator">
-            <div class="spinner"></div> Memuat daftar tahun...
-          </div>
+        <div id="loadingIndicator" class="loading-indicator" style="padding: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #64748b;">
+          <div class="spinner"></div> Memuat daftar kategori...
+        </div>
 
-          <div id="tahunGrid" class="grid-container" style="display:none;"></div>
+        <div id="tableContainer" class="table-box" style="display:none; overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 55px; text-align: center;">No.</th>
+                <th>Nama Kategori Dokumen</th>
+                <th>Deskripsi</th>
+                <th style="width: 120px; text-align: center;">Total Berkas</th>
+                <th style="width: 90px; text-align: center;">Status</th>
+                <th style="width: 200px; text-align: center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="katTableBody"></tbody>
+          </table>
 
-          <div id="emptyTahun" class="empty-data" style="display:none;">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <h3>Belum Ada Folder Tahun</h3>
-            <p>Klik tombol <strong>+ Tambah Tahun</strong> di atas untuk membuat tahun dokumen pertama.</p>
+          <div class="table-footer" style="padding: 14px 20px; border-top: 1px solid #edf0f5; display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
+            <span id="footerCount">Menampilkan 0 kategori</span>
+            <span>Klasifikasi Dokumen DPRD Kota Parepare</span>
           </div>
+        </div>
+
+        <div id="emptyContainer" class="empty-data" style="display:none; padding: 50px 20px; text-align: center;">
+          <h3 style="color: #1e293b; margin-bottom: 6px;">Belum ada kategori dokumen</h3>
+          <p style="color: #64748b; font-size: 13px; margin: 0;">Gunakan tombol Tambah Kategori Baru di atas untuk membuat klasifikasi baru.</p>
         </div>
       </section>
     </div>
   </main>
 
-  <!-- MODAL TAMBAH TAHUN -->
-  <div id="modalTambahTahun" class="logout-modal">
-    <div class="modal-box">
-      <h3 style="margin-bottom:12px; color:#1e293b;">Tambah Folder Tahun</h3>
-      <div id="modalError" class="alert-banner error" style="display:none; margin-bottom:12px;"></div>
-      <form id="formTambahTahun">
-        <div class="form-group">
-          <label for="inputTahun">Tahun Dokumen <span class="required">*</span></label>
-          <input type="number" id="inputTahun" min="1900" max="2100" value="2024" required>
+  <!-- MODAL TAMBAH KATEGORI -->
+  <div id="modalAddKat" class="logout-modal">
+    <div class="logout-modal-box" style="text-align: left; max-width: 480px;">
+      <h3 style="font-size: 18px; margin-bottom: 14px; color: #1e3a8a;">Tambah Kategori Arsip Baru</h3>
+      <form id="formAddKat">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 600; color: #374151;">Nama Kategori <span class="required">*</span></label>
+          <input type="text" id="addNamaKat" required placeholder="Contoh: Risalah Sidang Paripurna" style="width: 100%; height: 38px; padding: 0 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;">
         </div>
-        <div class="form-actions" style="margin-top:18px; padding-top:14px; justify-content: flex-end;">
-          <button type="button" id="btnTutupModalTahun" class="btn btn-reset">Batal</button>
-          <button type="submit" id="btnSimpanTahun" class="btn btn-primary">Simpan Tahun</button>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="font-size: 12px; font-weight: 600; color: #374151;">Deskripsi / Keterangan</label>
+          <textarea id="addDescKat" rows="3" placeholder="Penjelasan singkat mengenai kategori ini..." style="width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelAdd">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveKat">Simpan Kategori</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT KATEGORI -->
+  <div id="modalEditKat" class="logout-modal">
+    <div class="logout-modal-box" style="text-align: left; max-width: 480px;">
+      <h3 style="font-size: 18px; margin-bottom: 14px; color: #1e3a8a;">Ubah Kategori Arsip</h3>
+      <form id="formEditKat">
+        <input type="hidden" id="editKatId">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 600; color: #374151;">Nama Kategori <span class="required">*</span></label>
+          <input type="text" id="editNamaKat" required style="width: 100%; height: 38px; padding: 0 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="font-size: 12px; font-weight: 600; color: #374151;">Deskripsi / Keterangan</label>
+          <textarea id="editDescKat" rows="3" style="width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelEdit">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
         </div>
       </form>
     </div>
@@ -146,148 +163,218 @@
     import { api } from './assets/js/api.js';
 
     requireAuth();
-    renderSidebar('dewan');
+    renderSidebar('kategori');
 
-    const params = new URLSearchParams(window.location.search);
-    const dewanId = params.get('dewan_id');
-    const kategoriId = params.get('kategori_id');
+    let allKategori = [];
 
-    if (!dewanId || !kategoriId) {
-      window.location.replace('dewan.html');
+    const loadingEl = document.getElementById('loadingIndicator');
+    const tableContainer = document.getElementById('tableContainer');
+    const emptyContainer = document.getElementById('emptyContainer');
+    const tableBody = document.getElementById('katTableBody');
+    const totalKatText = document.getElementById('totalKatText');
+    const footerCount = document.getElementById('footerCount');
+    const alertFeedback = document.getElementById('alertFeedback');
+
+    const modalAdd = document.getElementById('modalAddKat');
+    const btnOpenAdd = document.getElementById('btnOpenAddModal');
+    const btnCancelAdd = document.getElementById('btnCancelAdd');
+    const formAdd = document.getElementById('formAddKat');
+
+    const modalEdit = document.getElementById('modalEditKat');
+    const btnCancelEdit = document.getElementById('btnCancelEdit');
+    const formEdit = document.getElementById('formEditKat');
+
+    btnOpenAdd.addEventListener('click', () => modalAdd.classList.add('show'));
+    btnCancelAdd.addEventListener('click', () => modalAdd.classList.remove('show'));
+    btnCancelEdit.addEventListener('click', () => modalEdit.classList.remove('show'));
+
+    loadKategori();
+
+    async function loadKategori() {
+      loadingEl.style.display = 'flex';
+      tableContainer.style.display = 'none';
+      emptyContainer.style.display = 'none';
+
+      try {
+        const res = await api.getKategoriWithDocCount();
+        if (res && res.success && Array.isArray(res.data)) {
+          allKategori = res.data;
+          renderTable(allKategori);
+        } else {
+          showEmpty();
+        }
+      } catch (err) {
+        showFeedback(err.message, 'error');
+        showEmpty();
+      } finally {
+        loadingEl.style.display = 'none';
+      }
     }
 
-    const breadcrumbArsipLink = document.getElementById('breadcrumbArsipLink');
-    const breadcrumbKatName = document.getElementById('breadcrumbKatName');
-    const pageTitleKat = document.getElementById('pageTitleKat');
-    const pageSubtitleDewan = document.getElementById('pageSubtitleDewan');
-    const tahunGrid = document.getElementById('tahunGrid');
-    const emptyTahun = document.getElementById('emptyTahun');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const totalTahunCount = document.getElementById('totalTahunCount');
+    function renderTable(list) {
+      totalKatText.textContent = list.length;
+      footerCount.textContent = `Menampilkan ${list.length} kategori arsip`;
 
-    // Modal elements
-    const modal = document.getElementById('modalTambahTahun');
-    const btnBuka = document.getElementById('btnBukaModalTahun');
-    const btnTutup = document.getElementById('btnTutupModalTahun');
-    const formTahun = document.getElementById('formTambahTahun');
-    const inputTahun = document.getElementById('inputTahun');
-    const modalError = document.getElementById('modalError');
-    const btnSimpanTahun = document.getElementById('btnSimpanTahun');
-
-    breadcrumbArsipLink.href = `arsip_dewan.html?id=${dewanId}`;
-
-    btnBuka.addEventListener('click', () => {
-      modalError.style.display = 'none';
-      inputTahun.value = new Date().getFullYear();
-      modal.classList.add('show');
-    });
-
-    btnTutup.addEventListener('click', () => {
-      modal.classList.remove('show');
-    });
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('show');
-    });
-
-    formTahun.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      modalError.style.display = 'none';
-      const thn = parseInt(inputTahun.value, 10);
-      if (isNaN(thn) || thn < 1900 || thn > 2100) {
-        modalError.textContent = 'Tahun tidak valid.';
-        modalError.style.display = 'flex';
+      if (!list.length) {
+        showEmpty();
         return;
       }
 
-      btnSimpanTahun.disabled = true;
-      btnSimpanTahun.textContent = 'Menyimpan...';
+      tableContainer.style.display = 'block';
+      emptyContainer.style.display = 'none';
+
+      tableBody.innerHTML = list.map((item, idx) => {
+        const isAktif = String(item.status || 'aktif').toLowerCase() === 'aktif';
+        const docCount = parseInt(item.jumlah_dokumen, 10) || 0;
+
+        return `
+          <tr>
+            <td style="text-align: center; color: #94a3b8; font-size: 12px;">${idx + 1}</td>
+            <td><strong>${escapeHtml(item.nama_kategori)}</strong></td>
+            <td style="color: #64748b; font-size: 13px;">${escapeHtml(item.deskripsi || '-')}</td>
+            <td style="text-align: center;">
+              <span class="doc-count-badge" style="background: ${docCount > 0 ? '#eff6ff' : '#f1f5f9'}; color: ${docCount > 0 ? '#1e40af' : '#64748b'};">
+                ${docCount} Berkas
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <span class="badge-status ${isAktif ? 'aktif' : 'nonaktif'}">${isAktif ? 'Aktif' : 'Nonaktif'}</span>
+            </td>
+            <td style="text-align: center;">
+              <div class="btn-action-group">
+                <button type="button" class="btn-icon edit" data-action="edit" data-id="${item.id}" data-name="${escapeHtml(item.nama_kategori)}" data-desc="${escapeHtml(item.deskripsi || '')}">
+                  Edit
+                </button>
+                <button type="button" class="btn-icon" data-action="toggle" data-id="${item.id}" data-status="${isAktif ? 'nonaktif' : 'aktif'}" title="${isAktif ? 'Nonaktifkan Kategori' : 'Aktifkan Kategori'}">
+                  ${isAktif ? 'Off' : 'On'}
+                </button>
+                <button type="button" class="btn-icon delete" data-action="delete" data-id="${item.id}" data-name="${escapeHtml(item.nama_kategori)}" data-count="${docCount}">
+                  Hapus
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Tombol Edit
+      tableBody.querySelectorAll('button[data-action="edit"]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.getElementById('editKatId').value = btn.dataset.id;
+          document.getElementById('editNamaKat').value = btn.dataset.name;
+          document.getElementById('editDescKat').value = btn.dataset.desc;
+          modalEdit.classList.add('show');
+        });
+      });
+
+      // Tombol Toggle Status
+      tableBody.querySelectorAll('button[data-action="toggle"]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const status = btn.dataset.status;
+          try {
+            const res = await api.toggleKategoriStatus(id, status);
+            if (res && res.success) {
+              showFeedback('Status kategori berhasil diperbarui.', 'success');
+              loadKategori();
+            } else {
+              showFeedback(res.message || 'Gagal mengubah status kategori.', 'error');
+            }
+          } catch (e) {
+            showFeedback(e.message, 'error');
+          }
+        });
+      });
+
+      // Tombol Hapus (dengan pencegahan jika masih ada dokumen)
+      tableBody.querySelectorAll('button[data-action="delete"]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const name = btn.dataset.name;
+          const count = parseInt(btn.dataset.count, 10);
+
+          if (count > 0) {
+            alert(`Peringatan: Kategori "${name}" masih digunakan oleh ${count} dokumen arsip.\n\nKategori tidak dapat dihapus permanen agar tidak merusak referensi berkas. Silakan nonaktifkan kategori ini jika tidak ingin digunakan lagi.`);
+            return;
+          }
+
+          if (!confirm(`Apakah Anda yakin ingin menghapus kategori "${name}"?`)) return;
+
+          try {
+            const res = await api.deleteKategori(id);
+            if (res && res.success) {
+              showFeedback('Kategori berhasil dihapus.', 'success');
+              loadKategori();
+            } else {
+              showFeedback(res.message || 'Gagal menghapus kategori.', 'error');
+            }
+          } catch (e) {
+            showFeedback(e.message, 'error');
+          }
+        });
+      });
+    }
+
+    formAdd.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nama = document.getElementById('addNamaKat').value.trim();
+      const desc = document.getElementById('addDescKat').value.trim();
 
       try {
-        const res = await api.createTahun(dewanId, kategoriId, thn);
+        const res = await api.createKategori(nama, desc);
         if (res && res.success) {
-          modal.classList.remove('show');
-          loadData();
+          showFeedback('Kategori baru berhasil ditambahkan.', 'success');
+          modalAdd.classList.remove('show');
+          formAdd.reset();
+          loadKategori();
         } else {
-          modalError.textContent = res.message || 'Gagal menambahkan tahun.';
-          modalError.style.display = 'flex';
+          showFeedback(res.message || 'Gagal menambahkan kategori.', 'error');
         }
       } catch (err) {
-        modalError.textContent = err.message || 'Terjadi kesalahan.';
-        modalError.style.display = 'flex';
-      } finally {
-        btnSimpanTahun.disabled = false;
-        btnSimpanTahun.textContent = 'Simpan Tahun';
+        showFeedback(err.message, 'error');
       }
     });
 
-    loadData();
-
-    async function loadData() {
-      loadingIndicator.style.display = 'flex';
-      tahunGrid.style.display = 'none';
-      emptyTahun.style.display = 'none';
+    formEdit.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('editKatId').value;
+      const nama = document.getElementById('editNamaKat').value.trim();
+      const desc = document.getElementById('editDescKat').value.trim();
 
       try {
-        // Ambil profil dewan
-        const resDewan = await api.getDewanById(dewanId);
-        if (resDewan && resDewan.success && resDewan.data) {
-          pageSubtitleDewan.textContent = `Anggota Dewan: ${resDewan.data.nama}`;
-        }
-
-        // Ambil nama kategori
-        const resKat = await api.getKategoriList();
-        if (resKat && resKat.success && Array.isArray(resKat.data)) {
-          const matched = resKat.data.find((k) => String(k.id) === String(kategoriId));
-          if (matched) {
-            breadcrumbKatName.textContent = matched.nama_kategori;
-            pageTitleKat.textContent = matched.nama_kategori;
-          }
-        }
-
-        // Ambil daftar tahun
-        const resTahun = await api.getTahunList(dewanId, kategoriId);
-        loadingIndicator.style.display = 'none';
-
-        if (resTahun && resTahun.success && Array.isArray(resTahun.data)) {
-          const list = resTahun.data;
-          totalTahunCount.textContent = list.length;
-
-          if (list.length === 0) {
-            emptyTahun.style.display = 'block';
-            tahunGrid.style.display = 'none';
-          } else {
-            emptyTahun.style.display = 'none';
-            tahunGrid.style.display = 'grid';
-            tahunGrid.innerHTML = list.map((t) => `
-              <a href="dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${t.tahun}" class="item-card">
-                <div class="item-card-header">
-                  <div class="item-card-icon" style="background:#fef3c7; color:#b45309;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                      <line x1="16" y1="2" x2="16" y2="6"/>
-                      <line x1="8" y1="2" x2="8" y2="6"/>
-                      <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="item-card-title">Tahun ${t.tahun}</div>
-                    <div class="item-card-desc">Arsip tahun anggaran ${t.tahun}</div>
-                  </div>
-                </div>
-                <div class="item-card-footer">
-                  <span class="doc-count-badge">${t.jumlah_dokumen || 0} Dokumen</span>
-                  <span style="color:#2563eb; font-weight:600;">Lihat Folder &rarr;</span>
-                </div>
-              </a>
-            `).join('');
-          }
+        const res = await api.updateKategori(id, nama, desc);
+        if (res && res.success) {
+          showFeedback('Kategori berhasil diperbarui.', 'success');
+          modalEdit.classList.remove('show');
+          loadKategori();
+        } else {
+          showFeedback(res.message || 'Gagal memperbarui kategori.', 'error');
         }
       } catch (err) {
-        loadingIndicator.style.display = 'none';
-        emptyTahun.style.display = 'block';
-        console.error(err);
+        showFeedback(err.message, 'error');
       }
+    });
+
+    function showEmpty() {
+      tableContainer.style.display = 'none';
+      emptyContainer.style.display = 'block';
+    }
+
+    function showFeedback(msg, type) {
+      alertFeedback.textContent = msg;
+      alertFeedback.className = 'alert-banner ' + type;
+      alertFeedback.style.display = 'flex';
+      setTimeout(() => { alertFeedback.style.display = 'none'; }, 5000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
   </script>
 </body>
