@@ -17,63 +17,66 @@
  * - DATABASE_ID        : ID Spreadsheet Database
  * - ROOT_FOLDER_ID     : ID Folder Utama di Google Drive
  * - DOKUMEN_FOLDER_ID  : ID Subfolder Dokumen Fisik di Drive
- * - PASSWORD_SALT      : Kunci Salt Kriptografis SHA-256
+ * - PASSWORD_SALT      : Kunci Salt Kriptografis Sistem
  */
 
 const APP_NAME = 'Sistem Pengarsipan Dokumen DPRD Kota Parepare';
 const TIMEZONE = 'Asia/Makassar';
 const INITIAL_SUPERADMIN_USER = 'superadmin';
+const PBKDF2_ITERATIONS = 2500; // Standar key-stretching native Apps Script (~150ms)
 
-// 25 ANGGOTA DPRD KOTA PAREPARE RESMI PERIODE 2024 - 2029
+// 25 ANGGOTA DPRD KOTA PAREPARE RESMI PERIODE 2024 - 2029 (DENGAN ID STABIL)
 const SEED_DEWAN_PAREPARE = [
-  { nomor_urut: 1, nama: 'Ir. H. KAHARUDDIN KADIR, M.Si.', jabatan: 'Ketua DPRD Kota parepare', periode: '2024 - 2029', nama_pendamping: 'SUKARNO, S. Kom.', nama_partai: 'Partai Golongan Karya' },
-  { nomor_urut: 2, nama: 'SUYUTI, S.E.', jabatan: 'Wakil Ketua I', periode: '2024 - 2029', nama_pendamping: 'M. KHAERUL KADAR,S.H', nama_partai: 'Partai Nasional Demokrat' },
-  { nomor_urut: 3, nama: 'MUHAMMAD YUSUF LAPANNA, SH.I.', jabatan: 'Wakil Ketua II', periode: '2024 - 2029', nama_pendamping: 'AJI WICAKSONO, S.H', nama_partai: 'Partai Gerakan Indonesia Raya' },
-  { nomor_urut: 4, nama: 'ACHMAD ARIADY, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SINTA DEWI ANGGRAENI, S.E.', nama_partai: 'Partai Nasional Demokrat' },
-  { nomor_urut: 5, nama: 'ANDI MUH. FUDAIL, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ANDI ANWAR, A.md.', nama_partai: 'Partai Kebangkitan Bangsa' },
-  { nomor_urut: 6, nama: "ASY'ARI ABDULLAH, S.T.", jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SYARIEF LATIEF, S.Pt.', nama_partai: 'Partai Gelombang Rakyat Indonesia' },
-  { nomor_urut: 7, nama: 'Dr. KAMALUDDIN KADIR, S.Sos., M.M', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SARTIKA', nama_partai: 'Partai Gerakan Indonesia Raya' },
-  { nomor_urut: 8, nama: 'Dra. Hj. ASMAWATI', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ARIYANI, S.H.', nama_partai: 'Partai Nasional Demokrat' },
-  { nomor_urut: 9, nama: 'H. AHMAD ZULFIKAR ZUHDY, S.T.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SUDARMIN, S.Pt.', nama_partai: 'Partai Demokrat' },
-  { nomor_urut: 10, nama: 'H. HASIB HASYIM, S.T., S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ARIS, S.E.', nama_partai: 'Partai Kebangkitan Bangsa' },
-  { nomor_urut: 11, nama: 'H. KADARUSMAN MANGURUSI, S.T', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'MARIANI', nama_partai: 'Partai Golongan Karya' },
-  { nomor_urut: 12, nama: 'HAMRAN HAMDANI, S.E', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'AMIR, S.T', nama_partai: 'Partai Golongan Karya' },
-  { nomor_urut: 13, nama: 'Hj INDRIASARI HUSNI, S.Kom.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'RESTY NOVIANTI, S.H', nama_partai: 'Partai Golongan Karya' },
-  { nomor_urut: 14, nama: 'Hj. APRIYANI DJAMALUDDIN', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'MUH. RAYNALDI KURNIAWAN, S,Tr.IP', nama_partai: 'Partai Demokrasi Indonesia Perjuangan' },
-  { nomor_urut: 15, nama: 'Hj. FARIDAH, HS, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: "YOPIE MA'DIKA, S.H.", nama_partai: 'Partai Demokrat' },
-  { nomor_urut: 16, nama: 'Hj. SRI TANTY MARIANI NASRAH', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'AGUS SALIM', nama_partai: 'Partai Hati Nurani Rakyat' },
-  { nomor_urut: 17, nama: 'HUSAIN MUHAMMAD SAUD, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'FAISAL IKHWANSYAH, S.H.', nama_partai: 'Partai Gerakan Indonesia Raya' },
-  { nomor_urut: 18, nama: 'Ir. IBRAHIM SUANDA', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'Hj. NURAENI HUSAIN', nama_partai: 'Partai Amanat Nasional' },
-  { nomor_urut: 19, nama: 'JUSVARI GENDA', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'NURAINIA NAIM', nama_partai: 'Partai Keadilan Sejahtera' },
-  { nomor_urut: 20, nama: 'MUH. ILHAMSYAH TAUFAN, S.H.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'M. ALI YUNUS', nama_partai: 'Partai Golongan Karya' },
-  { nomor_urut: 21, nama: 'MUSDALIFAH PAWE, S.H.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'FITRI HANDAYANI, SE.', nama_partai: 'Partai Amanat Nasional' },
-  { nomor_urut: 22, nama: 'NAMRI NASIR', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'MUHAMMAD RAIHAN IRSAN', nama_partai: 'Partai Persatuan Pembangunan' },
-  { nomor_urut: 23, nama: 'RUDY NAJAMUDDIN', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'HASRIANTI, S.Kom.', nama_partai: 'Partai Persatuan Pembangunan' },
-  { nomor_urut: 24, nama: 'S. PARMAN AGOES MANTE', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ALFIAN SYUKUR', nama_partai: 'Partai Gelombang Rakyat Indonesia' },
-  { nomor_urut: 25, nama: 'SAPPE', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ARI WIBOWO S.H.', nama_partai: 'Partai Keadilan Sejahtera' }
+  { id: 'DWN-01', nomor_urut: 1, nama: 'Ir. H. KAHARUDDIN KADIR, M.Si.', jabatan: 'Ketua DPRD Kota parepare', periode: '2024 - 2029', nama_pendamping: 'SUKARNO, S. Kom.', nama_partai: 'Partai Golongan Karya' },
+  { id: 'DWN-02', nomor_urut: 2, nama: 'SUYUTI, S.E.', jabatan: 'Wakil Ketua I', periode: '2024 - 2029', nama_pendamping: 'M. KHAERUL KADAR,S.H', nama_partai: 'Partai Nasional Demokrat' },
+  { id: 'DWN-03', nomor_urut: 3, nama: 'MUHAMMAD YUSUF LAPANNA, SH.I.', jabatan: 'Wakil Ketua II', periode: '2024 - 2029', nama_pendamping: 'AJI WICAKSONO, S.H', nama_partai: 'Partai Gerakan Indonesia Raya' },
+  { id: 'DWN-04', nomor_urut: 4, nama: 'ACHMAD ARIADY, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SINTA DEWI ANGGRAENI, S.E.', nama_partai: 'Partai Nasional Demokrat' },
+  { id: 'DWN-05', nomor_urut: 5, nama: 'ANDI MUH. FUDAIL, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ANDI ANWAR, A.md.', nama_partai: 'Partai Kebangkitan Bangsa' },
+  { id: 'DWN-06', nomor_urut: 6, nama: "ASY'ARI ABDULLAH, S.T.", jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SYARIEF LATIEF, S.Pt.', nama_partai: 'Partai Gelombang Rakyat Indonesia' },
+  { id: 'DWN-07', nomor_urut: 7, nama: 'Dr. KAMALUDDIN KADIR, S.Sos., M.M', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SARTIKA', nama_partai: 'Partai Gerakan Indonesia Raya' },
+  { id: 'DWN-08', nomor_urut: 8, nama: 'Dra. Hj. ASMAWATI', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ARIYANI, S.H.', nama_partai: 'Partai Nasional Demokrat' },
+  { id: 'DWN-09', nomor_urut: 9, nama: 'H. AHMAD ZULFIKAR ZUHDY, S.T.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SUDARMIN, S.Pt.', nama_partai: 'Partai Demokrat' },
+  { id: 'DWN-10', nomor_urut: 10, nama: 'H. HASIB HASYIM, S.T., S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ARIS, S.E.', nama_partai: 'Partai Kebangkitan Bangsa' },
+  { id: 'DWN-11', nomor_urut: 11, nama: 'H. KADARUSMAN MANGURUSI, S.T', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'MARIANI', nama_partai: 'Partai Golongan Karya' },
+  { id: 'DWN-12', nomor_urut: 12, nama: 'HAMRAN HAMDANI, S.E', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'AMIR, S.T', nama_partai: 'Partai Golongan Karya' },
+  { id: 'DWN-13', nomor_urut: 13, nama: 'Hj INDRIASARI HUSNI, S.Kom.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'RESTY NOVIANTI, S.H', nama_partai: 'Partai Golongan Karya' },
+  { id: 'DWN-14', nomor_urut: 14, nama: 'Hj. APRIYANI DJAMALUDDIN', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'MUH. RAYNALDI KURNIAWAN, S,Tr.IP', nama_partai: 'Partai Demokrasi Indonesia Perjuangan' },
+  { id: 'DWN-15', nomor_urut: 15, nama: 'Hj. FARIDAH, HS, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: "YOPIE MA'DIKA, S.H.", nama_partai: 'Partai Demokrat' },
+  { id: 'DWN-16', nomor_urut: 16, nama: 'Hj. SRI TANTY MARIANI NASRAH', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'AGUS SALIM', nama_partai: 'Partai Hati Nurani Rakyat' },
+  { id: 'DWN-17', nomor_urut: 17, nama: 'HUSAIN MUHAMMAD SAUD, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'FAISAL IKHWANSYAH, S.H.', nama_partai: 'Partai Gerakan Indonesia Raya' },
+  { id: 'DWN-18', nomor_urut: 18, nama: 'Ir. IBRAHIM SUANDA', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'Hj. NURAENI HUSAIN', nama_partai: 'Partai Amanat Nasional' },
+  { id: 'DWN-19', nomor_urut: 19, nama: 'JUSVARI GENDA', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'NURAINIA NAIM', nama_partai: 'Partai Keadilan Sejahtera' },
+  { id: 'DWN-20', nomor_urut: 20, nama: 'MUH. ILHAMSYAH TAUFAN, S.H.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'M. ALI YUNUS', nama_partai: 'Partai Golongan Karya' },
+  { id: 'DWN-21', nomor_urut: 21, nama: 'MUSDALIFAH PAWE, S.H.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'FITRI HANDAYANI, SE.', nama_partai: 'Partai Amanat Nasional' },
+  { id: 'DWN-22', nomor_urut: 22, nama: 'NAMRI NASIR', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'MUHAMMAD RAIHAN IRSAN', nama_partai: 'Partai Persatuan Pembangunan' },
+  { id: 'DWN-23', nomor_urut: 23, nama: 'RUDY NAJAMUDDIN', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'HASRIANTI, S.Kom.', nama_partai: 'Partai Persatuan Pembangunan' },
+  { id: 'DWN-24', nomor_urut: 24, nama: 'S. PARMAN AGOES MANTE', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ALFIAN SYUKUR', nama_partai: 'Partai Gelombang Rakyat Indonesia' },
+  { id: 'DWN-25', nomor_urut: 25, nama: 'SAPPE', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'ARI WIBOWO S.H.', nama_partai: 'Partai Keadilan Sejahtera' }
 ];
 
 const SEED_KATEGORI_DEFAULT = [
-  { nama_kategori: 'Pokok-Pokok Pikiran (Pokir)', deskripsi: 'Arsip usulan aspirasi masyarakat melalui anggota DPRD' },
-  { nama_kategori: 'Laporan Hasil Reses', deskripsi: 'Laporan kegiatan penjaringan aspirasi konstituen' },
-  { nama_kategori: 'Fasilitasi Penganggaran (RKA/DPA)', deskripsi: 'Dokumen pembahasan RKA dan DPA perangkat daerah' },
-  { nama_kategori: 'Fasilitasi Pengawasan', deskripsi: 'Laporan pengawasan pelaksanaan perda dan anggaran' },
-  { nama_kategori: 'Dokumen Perjalanan Dinas', deskripsi: 'Surat tugas dan laporan hasil perjalanan dinas anggota dewan' },
-  { nama_kategori: 'Risalah Rapat Paripurna', deskripsi: 'Notulen dan risalah pembahasan sidang paripurna DPRD' }
+  { id: 'KAT-01', nama_kategori: 'Pokok-Pokok Pikiran (Pokir)', deskripsi: 'Arsip usulan aspirasi masyarakat melalui anggota DPRD' },
+  { id: 'KAT-02', nama_kategori: 'Laporan Hasil Reses', deskripsi: 'Laporan kegiatan penjaringan aspirasi konstituen' },
+  { id: 'KAT-03', nama_kategori: 'Fasilitasi Penganggaran (RKA/DPA)', deskripsi: 'Dokumen pembahasan RKA dan DPA perangkat daerah' },
+  { id: 'KAT-04', nama_kategori: 'Fasilitasi Pengawasan', deskripsi: 'Laporan pengawasan pelaksanaan perda dan anggaran' },
+  { id: 'KAT-05', nama_kategori: 'Dokumen Perjalanan Dinas', deskripsi: 'Surat tugas dan laporan hasil perjalanan dinas anggota dewan' },
+  { id: 'KAT-06', nama_kategori: 'Risalah Rapat Paripurna', deskripsi: 'Notulen dan risalah pembahasan sidang paripurna DPRD' }
 ];
 
 // ============================================================================
-// 1. SETUP OTOMATIS & HEALTH CHECK
+// 1. SETUP DATABASE, BOOTSTRAP SUPERADMIN, & HEALTH CHECK
 // ============================================================================
 
 /**
- * Menyiapkan Database Google Sheets & Folder Google Drive dari nol secara otomatis.
- * SIFAT: IDEMPOTEN (Aman dijalankan berulang kali tanpa merusak atau menduplikasi data).
+ * Setup Database Google Sheets & Folder Google Drive dari nol secara otomatis.
+ * SIFAT: IDEMPOTEN & NON-DESTRUKTIF.
+ * Tidak menghapus data lama, tidak menduplikasi data yang sudah ada, dan TIDAK
+ * menanam password superadmin secara hardcoded.
  */
 function setupDatabaseDPRD() {
   const props = PropertiesService.getScriptProperties();
 
-  // Inisialisasi Salt Kriptografis
+  // 1. Inisialisasi Salt Sistem jika belum ada
   let salt = props.getProperty('PASSWORD_SALT');
   if (!salt) {
     const seed = Utilities.getUuid() + '-' + Date.now() + '-' + Math.random().toString(36);
@@ -83,7 +86,7 @@ function setupDatabaseDPRD() {
     props.setProperty('PASSWORD_SALT', salt);
   }
 
-  // 1. SPREADSHEET
+  // 2. Spreadsheet Database
   let ss = null;
   const existingDbId = props.getProperty('DATABASE_ID') || props.getProperty('SPREADSHEET_ID');
   if (existingDbId && existingDbId.trim()) {
@@ -102,50 +105,32 @@ function setupDatabaseDPRD() {
 
   const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-  // 2. SHEETS & HEADERS
-  // Sheet users
+  // 3. Pembuatan Sheet & Header Kolom (Tanpa menimpa sheet yang sudah ada)
+  // Sheet: users
   let usersSheet = ss.getSheetByName('users');
   if (!usersSheet) {
     usersSheet = ss.insertSheet('users');
     usersSheet.appendRow(['id', 'username', 'password_hash', 'salt', 'nama', 'role', 'status', 'must_change_password', 'created_at', 'last_login']);
     usersSheet.setFrozenRows(1);
   }
-  // Bootstrap Superadmin jika belum ada
-  const existingUsers = getSheetData(ss, 'users');
-  const superadminExists = existingUsers.some(function(u) { return String(u.username || '').toLowerCase() === INITIAL_SUPERADMIN_USER; });
-  if (!superadminExists) {
-    const initialPass = 'SandiRahasia123!';
-    const initialHash = hashPasswordWithSalt(initialPass, salt);
-    usersSheet.appendRow([
-      'USR-SUPERADMIN-1',
-      INITIAL_SUPERADMIN_USER,
-      initialHash,
-      salt,
-      'Super Administrator DPRD',
-      'superadmin',
-      'aktif',
-      'true', // Wajib ganti password pada login pertama
-      nowIso,
-      ''
-    ]);
-  }
 
-  // Sheet dewan
+  // Sheet: dewan
   let dewanSheet = ss.getSheetByName('dewan');
   if (!dewanSheet) {
     dewanSheet = ss.insertSheet('dewan');
     dewanSheet.appendRow(['id', 'nomor_urut', 'nama', 'jabatan', 'periode', 'nama_pendamping', 'nama_partai', 'status', 'created_at', 'updated_at']);
     dewanSheet.setFrozenRows(1);
   }
-  // Seed 25 Anggota DPRD Parepare (Idempotent: cek berdasarkan nomor_urut / nama)
+  // Seed 25 Anggota DPRD Kota Parepare (Idempoten: cocokkan berdasarkan id atau nama)
   const existingDewan = getSheetData(ss, 'dewan');
   SEED_DEWAN_PAREPARE.forEach(function(item) {
     const exists = existingDewan.some(function(d) {
-      return parseInt(d.nomor_urut, 10) === item.nomor_urut || String(d.nama || '').trim().toLowerCase() === item.nama.trim().toLowerCase();
+      return String(d.id || '').trim() === item.id ||
+             String(d.nama || '').trim().toLowerCase() === item.nama.trim().toLowerCase();
     });
     if (!exists) {
       dewanSheet.appendRow([
-        item.nomor_urut,
+        item.id,
         item.nomor_urut,
         item.nama,
         item.jabatan,
@@ -159,7 +144,7 @@ function setupDatabaseDPRD() {
     }
   });
 
-  // Sheet kategori_dokumen
+  // Sheet: kategori_dokumen
   let katSheet = ss.getSheetByName('kategori_dokumen');
   if (!katSheet) {
     katSheet = ss.insertSheet('kategori_dokumen');
@@ -167,17 +152,17 @@ function setupDatabaseDPRD() {
     katSheet.setFrozenRows(1);
   }
   const existingKat = getSheetData(ss, 'kategori_dokumen');
-  SEED_KATEGORI_DEFAULT.forEach(function(item, idx) {
+  SEED_KATEGORI_DEFAULT.forEach(function(item) {
     const exists = existingKat.some(function(k) {
-      return String(k.nama_kategori || '').trim().toLowerCase() === item.nama_kategori.trim().toLowerCase();
+      return String(k.id || '').trim() === item.id ||
+             String(k.nama_kategori || '').trim().toLowerCase() === item.nama_kategori.trim().toLowerCase();
     });
     if (!exists) {
-      const newId = (existingKat.length ? Math.max.apply(null, existingKat.map(function(x) { return parseInt(x.id, 10) || 0; })) : 0) + idx + 1;
-      katSheet.appendRow([newId, item.nama_kategori, item.deskripsi, 'aktif', nowIso, nowIso]);
+      katSheet.appendRow([item.id, item.nama_kategori, item.deskripsi, 'aktif', nowIso, nowIso]);
     }
   });
 
-  // Sheet tahun_dokumen
+  // Sheet: tahun_dokumen
   let tahunSheet = ss.getSheetByName('tahun_dokumen');
   if (!tahunSheet) {
     tahunSheet = ss.insertSheet('tahun_dokumen');
@@ -185,7 +170,7 @@ function setupDatabaseDPRD() {
     tahunSheet.setFrozenRows(1);
   }
 
-  // Sheet folder_dokumen
+  // Sheet: folder_dokumen
   let folderSheet = ss.getSheetByName('folder_dokumen');
   if (!folderSheet) {
     folderSheet = ss.insertSheet('folder_dokumen');
@@ -193,7 +178,7 @@ function setupDatabaseDPRD() {
     folderSheet.setFrozenRows(1);
   }
 
-  // Sheet dokumen
+  // Sheet: dokumen
   let docSheet = ss.getSheetByName('dokumen');
   if (!docSheet) {
     docSheet = ss.insertSheet('dokumen');
@@ -206,7 +191,7 @@ function setupDatabaseDPRD() {
     docSheet.setFrozenRows(1);
   }
 
-  // Sheet aktivitas_log
+  // Sheet: aktivitas_log
   let logSheet = ss.getSheetByName('aktivitas_log');
   if (!logSheet) {
     logSheet = ss.insertSheet('aktivitas_log');
@@ -214,13 +199,13 @@ function setupDatabaseDPRD() {
     logSheet.setFrozenRows(1);
   }
 
-  // Hapus Sheet default jika ada
+  // Hapus Sheet1 bawaan hanya jika kosong dan sheet lain sudah ada
   const defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
-  if (defaultSheet && ss.getSheets().length > 1) {
+  if (defaultSheet && ss.getSheets().length > 1 && defaultSheet.getLastRow() === 0) {
     try { ss.deleteSheet(defaultSheet); } catch (e) {}
   }
 
-  // 3. FOLDER GOOGLE DRIVE
+  // 4. Struktur Folder Google Drive
   let rootFolder = null;
   const existingRootId = props.getProperty('ROOT_FOLDER_ID');
   if (existingRootId && existingRootId.trim()) {
@@ -246,15 +231,23 @@ function setupDatabaseDPRD() {
     props.setProperty('DOKUMEN_FOLDER_ID', docFolder.getId());
   }
 
+  const existingUsers = getSheetData(ss, 'users');
+  const hasSuperadmin = existingUsers.some(function(u) {
+    return String(u.role || '').toLowerCase() === 'superadmin' ||
+           String(u.username || '').toLowerCase() === INITIAL_SUPERADMIN_USER;
+  });
+
   const summary = {
     status: 'SETUP_SUCCESS',
     spreadsheetId: ss.getId(),
-    spreadsheetUrl: ss.getUrl(),
     rootFolderId: rootFolder.getId(),
-    rootFolderUrl: rootFolder.getUrl(),
     docFolderId: docFolder.getId(),
-    superadminCreated: !superadminExists,
-    totalDewanSeeded: SEED_DEWAN_PAREPARE.length
+    totalDewanTersimpan: getSheetData(ss, 'dewan').length,
+    totalKategoriTersimpan: getSheetData(ss, 'kategori_dokumen').length,
+    superadminSiap: hasSuperadmin,
+    instruksiSelanjutnya: hasSuperadmin
+      ? 'Database dan akun superadmin sudah aktif.'
+      : 'Database siap. Silakan jalankan bootstrapSuperadmin("PasswordAnda123!") dari editor untuk membuat akun superadmin.'
   };
 
   Logger.log('HASIL SETUP DATABASE DPRD: ' + JSON.stringify(summary, null, 2));
@@ -262,7 +255,131 @@ function setupDatabaseDPRD() {
 }
 
 /**
- * Pemeriksaan kesehatan database dan struktur sistem
+ * Bootstrap Akun Superadmin Satu Kali Secara Aman.
+ * Jalankan fungsi ini SEKALI dari Apps Script Editor oleh pemilik akun Google.
+ *
+ * @param {string} initialPassword Kata sandi awal yang Anda tentukan sendiri.
+ *                                 Minimal 8 karakter, wajib kombinasi huruf dan angka.
+ */
+function bootstrapSuperadmin(initialPassword) {
+  const props = PropertiesService.getScriptProperties();
+
+  let password = initialPassword;
+  if (!password) {
+    // Dukungan opsional: baca dari Script Properties jika admin mengaturnya via GUI Project Settings
+    password = props.getProperty('BOOTSTRAP_PASSWORD');
+    if (password) {
+      props.deleteProperty('BOOTSTRAP_PASSWORD'); // Hapus seketika agar tidak tersisa di properties
+    }
+  }
+
+  if (!password || typeof password !== 'string' || password.trim().length < 8) {
+    throw new Error('Gagal: Password awal wajib diisi minimal 8 karakter.');
+  }
+
+  const cleanPass = password.trim();
+  if (!/[a-zA-Z]/.test(cleanPass) || !/[0-9]/.test(cleanPass)) {
+    throw new Error('Gagal: Password awal wajib mengandung kombinasi huruf dan angka.');
+  }
+
+  const ss = getDatabase();
+  const uSheet = ss.getSheetByName('users');
+  if (!uSheet) {
+    throw new Error('Sheet "users" belum siap. Jalankan setupDatabaseDPRD() terlebih dahulu.');
+  }
+
+  const existingUsers = getSheetData(ss, 'users');
+  const superadminExists = existingUsers.some(function(u) {
+    return String(u.role || '').toLowerCase() === 'superadmin' ||
+           String(u.username || '').toLowerCase() === INITIAL_SUPERADMIN_USER;
+  });
+
+  if (superadminExists) {
+    throw new Error('Akun superadmin sudah terdaftar sebelumnya. Gunakan resetSuperadminPassword(password) jika ingin memperbarui.');
+  }
+
+  // Salt unik 32 karakter khusus superadmin
+  const salt = Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + '-' + Date.now(), Utilities.Charset.UTF_8)
+  ).substring(0, 32);
+
+  const hash = hashPasswordPBKDF2(cleanPass, salt);
+  const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+  uSheet.appendRow([
+    'USR-SUPERADMIN',
+    INITIAL_SUPERADMIN_USER,
+    hash,
+    salt,
+    'Super Administrator DPRD',
+    'superadmin',
+    'aktif',
+    'true', // Wajib ganti password pada login pertama
+    nowIso,
+    ''
+  ]);
+
+  recordActivity(ss, 'SYSTEM', INITIAL_SUPERADMIN_USER, 'superadmin', 'BOOTSTRAP_SUPERADMIN', 'Akun superadmin diinisialisasi melalui Apps Script Editor');
+
+  // KEAMANAN: Jangan pernah mencetak password ke log!
+  Logger.log('=====================================================');
+  Logger.log('SUKSES: Akun superadmin (' + INITIAL_SUPERADMIN_USER + ') berhasil diinisialisasi.');
+  Logger.log('Status: Wajib mengganti password saat login pertama kali.');
+  Logger.log('=====================================================');
+
+  return { success: true, message: 'Superadmin berhasil diinisialisasi.' };
+}
+
+/**
+ * Reset Kata Sandi Superadmin Darurat oleh Pemilik Akun Google
+ * Hanya dapat dijalankan dari Apps Script Editor secara privat.
+ *
+ * @param {string} newPassword Kata sandi baru (minimal 8 karakter kombinasi huruf & angka).
+ */
+function resetSuperadminPassword(newPassword) {
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 8) {
+    throw new Error('Gagal: Kata sandi baru minimal 8 karakter.');
+  }
+  const cleanPass = newPassword.trim();
+  if (!/[a-zA-Z]/.test(cleanPass) || !/[0-9]/.test(cleanPass)) {
+    throw new Error('Gagal: Kata sandi baru wajib kombinasi huruf dan angka.');
+  }
+
+  const ss = getDatabase();
+  const uSheet = ss.getSheetByName('users');
+  if (!uSheet) throw new Error('Sheet "users" tidak ditemukan.');
+
+  const existingUsers = getSheetData(ss, 'users');
+  const target = existingUsers.find(function(u) {
+    return String(u.role || '').toLowerCase() === 'superadmin' ||
+           String(u.username || '').toLowerCase() === INITIAL_SUPERADMIN_USER;
+  });
+
+  if (!target) {
+    throw new Error('Akun superadmin belum ditemukan. Jalankan bootstrapSuperadmin(password) terlebih dahulu.');
+  }
+
+  const newSalt = Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + '-' + Date.now(), Utilities.Charset.UTF_8)
+  ).substring(0, 32);
+
+  const newHash = hashPasswordPBKDF2(cleanPass, newSalt);
+
+  uSheet.getRange(target._rowIndex, 3).setValue(newHash);
+  uSheet.getRange(target._rowIndex, 4).setValue(newSalt);
+  uSheet.getRange(target._rowIndex, 8).setValue('false');
+
+  recordActivity(ss, 'SYSTEM', INITIAL_SUPERADMIN_USER, 'superadmin', 'RESET_PASSWORD_CONSOLE', 'Password superadmin diperbarui via console Apps Script');
+
+  Logger.log('=====================================================');
+  Logger.log('SUKSES: Kata sandi superadmin berhasil diperbarui.');
+  Logger.log('=====================================================');
+
+  return { success: true, message: 'Password superadmin berhasil direset.' };
+}
+
+/**
+ * Pemeriksaan kesehatan database dan struktur sistem (Hanya via Editor / Private)
  */
 function checkDatabaseDPRD() {
   const ss = getDatabase();
@@ -295,58 +412,8 @@ function checkDatabaseDPRD() {
   return report;
 }
 
-/**
- * Prosedur Manual Pemulihan Password Superadmin (Hanya dapat dipanggil dari editor Apps Script oleh pemilik akun Google)
- */
-function resetSuperadminPasswordManual(newPassword) {
-  if (!newPassword || newPassword.length < 8) {
-    throw new Error('Password baru minimal 8 karakter.');
-  }
-  const ss = getDatabase();
-  const props = PropertiesService.getScriptProperties();
-  const salt = props.getProperty('PASSWORD_SALT') || 'SALT_FALLBACK_2026';
-  const newHash = hashPasswordWithSalt(newPassword, salt);
-  const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
-
-  const sheet = ss.getSheetByName('users');
-  if (!sheet) throw new Error('Sheet users tidak ditemukan.');
-
-  const data = sheet.getDataRange().getValues();
-  let foundRow = -1;
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][1] || '').trim().toLowerCase() === INITIAL_SUPERADMIN_USER) {
-      foundRow = i + 1;
-      break;
-    }
-  }
-
-  if (foundRow !== -1) {
-    sheet.getRange(foundRow, 3).setValue(newHash);
-    sheet.getRange(foundRow, 4).setValue(salt);
-    sheet.getRange(foundRow, 8).setValue('false'); // must_change_password di-reset
-    Logger.log('Password superadmin berhasil direset.');
-  } else {
-    sheet.appendRow([
-      'USR-SUPERADMIN-MANUAL',
-      INITIAL_SUPERADMIN_USER,
-      newHash,
-      salt,
-      'Super Administrator DPRD',
-      'superadmin',
-      'aktif',
-      'false',
-      nowIso,
-      ''
-    ]);
-    Logger.log('Akun superadmin baru berhasil dibuat.');
-  }
-
-  recordActivity(ss, 'SYSTEM', 'superadmin', 'superadmin', 'PASSWORD_RESET_MANUAL', 'Password superadmin direset via console Apps Script');
-  return { success: true, message: 'Password superadmin berhasil diperbarui.' };
-}
-
 // ============================================================================
-// 2. RESOLVER & HELPER KEAMANAN
+// 2. SISTEM HASHING PBKDF2-HMAC-SHA256 & KEAMANAN OTORISASI
 // ============================================================================
 
 function getDatabase() {
@@ -362,35 +429,68 @@ function getDatabase() {
   throw new Error('Database Spreadsheet belum terhubung. Silakan jalankan setupDatabaseDPRD() terlebih dahulu.');
 }
 
-function getPasswordSalt() {
+function getSystemSalt() {
   const props = PropertiesService.getScriptProperties();
   let salt = props.getProperty('PASSWORD_SALT');
   if (!salt) {
-    salt = 'DPRD_PAREPARE_SALT_SECURE_2026';
+    salt = 'DPRD_PAREPARE_SALT_KEYSTRETCH_2026';
     props.setProperty('PASSWORD_SALT', salt);
   }
   return salt;
 }
 
-function hashPasswordWithSalt(password, salt) {
-  const rawBytes = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    password + '_' + salt,
-    Utilities.Charset.UTF_8
-  );
-  let hash = '';
-  for (let i = 0; i < rawBytes.length; i++) {
-    let byteVal = rawBytes[i];
-    if (byteVal < 0) byteVal += 256;
-    let byteHex = byteVal.toString(16);
-    if (byteHex.length === 1) byteHex = '0' + byteHex;
-    hash += byteHex;
+/**
+ * Derivasi Kata Sandi PBKDF2-HMAC-SHA256 Native Apps Script
+ * Menggunakan Utilities.computeHmacSha256Signature dengan 2500 iterasi.
+ * Menghasilkan hash 256-bit yang tahan terhadap serangan GPU/ASIC/Rainbow Tables.
+ */
+function hashPasswordPBKDF2(password, salt) {
+  const fullSalt = (salt || getSystemSalt());
+  // Inisialisasi U_1 = HMAC(Password, Salt + INT(1))
+  const initialData = fullSalt + '\x00\x00\x00\x01';
+  let u = Utilities.computeHmacSha256Signature(initialData, password);
+  let result = new Array(u.length);
+  for (let k = 0; k < u.length; k++) {
+    result[k] = u[k];
   }
-  return hash;
+
+  // Iterasi key-stretching
+  for (let i = 1; i < PBKDF2_ITERATIONS; i++) {
+    u = Utilities.computeHmacSha256Signature(u, password);
+    for (let k = 0; k < u.length; k++) {
+      result[k] ^= u[k];
+    }
+  }
+
+  let hex = '';
+  for (let i = 0; i < result.length; i++) {
+    let b = result[i];
+    if (b < 0) b += 256;
+    let h = b.toString(16);
+    if (h.length === 1) h = '0' + h;
+    hex += h;
+  }
+  return 'pbkdf2$' + PBKDF2_ITERATIONS + '$' + hex;
 }
 
-function hashPasswordGAS(password) {
-  return hashPasswordWithSalt(password, getPasswordSalt());
+/**
+ * Verifikasi Kata Sandi dengan Waktu Konstan (Constant-Time Compare)
+ * Mencegah serangan timing-attack dan menolak seluruh fallback lemah.
+ */
+function verifyPassword(password, storedHash, userSalt) {
+  if (!password || !storedHash) return false;
+
+  const expectedHash = hashPasswordPBKDF2(password, userSalt || getSystemSalt());
+
+  if (storedHash.length !== expectedHash.length) {
+    return false;
+  }
+
+  let diff = 0;
+  for (let i = 0; i < storedHash.length; i++) {
+    diff |= storedHash.charCodeAt(i) ^ expectedHash.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 function sanitizeSheetValue(value) {
@@ -429,6 +529,20 @@ function verifySession(token) {
   }
 }
 
+/**
+ * Pengecekan Otorisasi Role Server-Side yang Ketat
+ */
+function enforceRole(session, allowedRoles) {
+  if (!session || !session.role) {
+    throw new Error('Akses ditolak: Data peran pengguna tidak ditemukan.');
+  }
+  const userRole = String(session.role).toLowerCase();
+  const allowed = allowedRoles.map(function(r) { return r.toLowerCase(); });
+  if (allowed.indexOf(userRole) === -1) {
+    throw new Error('Akses ditolak: Akun dengan peran "' + userRole + '" tidak memiliki izin untuk tindakan ini.');
+  }
+}
+
 function checkLoginRateLimit(identifier) {
   const cache = CacheService.getScriptCache();
   const lockoutKey = 'lockout_' + identifier;
@@ -449,7 +563,7 @@ function recordFailedLogin(identifier) {
   let attempts = parseInt(cache.get(attemptsKey) || '0', 10) + 1;
   let isLocked = false;
   if (attempts >= 5) {
-    cache.put(lockoutKey, 'true', 900); // 15 menit lockout
+    cache.put(lockoutKey, 'true', 900); // Lockout 15 menit
     cache.remove(attemptsKey);
     isLocked = true;
   } else {
@@ -521,49 +635,27 @@ function jsonResponse(success, data, message, errorCode) {
 }
 
 // ============================================================================
-// 3. HTTP HANDLER: doGet(e)
+// 3. HTTP HANDLER: doGet(e) - HANYA HEALTH-CHECK MINIMAL (BEBAS KEBOCORAN INFO)
 // ============================================================================
 
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || 'ping';
 
-  try {
-    const ss = getDatabase();
-
-    switch (action) {
-      case 'ping':
-        return jsonResponse(true, {
-          app: APP_NAME,
-          status: 'online',
-          serverTime: Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd HH:mm:ss')
-        }, 'Sistem Pengarsipan DPRD Kota Parepare aktif.');
-
-      case 'checkConfig': {
-        const check = checkDatabaseDPRD();
-        return jsonResponse(true, check, 'Pemeriksaan konfigurasi berhasil.');
-      }
-
-      case 'getPublicStats': {
-        const dewan = getSheetData(ss, 'dewan');
-        const docs = getSheetData(ss, 'dokumen');
-        const kat = getSheetData(ss, 'kategori_dokumen');
-        return jsonResponse(true, {
-          totalDewan: dewan.length,
-          totalDokumen: docs.length,
-          totalKategori: kat.length
-        }, 'Statistik publik berhasil dimuat.');
-      }
-
-      default:
-        return jsonResponse(false, null, 'Aksi GET tidak dikenali.', 'NOT_FOUND');
-    }
-  } catch (err) {
-    return jsonResponse(false, null, err.message, 'GAS_GET_ERROR');
+  // Endpoint publik HANYA menyediakan health-check ping
+  // Seluruh statistik, daftar dokumen, konfigurasi, dan identitas anggota dewan
+  // tertutup rapat dan hanya dapat diakses melalui POST berautentikasi sesi!
+  if (action === 'ping') {
+    return jsonResponse(true, {
+      app: APP_NAME,
+      status: 'online'
+    }, 'Sistem Pengarsipan DPRD Kota Parepare aktif.');
   }
+
+  return jsonResponse(false, null, 'Endpoint publik tidak tersedia.', 'NOT_FOUND');
 }
 
 // ============================================================================
-// 4. HTTP HANDLER: doPost(e) & ROUTING
+// 4. HTTP HANDLER: doPost(e) & ROUTING DENGAN VALIDASI ROLE KETAT
 // ============================================================================
 
 function doPost(e) {
@@ -581,7 +673,7 @@ function doPost(e) {
 
     const ss = getDatabase();
 
-    // ---------------- AUTH: LOGIN ----------------
+    // ---------------- AUTH: LOGIN (PUBLIK TERBATAS) ----------------
     if (action === 'adminLogin' || action === 'login') {
       const creds = payload.credentials || payload.data || payload;
       const username = String(creds.username || '').trim().toLowerCase();
@@ -597,16 +689,11 @@ function doPost(e) {
       }
 
       const users = getSheetData(ss, 'users');
-      const inputHash = hashPasswordGAS(password);
 
       const matchedUser = users.find(function(u) {
         if (String(u.username || '').trim().toLowerCase() !== username) return false;
-        // Cocokkan hash dengan salt tersimpan atau salt sistem
-        const userSalt = String(u.salt || getPasswordSalt());
-        const expectedHash = hashPasswordWithSalt(password, userSalt);
-        if (String(u.password_hash || '') === expectedHash) return true;
-        if (String(u.password_hash || '') === inputHash) return true;
-        return false;
+        // Verifikasi kata sandi dengan PBKDF2 (Tanpa fallback plaintext / hash lemah)
+        return verifyPassword(password, String(u.password_hash || ''), String(u.salt || ''));
       });
 
       if (!matchedUser || String(matchedUser.status || '').toLowerCase() === 'nonaktif') {
@@ -624,12 +711,11 @@ function doPost(e) {
 
       resetFailedLogin(username);
 
-      // Buat token sesi acak 256-bit
       const rawSeed = Utilities.getUuid() + '-' + Date.now() + '-' + Math.random().toString(36);
       const tokenDigest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, rawSeed, Utilities.Charset.UTF_8);
       const sessionToken = Utilities.base64EncodeWebSafe(tokenDigest).replace(/=+$/, '');
 
-      const ttlSeconds = 21600; // 6 Jam masa berlaku sesi
+      const ttlSeconds = 21600; // 6 Jam
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
       const mustChange = String(matchedUser.must_change_password || '').toLowerCase() === 'true';
 
@@ -644,7 +730,6 @@ function doPost(e) {
 
       CacheService.getScriptCache().put('session_' + sessionToken, JSON.stringify(sessionObj), ttlSeconds);
 
-      // Perbarui waktu login terakhir di spreadsheet
       try {
         const uSheet = ss.getSheetByName('users');
         if (uSheet && matchedUser._rowIndex) {
@@ -673,7 +758,7 @@ function doPost(e) {
       return jsonResponse(true, null, 'Logout berhasil.');
     }
 
-    // ---------------- OPERASI YANG MEMERLUKAN SESI VALID ----------------
+    // ---------------- SEMUA AKSI DI BAWAH INI WAJIB MEMILIKI SESI AKTIF ----------------
     const session = verifySession(token);
 
     // ---------------- AUTH: CEK SESI & PROFIL ----------------
@@ -681,13 +766,16 @@ function doPost(e) {
       return jsonResponse(true, session, 'Sesi aktif.');
     }
 
-    // ---------------- AUTH: GANTI PASSWORD ----------------
+    // ---------------- AUTH: GANTI PASSWORD MANDIRI ----------------
     if (action === 'changePassword') {
       const oldPass = String(payload.oldPassword || '');
       const newPass = String(payload.newPassword || '');
 
       if (!newPass || newPass.length < 8) {
         return jsonResponse(false, null, 'Password baru minimal 8 karakter.', 'VALIDATION_ERROR');
+      }
+      if (!/[a-zA-Z]/.test(newPass) || !/[0-9]/.test(newPass)) {
+        return jsonResponse(false, null, 'Password baru wajib kombinasi huruf dan angka.', 'VALIDATION_ERROR');
       }
 
       const users = getSheetData(ss, 'users');
@@ -696,19 +784,22 @@ function doPost(e) {
         return jsonResponse(false, null, 'Pengguna tidak ditemukan.', 'USER_NOT_FOUND');
       }
 
-      const userSalt = String(curUser.salt || getPasswordSalt());
-      const expectedOldHash = hashPasswordWithSalt(oldPass, userSalt);
-      if (String(curUser.password_hash) !== expectedOldHash && String(curUser.password_hash) !== hashPasswordGAS(oldPass)) {
+      // Verifikasi password lama dengan PBKDF2
+      if (!verifyPassword(oldPass, String(curUser.password_hash || ''), String(curUser.salt || ''))) {
         return jsonResponse(false, null, 'Password lama tidak sesuai.', 'INVALID_OLD_PASSWORD');
       }
 
-      // Hash password baru
-      const newHash = hashPasswordWithSalt(newPass, userSalt);
+      // Hash password baru dengan salt baru
+      const newSalt = Utilities.base64EncodeWebSafe(
+        Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + '-' + Date.now(), Utilities.Charset.UTF_8)
+      ).substring(0, 32);
+
+      const newHash = hashPasswordPBKDF2(newPass, newSalt);
       const uSheet = ss.getSheetByName('users');
       uSheet.getRange(curUser._rowIndex, 3).setValue(newHash);
-      uSheet.getRange(curUser._rowIndex, 8).setValue('false'); // must_change_password selesai
+      uSheet.getRange(curUser._rowIndex, 4).setValue(newSalt);
+      uSheet.getRange(curUser._rowIndex, 8).setValue('false'); // Selesai wajib ganti
 
-      // Perbarui cache sesi
       session.mustChangePassword = false;
       CacheService.getScriptCache().put('session_' + token, JSON.stringify(session), 21600);
 
@@ -716,7 +807,7 @@ function doPost(e) {
       return jsonResponse(true, session, 'Password berhasil diperbarui.');
     }
 
-    // PENGUNCIAN SCRIPTLOCK UNTUK OPERASI PENULISAN (MUTASI DATA)
+    // PENGUNCIAN SCRIPTLOCK UNTUK OPERASI MUTASI DATA BERSAMAAN
     const writeActions = [
       'createDewan', 'updateDewan', 'toggleDewanStatus', 'deleteDewan',
       'createKategori', 'updateKategori', 'toggleKategoriStatus', 'deleteKategori',
@@ -727,7 +818,7 @@ function doPost(e) {
     ];
 
     if (writeActions.indexOf(action) !== -1) {
-      lock.waitLock(25000); // 25 detik batas antrian
+      lock.waitLock(25000);
       lockAcquired = true;
     }
 
@@ -746,7 +837,9 @@ function doPost(e) {
         return new Date(b.tanggal_upload || 0).getTime() - new Date(a.tanggal_upload || 0).getTime();
       }).slice(0, 5);
 
-      const recentLogs = logList.slice(-6).reverse();
+      const recentLogs = (session.role === 'superadmin' || session.role === 'admin')
+        ? logList.slice(-6).reverse()
+        : [];
 
       return jsonResponse(true, {
         totalDewan: dewanList.length,
@@ -754,11 +847,11 @@ function doPost(e) {
         totalDokumen: docAktif.length,
         totalKategori: katAktif.length,
         recentDocuments: sortedDocs,
-        recentActivities: (session.role === 'superadmin' || session.role === 'admin') ? recentLogs : []
+        recentActivities: recentLogs
       }, 'Data dashboard berhasil dimuat.');
     }
 
-    // ---------------- ANGGOTA DEWAN CRUD ----------------
+    // ---------------- ANGGOTA DEWAN (BACA: SEMUA ROLE, TULIS: ADMIN/SUPERADMIN) ----------------
     if (action === 'getDewanList') {
       const list = getSheetData(ss, 'dewan');
       const q = String(payload.cari || payload.q || '').trim().toLowerCase();
@@ -778,7 +871,6 @@ function doPost(e) {
         });
       }
 
-      // Urutkan berdasarkan nomor_urut
       filtered.sort(function(a, b) {
         return (parseInt(a.nomor_urut, 10) || 999) - (parseInt(b.nomor_urut, 10) || 999);
       });
@@ -787,25 +879,29 @@ function doPost(e) {
     }
 
     if (action === 'getDewanById') {
-      const id = parseInt(payload.id, 10);
+      const id = String(payload.id || '').trim();
       const list = getSheetData(ss, 'dewan');
-      const item = list.find(function(d) { return parseInt(d.id, 10) === id || parseInt(d.nomor_urut, 10) === id; });
+      const item = list.find(function(d) {
+        return String(d.id || '').trim() === id || String(d.nomor_urut || '').trim() === id;
+      });
       if (!item) return jsonResponse(false, null, 'Data dewan tidak ditemukan.', 'NOT_FOUND');
       return jsonResponse(true, item, 'Data dewan ditemukan.');
     }
 
     if (action === 'createDewan') {
+      enforceRole(session, ['superadmin', 'admin']);
+
       const d = payload.data || payload;
       const dewanSheet = ss.getSheetByName('dewan');
       const allDewan = getSheetData(ss, 'dewan');
 
-      const maxId = allDewan.length ? Math.max.apply(null, allDewan.map(function(x) { return parseInt(x.id, 10) || 0; })) : 0;
-      const newId = maxId + 1;
-      const nomorUrut = parseInt(d.nomor_urut, 10) || newId;
+      // Generate ID unik dan stabil DWN-UUID
+      const stableId = 'DWN-' + Utilities.getUuid().substring(0, 8);
+      const nomorUrut = parseInt(d.nomor_urut, 10) || (allDewan.length + 1);
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
       dewanSheet.appendRow([
-        newId,
+        stableId,
         nomorUrut,
         sanitizeSheetValue(d.nama),
         sanitizeSheetValue(d.jabatan || 'Anggota'),
@@ -817,16 +913,20 @@ function doPost(e) {
         nowIso
       ]);
 
-      recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_DEWAN', 'Menambahkan anggota dewan: ' + d.nama);
-      return jsonResponse(true, { id: newId, nomor_urut: nomorUrut, nama: d.nama }, 'Anggota dewan berhasil ditambahkan.');
+      recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_DEWAN', 'Menambahkan dewan: ' + d.nama);
+      return jsonResponse(true, { id: stableId, nomor_urut: nomorUrut, nama: d.nama }, 'Anggota dewan berhasil ditambahkan.');
     }
 
     if (action === 'updateDewan') {
+      enforceRole(session, ['superadmin', 'admin']);
+
       const d = payload.data || payload;
-      const id = parseInt(d.id, 10);
+      const id = String(d.id || '').trim();
       const dewanSheet = ss.getSheetByName('dewan');
       const allDewan = getSheetData(ss, 'dewan');
-      const target = allDewan.find(function(x) { return parseInt(x.id, 10) === id; });
+      const target = allDewan.find(function(x) {
+        return String(x.id || '').trim() === id || String(x.nomor_urut || '').trim() === id;
+      });
 
       if (!target) return jsonResponse(false, null, 'Anggota dewan tidak ditemukan.', 'NOT_FOUND');
 
@@ -843,29 +943,36 @@ function doPost(e) {
       dewanSheet.getRange(row, 10).setValue(nowIso);
 
       recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_DEWAN', 'Memperbarui data dewan ID: ' + id);
-      return jsonResponse(true, { id: id }, 'Data anggota dewan berhasil diperbarui.');
+      return jsonResponse(true, { id: target.id }, 'Data anggota dewan berhasil diperbarui.');
     }
 
     if (action === 'toggleDewanStatus') {
-      const id = parseInt(payload.id, 10);
+      enforceRole(session, ['superadmin', 'admin']);
+
+      const id = String(payload.id || '').trim();
       const newStatus = String(payload.status || 'aktif').toLowerCase() === 'aktif' ? 'aktif' : 'nonaktif';
       const dewanSheet = ss.getSheetByName('dewan');
       const allDewan = getSheetData(ss, 'dewan');
-      const target = allDewan.find(function(x) { return parseInt(x.id, 10) === id; });
+      const target = allDewan.find(function(x) {
+        return String(x.id || '').trim() === id || String(x.nomor_urut || '').trim() === id;
+      });
 
       if (!target) return jsonResponse(false, null, 'Anggota dewan tidak ditemukan.', 'NOT_FOUND');
       dewanSheet.getRange(target._rowIndex, 8).setValue(newStatus);
 
       recordActivity(ss, session.userId, session.username, session.role, 'STATUS_DEWAN', 'Mengubah status dewan ID ' + id + ' menjadi: ' + newStatus);
-      return jsonResponse(true, { id: id, status: newStatus }, 'Status anggota dewan berhasil diubah.');
+      return jsonResponse(true, { id: target.id, status: newStatus }, 'Status anggota dewan berhasil diubah.');
     }
 
     if (action === 'deleteDewan') {
-      const id = parseInt(payload.id, 10);
-      const docs = getSheetData(ss, 'dokumen');
-      const relatedDocs = docs.filter(function(doc) { return parseInt(doc.dewan_id, 10) === id; });
+      enforceRole(session, ['superadmin', 'admin']);
 
-      // Perlindungan integritas: jangan hapus dewan yang memiliki dokumen arsip
+      const id = String(payload.id || '').trim();
+      const docs = getSheetData(ss, 'dokumen');
+      const relatedDocs = docs.filter(function(doc) {
+        return String(doc.dewan_id || '').trim() === id;
+      });
+
       if (relatedDocs.length > 0) {
         return jsonResponse(
           false,
@@ -877,29 +984,31 @@ function doPost(e) {
 
       const dewanSheet = ss.getSheetByName('dewan');
       const allDewan = getSheetData(ss, 'dewan');
-      const target = allDewan.find(function(x) { return parseInt(x.id, 10) === id; });
+      const target = allDewan.find(function(x) {
+        return String(x.id || '').trim() === id || String(x.nomor_urut || '').trim() === id;
+      });
       if (!target) return jsonResponse(false, null, 'Data dewan tidak ditemukan.', 'NOT_FOUND');
 
       dewanSheet.deleteRow(target._rowIndex);
-      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_DEWAN', 'Menghapus anggota dewan ID: ' + id);
-      return jsonResponse(true, { id: id }, 'Anggota dewan berhasil dihapus.');
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_DEWAN', 'Menghapus dewan ID: ' + id);
+      return jsonResponse(true, { id: target.id }, 'Anggota dewan berhasil dihapus.');
     }
 
-    // ---------------- KATEGORI ARSIP CRUD ----------------
+    // ---------------- KATEGORI ARSIP (BACA: SEMUA ROLE, TULIS: ADMIN/SUPERADMIN) ----------------
     if (action === 'getKategoriList') {
       const list = getSheetData(ss, 'kategori_dokumen');
       return jsonResponse(true, list, 'Daftar kategori berhasil dimuat.');
     }
 
     if (action === 'getKategoriWithDocCount') {
-      const dewanId = payload.dewan_id ? parseInt(payload.dewan_id, 10) : null;
+      const dewanId = payload.dewan_id ? String(payload.dewan_id).trim() : null;
       const katList = getSheetData(ss, 'kategori_dokumen');
       const docList = getSheetData(ss, 'dokumen');
 
       const result = katList.map(function(k) {
         const count = docList.filter(function(d) {
-          const matchKat = parseInt(d.kategori_id, 10) === parseInt(k.id, 10);
-          const matchDewan = !dewanId || parseInt(d.dewan_id, 10) === dewanId;
+          const matchKat = String(d.kategori_id || '').trim() === String(k.id || '').trim();
+          const matchDewan = !dewanId || String(d.dewan_id || '').trim() === dewanId;
           const isNotDeleted = String(d.status || '').toLowerCase() !== 'nonaktif';
           return matchKat && matchDewan && isNotDeleted;
         }).length;
@@ -916,6 +1025,8 @@ function doPost(e) {
     }
 
     if (action === 'createKategori') {
+      enforceRole(session, ['superadmin', 'admin']);
+
       const nama = String(payload.nama_kategori || '').trim();
       const deskripsi = String(payload.deskripsi || '').trim();
 
@@ -924,24 +1035,26 @@ function doPost(e) {
       const katSheet = ss.getSheetByName('kategori_dokumen');
       const allKat = getSheetData(ss, 'kategori_dokumen');
 
-      // Validasi duplikasi (case-insensitive)
-      const duplicate = allKat.some(function(k) { return String(k.nama_kategori || '').trim().toLowerCase() === nama.toLowerCase(); });
+      const duplicate = allKat.some(function(k) {
+        return String(k.nama_kategori || '').trim().toLowerCase() === nama.toLowerCase();
+      });
       if (duplicate) {
         return jsonResponse(false, null, 'Kategori dengan nama "' + nama + '" sudah terdaftar.', 'DUPLICATE_NAME');
       }
 
-      const maxId = allKat.length ? Math.max.apply(null, allKat.map(function(x) { return parseInt(x.id, 10) || 0; })) : 0;
-      const newId = maxId + 1;
+      const stableId = 'KAT-' + Utilities.getUuid().substring(0, 8);
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-      katSheet.appendRow([newId, sanitizeSheetValue(nama), sanitizeSheetValue(deskripsi), 'aktif', nowIso, nowIso]);
+      katSheet.appendRow([stableId, sanitizeSheetValue(nama), sanitizeSheetValue(deskripsi), 'aktif', nowIso, nowIso]);
 
       recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_KATEGORI', 'Menambahkan kategori: ' + nama);
-      return jsonResponse(true, { id: newId, nama_kategori: nama }, 'Kategori berhasil ditambahkan.');
+      return jsonResponse(true, { id: stableId, nama_kategori: nama }, 'Kategori berhasil ditambahkan.');
     }
 
     if (action === 'updateKategori') {
-      const id = parseInt(payload.id, 10);
+      enforceRole(session, ['superadmin', 'admin']);
+
+      const id = String(payload.id || '').trim();
       const nama = String(payload.nama_kategori || '').trim();
       const deskripsi = String(payload.deskripsi || '').trim();
 
@@ -949,12 +1062,11 @@ function doPost(e) {
 
       const katSheet = ss.getSheetByName('kategori_dokumen');
       const allKat = getSheetData(ss, 'kategori_dokumen');
-      const target = allKat.find(function(k) { return parseInt(k.id, 10) === id; });
+      const target = allKat.find(function(k) { return String(k.id || '').trim() === id; });
       if (!target) return jsonResponse(false, null, 'Kategori tidak ditemukan.', 'NOT_FOUND');
 
-      // Validasi duplikasi nama dengan ID lain
       const duplicate = allKat.some(function(k) {
-        return parseInt(k.id, 10) !== id && String(k.nama_kategori || '').trim().toLowerCase() === nama.toLowerCase();
+        return String(k.id || '').trim() !== id && String(k.nama_kategori || '').trim().toLowerCase() === nama.toLowerCase();
       });
       if (duplicate) {
         return jsonResponse(false, null, 'Kategori dengan nama "' + nama + '" sudah ada.', 'DUPLICATE_NAME');
@@ -970,11 +1082,13 @@ function doPost(e) {
     }
 
     if (action === 'toggleKategoriStatus') {
-      const id = parseInt(payload.id, 10);
+      enforceRole(session, ['superadmin', 'admin']);
+
+      const id = String(payload.id || '').trim();
       const newStatus = String(payload.status || 'aktif').toLowerCase() === 'aktif' ? 'aktif' : 'nonaktif';
       const katSheet = ss.getSheetByName('kategori_dokumen');
       const allKat = getSheetData(ss, 'kategori_dokumen');
-      const target = allKat.find(function(k) { return parseInt(k.id, 10) === id; });
+      const target = allKat.find(function(k) { return String(k.id || '').trim() === id; });
       if (!target) return jsonResponse(false, null, 'Kategori tidak ditemukan.', 'NOT_FOUND');
 
       katSheet.getRange(target._rowIndex, 4).setValue(newStatus);
@@ -983,23 +1097,24 @@ function doPost(e) {
     }
 
     if (action === 'deleteKategori') {
-      const id = parseInt(payload.id, 10);
-      const docs = getSheetData(ss, 'dokumen');
-      const relatedDocs = docs.filter(function(d) { return parseInt(d.kategori_id, 10) === id; });
+      enforceRole(session, ['superadmin', 'admin']);
 
-      // Perlindungan integritas kategori
+      const id = String(payload.id || '').trim();
+      const docs = getSheetData(ss, 'dokumen');
+      const relatedDocs = docs.filter(function(d) { return String(d.kategori_id || '').trim() === id; });
+
       if (relatedDocs.length > 0) {
         return jsonResponse(
           false,
           { totalDokumen: relatedDocs.length },
-          'Kategori tidak dapat dihapus karena masih digunakan oleh ' + relatedDocs.length + ' dokumen arsip. Silakan nonaktifkan kategori ini atau pindahkan dokumen terkait terlebih dahulu.',
+          'Kategori tidak dapat dihapus karena masih digunakan oleh ' + relatedDocs.length + ' dokumen arsip. Silakan nonaktifkan kategori ini terlebih dahulu.',
           'HAS_DEPENDENT_RECORDS'
         );
       }
 
       const katSheet = ss.getSheetByName('kategori_dokumen');
       const allKat = getSheetData(ss, 'kategori_dokumen');
-      const target = allKat.find(function(k) { return parseInt(k.id, 10) === id; });
+      const target = allKat.find(function(k) { return String(k.id || '').trim() === id; });
       if (!target) return jsonResponse(false, null, 'Kategori tidak ditemukan.', 'NOT_FOUND');
 
       katSheet.deleteRow(target._rowIndex);
@@ -1007,26 +1122,26 @@ function doPost(e) {
       return jsonResponse(true, { id: id }, 'Kategori berhasil dihapus.');
     }
 
-    // ---------------- TAHUN ANGGARAN & FOLDER CRUD ----------------
+    // ---------------- TAHUN & FOLDER ----------------
     if (action === 'getTahunList') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
+      const dewanId = String(payload.dewan_id || '').trim();
+      const katId = String(payload.kategori_id || '').trim();
       const tahunSheetData = getSheetData(ss, 'tahun_dokumen');
       const docSheetData = getSheetData(ss, 'dokumen');
 
       const tahunMap = {};
       tahunSheetData.forEach(function(t) {
-        if (parseInt(t.dewan_id, 10) === dewanId && parseInt(t.kategori_id, 10) === katId) {
+        if (String(t.dewan_id || '').trim() === dewanId && String(t.kategori_id || '').trim() === katId) {
           const yr = parseInt(t.tahun, 10);
           tahunMap[yr] = { id: t.id, tahun: yr, jumlah_dokumen: 0 };
         }
       });
 
       docSheetData.forEach(function(d) {
-        if (parseInt(d.dewan_id, 10) === dewanId && parseInt(d.kategori_id, 10) === katId) {
+        if (String(d.dewan_id || '').trim() === dewanId && String(d.kategori_id || '').trim() === katId) {
           const yr = parseInt(d.tahun, 10);
           if (!tahunMap[yr]) {
-            tahunMap[yr] = { id: yr, tahun: yr, jumlah_dokumen: 0 };
+            tahunMap[yr] = { id: 'THN-' + yr, tahun: yr, jumlah_dokumen: 0 };
           }
           if (String(d.status || '').toLowerCase() !== 'nonaktif') {
             tahunMap[yr].jumlah_dokumen++;
@@ -1041,8 +1156,8 @@ function doPost(e) {
     }
 
     if (action === 'createTahun') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
+      const dewanId = String(payload.dewan_id || '').trim();
+      const katId = String(payload.kategori_id || '').trim();
       const yr = parseInt(payload.tahun, 10);
 
       if (!yr || yr < 1990 || yr > 2099) {
@@ -1052,67 +1167,35 @@ function doPost(e) {
       const tahunSheet = ss.getSheetByName('tahun_dokumen');
       const allTahun = getSheetData(ss, 'tahun_dokumen');
       const exists = allTahun.some(function(t) {
-        return parseInt(t.dewan_id, 10) === dewanId && parseInt(t.kategori_id, 10) === katId && parseInt(t.tahun, 10) === yr;
+        return String(t.dewan_id || '').trim() === dewanId &&
+               String(t.kategori_id || '').trim() === katId &&
+               parseInt(t.tahun, 10) === yr;
       });
 
       if (exists) {
         return jsonResponse(false, null, 'Tahun ' + yr + ' sudah terdaftar untuk kategori ini.', 'DUPLICATE_ENTRY');
       }
 
-      const maxId = allTahun.length ? Math.max.apply(null, allTahun.map(function(x) { return parseInt(x.id, 10) || 0; })) : 0;
-      const newId = maxId + 1;
+      const stableId = 'THN-' + Utilities.getUuid().substring(0, 8);
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-      tahunSheet.appendRow([newId, dewanId, katId, yr, 'aktif', nowIso]);
+      tahunSheet.appendRow([stableId, dewanId, katId, yr, 'aktif', nowIso]);
       recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_TAHUN', 'Menambahkan tahun: ' + yr);
-      return jsonResponse(true, { id: newId, tahun: yr }, 'Tahun berhasil ditambahkan.');
-    }
-
-    if (action === 'updateTahun') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
-      const tahunLama = parseInt(payload.tahun_lama, 10);
-      const tahunBaru = parseInt(payload.tahun_baru, 10);
-
-      const tahunSheet = ss.getSheetByName('tahun_dokumen');
-      const allTahun = getSheetData(ss, 'tahun_dokumen');
-      const target = allTahun.find(function(t) {
-        return parseInt(t.dewan_id, 10) === dewanId && parseInt(t.kategori_id, 10) === katId && parseInt(t.tahun, 10) === tahunLama;
-      });
-
-      if (target) {
-        tahunSheet.getRange(target._rowIndex, 4).setValue(tahunBaru);
-      }
-
-      // Perbarui juga di folder dan dokumen
-      const fSheet = ss.getSheetByName('folder_dokumen');
-      const allF = getSheetData(ss, 'folder_dokumen');
-      allF.forEach(function(f) {
-        if (parseInt(f.dewan_id, 10) === dewanId && parseInt(f.kategori_id, 10) === katId && parseInt(f.tahun, 10) === tahunLama) {
-          fSheet.getRange(f._rowIndex, 4).setValue(tahunBaru);
-        }
-      });
-
-      const dSheet = ss.getSheetByName('dokumen');
-      const allD = getSheetData(ss, 'dokumen');
-      allD.forEach(function(d) {
-        if (parseInt(d.dewan_id, 10) === dewanId && parseInt(d.kategori_id, 10) === katId && parseInt(d.tahun, 10) === tahunLama) {
-          dSheet.getRange(d._rowIndex, 4).setValue(tahunBaru);
-        }
-      });
-
-      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_TAHUN', 'Mengubah tahun ' + tahunLama + ' menjadi ' + tahunBaru);
-      return jsonResponse(true, { tahun: tahunBaru }, 'Tahun berhasil diperbarui.');
+      return jsonResponse(true, { id: stableId, tahun: yr }, 'Tahun berhasil ditambahkan.');
     }
 
     if (action === 'deleteTahun') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
+      enforceRole(session, ['superadmin', 'admin']);
+
+      const dewanId = String(payload.dewan_id || '').trim();
+      const katId = String(payload.kategori_id || '').trim();
       const yr = parseInt(payload.tahun, 10);
 
       const docs = getSheetData(ss, 'dokumen');
       const related = docs.filter(function(d) {
-        return parseInt(d.dewan_id, 10) === dewanId && parseInt(d.kategori_id, 10) === katId && parseInt(d.tahun, 10) === yr;
+        return String(d.dewan_id || '').trim() === dewanId &&
+               String(d.kategori_id || '').trim() === katId &&
+               parseInt(d.tahun, 10) === yr;
       });
 
       if (related.length > 0) {
@@ -1122,7 +1205,9 @@ function doPost(e) {
       const tahunSheet = ss.getSheetByName('tahun_dokumen');
       const allTahun = getSheetData(ss, 'tahun_dokumen');
       const target = allTahun.find(function(t) {
-        return parseInt(t.dewan_id, 10) === dewanId && parseInt(t.kategori_id, 10) === katId && parseInt(t.tahun, 10) === yr;
+        return String(t.dewan_id || '').trim() === dewanId &&
+               String(t.kategori_id || '').trim() === katId &&
+               parseInt(t.tahun, 10) === yr;
       });
       if (target) tahunSheet.deleteRow(target._rowIndex);
 
@@ -1131,21 +1216,23 @@ function doPost(e) {
     }
 
     if (action === 'getFolderList') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
+      const dewanId = String(payload.dewan_id || '').trim();
+      const katId = String(payload.kategori_id || '').trim();
       const yr = parseInt(payload.tahun, 10);
 
       const fData = getSheetData(ss, 'folder_dokumen');
       const dData = getSheetData(ss, 'dokumen');
 
       const folders = fData.filter(function(f) {
-        return parseInt(f.dewan_id, 10) === dewanId && parseInt(f.kategori_id, 10) === katId && parseInt(f.tahun, 10) === yr;
+        return String(f.dewan_id || '').trim() === dewanId &&
+               String(f.kategori_id || '').trim() === katId &&
+               parseInt(f.tahun, 10) === yr;
       });
 
       const res = folders.map(function(f) {
         const count = dData.filter(function(d) {
-          const matchDewan = parseInt(d.dewan_id, 10) === dewanId;
-          const matchKat = parseInt(d.kategori_id, 10) === katId;
+          const matchDewan = String(d.dewan_id || '').trim() === dewanId;
+          const matchKat = String(d.kategori_id || '').trim() === katId;
           const matchYr = parseInt(d.tahun, 10) === yr;
           const matchFolder = String(d.nama_folder || '').trim().toLowerCase() === String(f.nama_folder || '').trim().toLowerCase();
           const isNotDeleted = String(d.status || '').toLowerCase() !== 'nonaktif';
@@ -1163,8 +1250,8 @@ function doPost(e) {
     }
 
     if (action === 'createFolder') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
+      const dewanId = String(payload.dewan_id || '').trim();
+      const katId = String(payload.kategori_id || '').trim();
       const yr = parseInt(payload.tahun, 10);
       const nama = String(payload.nama_folder || '').trim();
       const deskripsi = String(payload.deskripsi || '').trim();
@@ -1174,67 +1261,38 @@ function doPost(e) {
       const fSheet = ss.getSheetByName('folder_dokumen');
       const allF = getSheetData(ss, 'folder_dokumen');
       const exists = allF.some(function(f) {
-        return parseInt(f.dewan_id, 10) === dewanId && parseInt(f.kategori_id, 10) === katId &&
-               parseInt(f.tahun, 10) === yr && String(f.nama_folder || '').trim().toLowerCase() === nama.toLowerCase();
+        return String(f.dewan_id || '').trim() === dewanId &&
+               String(f.kategori_id || '').trim() === katId &&
+               parseInt(f.tahun, 10) === yr &&
+               String(f.nama_folder || '').trim().toLowerCase() === nama.toLowerCase();
       });
 
       if (exists) {
         return jsonResponse(false, null, 'Folder dengan nama "' + nama + '" sudah ada.', 'DUPLICATE_ENTRY');
       }
 
-      const maxId = allF.length ? Math.max.apply(null, allF.map(function(x) { return parseInt(x.id, 10) || 0; })) : 0;
-      const newId = maxId + 1;
+      const stableId = 'FLD-' + Utilities.getUuid().substring(0, 8);
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-      fSheet.appendRow([newId, dewanId, katId, yr, sanitizeSheetValue(nama), sanitizeSheetValue(deskripsi), 'aktif', nowIso]);
+      fSheet.appendRow([stableId, dewanId, katId, yr, sanitizeSheetValue(nama), sanitizeSheetValue(deskripsi), 'aktif', nowIso]);
       recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_FOLDER', 'Menambahkan folder: ' + nama);
-      return jsonResponse(true, { id: newId, nama_folder: nama }, 'Folder berhasil ditambahkan.');
-    }
-
-    if (action === 'updateFolder') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
-      const yr = parseInt(payload.tahun, 10);
-      const folderLama = String(payload.nama_folder_lama || '').trim();
-      const folderBaru = String(payload.nama_folder_baru || '').trim();
-
-      if (!folderBaru) return jsonResponse(false, null, 'Nama folder baru wajib diisi.', 'VALIDATION_ERROR');
-
-      const fSheet = ss.getSheetByName('folder_dokumen');
-      const allF = getSheetData(ss, 'folder_dokumen');
-      const target = allF.find(function(f) {
-        return parseInt(f.dewan_id, 10) === dewanId && parseInt(f.kategori_id, 10) === katId &&
-               parseInt(f.tahun, 10) === yr && String(f.nama_folder || '').trim().toLowerCase() === folderLama.toLowerCase();
-      });
-
-      if (target) {
-        fSheet.getRange(target._rowIndex, 5).setValue(sanitizeSheetValue(folderBaru));
-      }
-
-      // Perbarui juga di dokumen terkait
-      const dSheet = ss.getSheetByName('dokumen');
-      const allD = getSheetData(ss, 'dokumen');
-      allD.forEach(function(d) {
-        if (parseInt(d.dewan_id, 10) === dewanId && parseInt(d.kategori_id, 10) === katId &&
-            parseInt(d.tahun, 10) === yr && String(d.nama_folder || '').trim().toLowerCase() === folderLama.toLowerCase()) {
-          dSheet.getRange(d._rowIndex, 5).setValue(sanitizeSheetValue(folderBaru));
-        }
-      });
-
-      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_FOLDER', 'Mengubah folder: ' + folderLama + ' -> ' + folderBaru);
-      return jsonResponse(true, { nama_folder: folderBaru }, 'Folder berhasil diperbarui.');
+      return jsonResponse(true, { id: stableId, nama_folder: nama }, 'Folder berhasil ditambahkan.');
     }
 
     if (action === 'deleteFolder') {
-      const dewanId = parseInt(payload.dewan_id, 10);
-      const katId = parseInt(payload.kategori_id, 10);
+      enforceRole(session, ['superadmin', 'admin']);
+
+      const dewanId = String(payload.dewan_id || '').trim();
+      const katId = String(payload.kategori_id || '').trim();
       const yr = parseInt(payload.tahun, 10);
       const nama = String(payload.nama_folder || '').trim();
 
       const docs = getSheetData(ss, 'dokumen');
       const related = docs.filter(function(d) {
-        return parseInt(d.dewan_id, 10) === dewanId && parseInt(d.kategori_id, 10) === katId &&
-               parseInt(d.tahun, 10) === yr && String(d.nama_folder || '').trim().toLowerCase() === nama.toLowerCase();
+        return String(d.dewan_id || '').trim() === dewanId &&
+               String(d.kategori_id || '').trim() === katId &&
+               parseInt(d.tahun, 10) === yr &&
+               String(d.nama_folder || '').trim().toLowerCase() === nama.toLowerCase();
       });
 
       if (related.length > 0) {
@@ -1244,8 +1302,10 @@ function doPost(e) {
       const fSheet = ss.getSheetByName('folder_dokumen');
       const allF = getSheetData(ss, 'folder_dokumen');
       const target = allF.find(function(f) {
-        return parseInt(f.dewan_id, 10) === dewanId && parseInt(f.kategori_id, 10) === katId &&
-               parseInt(f.tahun, 10) === yr && String(f.nama_folder || '').trim().toLowerCase() === nama.toLowerCase();
+        return String(f.dewan_id || '').trim() === dewanId &&
+               String(f.kategori_id || '').trim() === katId &&
+               parseInt(f.tahun, 10) === yr &&
+               String(f.nama_folder || '').trim().toLowerCase() === nama.toLowerCase();
       });
       if (target) fSheet.deleteRow(target._rowIndex);
 
@@ -1253,10 +1313,10 @@ function doPost(e) {
       return jsonResponse(true, { nama_folder: nama }, 'Folder berhasil dihapus.');
     }
 
-    // ---------------- DOKUMEN & DRIVE CRUD ----------------
+    // ---------------- DOKUMEN ARSIP & GOOGLE DRIVE ----------------
     if (action === 'getDokumenList') {
-      const dewanId = payload.dewan_id ? parseInt(payload.dewan_id, 10) : null;
-      const katId = payload.kategori_id ? parseInt(payload.kategori_id, 10) : null;
+      const dewanId = payload.dewan_id ? String(payload.dewan_id).trim() : null;
+      const katId = payload.kategori_id ? String(payload.kategori_id).trim() : null;
       const yr = payload.tahun ? parseInt(payload.tahun, 10) : null;
       const folderName = payload.nama_folder ? String(payload.nama_folder).trim().toLowerCase() : null;
       const q = String(payload.q || payload.cari || '').trim().toLowerCase();
@@ -1265,8 +1325,8 @@ function doPost(e) {
 
       list = list.filter(function(d) {
         if (String(d.status || '').toLowerCase() === 'nonaktif') return false;
-        if (dewanId && parseInt(d.dewan_id, 10) !== dewanId) return false;
-        if (katId && parseInt(d.kategori_id, 10) !== katId) return false;
+        if (dewanId && String(d.dewan_id || '').trim() !== dewanId) return false;
+        if (katId && String(d.kategori_id || '').trim() !== katId) return false;
         if (yr && parseInt(d.tahun, 10) !== yr) return false;
         if (folderName && String(d.nama_folder || '').trim().toLowerCase() !== folderName) return false;
         if (q) {
@@ -1282,17 +1342,17 @@ function doPost(e) {
     }
 
     if (action === 'getDokumenById') {
-      const id = parseInt(payload.id, 10);
+      const id = String(payload.id || '').trim();
       const docs = getSheetData(ss, 'dokumen');
-      const target = docs.find(function(d) { return parseInt(d.id, 10) === id; });
+      const target = docs.find(function(d) { return String(d.id || '').trim() === id; });
       if (!target) return jsonResponse(false, null, 'Dokumen tidak ditemukan.', 'NOT_FOUND');
       return jsonResponse(true, target, 'Dokumen ditemukan.');
     }
 
     if (action === 'uploadDokumen' || action === 'createDokumen') {
       const d = payload.data || payload;
-      const dewanId = parseInt(d.dewan_id, 10);
-      const katId = parseInt(d.kategori_id, 10);
+      const dewanId = String(d.dewan_id || '').trim();
+      const katId = String(d.kategori_id || '').trim();
       const yr = parseInt(d.tahun, 10);
       const folderName = String(d.nama_folder || '').trim();
       const namaDokumen = String(d.nama_dokumen || d.judul || '').trim();
@@ -1301,9 +1361,8 @@ function doPost(e) {
       const base64Data = String(d.base64 || d.fileBase64 || '').trim();
 
       if (!namaDokumen) return jsonResponse(false, null, 'Judul dokumen wajib diisi.', 'VALIDATION_ERROR');
-      if (!base64Data) return jsonResponse(false, null, 'Berkas dokumen wajib diunggah.', 'VALIDATION_ERROR');
+      if (!base64Data) return jsonResponse(false, null, 'Berkas dokumen fisik wajib diunggah.', 'VALIDATION_ERROR');
 
-      // Ambil folder Google Drive target
       const props = PropertiesService.getScriptProperties();
       const docFolderId = props.getProperty('DOKUMEN_FOLDER_ID');
       let targetFolder = null;
@@ -1314,7 +1373,6 @@ function doPost(e) {
         targetFolder = DriveApp.getRootFolder();
       }
 
-      // Bersihkan format Base64 (jika ada data URI prefix data:...;base64,)
       let pureBase64 = base64Data;
       let detectedMime = 'application/pdf';
       if (base64Data.indexOf(',') !== -1) {
@@ -1329,23 +1387,19 @@ function doPost(e) {
         return jsonResponse(false, null, 'Ukuran berkas melebihi batas 10 MB.', 'FILE_TOO_LARGE');
       }
 
-      // Simpan berkas fisik ke Google Drive
       const blob = Utilities.newBlob(decodedBytes, detectedMime, fileName);
       const driveFile = targetFolder.createFile(blob);
       const fileId = driveFile.getId();
       const viewUrl = driveFile.getUrl();
       const directUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
 
-      // Simpan metadata ke Sheet dokumen
       const docSheet = ss.getSheetByName('dokumen');
-      const allDocs = getSheetData(ss, 'dokumen');
-      const maxId = allDocs.length ? Math.max.apply(null, allDocs.map(function(x) { return parseInt(x.id, 10) || 0; })) : 0;
-      const newId = maxId + 1;
+      const stableDocId = 'DOC-' + Utilities.getUuid().substring(0, 8);
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
       try {
         docSheet.appendRow([
-          newId,
+          stableDocId,
           dewanId,
           katId,
           yr,
@@ -1363,7 +1417,7 @@ function doPost(e) {
           nowIso
         ]);
       } catch (errSheet) {
-        // Kompensasi pemulihan: jika penulisan metadata gagal, hapus berkas fisik di Drive agar tidak menjadi file yatim!
+        // Pembersihan file yatim jika penulisan metadata gagal
         try { driveFile.setTrashed(true); } catch (e) {}
         throw new Error('Gagal mencatat metadata dokumen: ' + errSheet.message);
       }
@@ -1371,7 +1425,7 @@ function doPost(e) {
       recordActivity(ss, session.userId, session.username, session.role, 'UPLOAD_DOKUMEN', 'Mengunggah dokumen: ' + namaDokumen + ' (' + fileName + ')');
 
       return jsonResponse(true, {
-        id: newId,
+        id: stableDocId,
         nama_dokumen: namaDokumen,
         nama_file: fileName,
         file_id: fileId,
@@ -1380,34 +1434,16 @@ function doPost(e) {
       }, 'Dokumen berhasil diunggah dan disimpan.');
     }
 
-    if (action === 'updateDokumen') {
-      const d = payload.data || payload;
-      const id = parseInt(d.id, 10);
-      const namaDokumen = String(d.nama_dokumen || d.judul || '').trim();
-      const keterangan = String(d.keterangan || '').trim();
-
-      const docSheet = ss.getSheetByName('dokumen');
-      const allDocs = getSheetData(ss, 'dokumen');
-      const target = allDocs.find(function(x) { return parseInt(x.id, 10) === id; });
-      if (!target) return jsonResponse(false, null, 'Dokumen tidak ditemukan.', 'NOT_FOUND');
-
-      const row = target._rowIndex;
-      if (namaDokumen) docSheet.getRange(row, 6).setValue(sanitizeSheetValue(namaDokumen));
-      if (keterangan !== undefined) docSheet.getRange(row, 7).setValue(sanitizeSheetValue(keterangan));
-
-      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_DOKUMEN', 'Memperbarui dokumen ID: ' + id);
-      return jsonResponse(true, { id: id }, 'Metadata dokumen berhasil diperbarui.');
-    }
-
     if (action === 'deleteDokumen') {
-      const id = parseInt(payload.id, 10);
+      enforceRole(session, ['superadmin', 'admin']);
+
+      const id = String(payload.id || '').trim();
       const docSheet = ss.getSheetByName('dokumen');
       const allDocs = getSheetData(ss, 'dokumen');
-      const target = allDocs.find(function(d) { return parseInt(d.id, 10) === id; });
+      const target = allDocs.find(function(d) { return String(d.id || '').trim() === id; });
 
       if (!target) return jsonResponse(false, null, 'Dokumen tidak ditemukan.', 'NOT_FOUND');
 
-      // Hapus berkas di Google Drive (pindahkan ke Trash)
       const fileId = target.file_id;
       if (fileId && String(fileId).trim()) {
         try {
@@ -1418,17 +1454,15 @@ function doPost(e) {
         }
       }
 
-      // Hapus baris dokumen
       docSheet.deleteRow(target._rowIndex);
       recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_DOKUMEN', 'Menghapus dokumen ID: ' + id + ' (' + target.nama_dokumen + ')');
       return jsonResponse(true, { id: id }, 'Dokumen dan berkas fisik berhasil dihapus.');
     }
 
-    // ---------------- PENGGUNA & HAK AKSES (SUPERADMIN & ADMIN) ----------------
+    // ---------------- PENGGUNA & HAK AKSES (SUPERADMIN ONLY) ----------------
     if (action === 'getUserList') {
-      if (session.role !== 'superadmin' && session.role !== 'admin') {
-        return jsonResponse(false, null, 'Akses ditolak. Fitur ini hanya untuk administrator.', 'FORBIDDEN');
-      }
+      enforceRole(session, ['superadmin', 'admin']);
+
       const users = getSheetData(ss, 'users');
       const safeList = users.map(function(u) {
         return {
@@ -1446,9 +1480,8 @@ function doPost(e) {
     }
 
     if (action === 'createUser') {
-      if (session.role !== 'superadmin' && session.role !== 'admin') {
-        return jsonResponse(false, null, 'Akses ditolak.', 'FORBIDDEN');
-      }
+      enforceRole(session, ['superadmin']);
+
       const u = payload.data || payload;
       const username = String(u.username || '').trim().toLowerCase();
       const password = String(u.password || '');
@@ -1458,6 +1491,9 @@ function doPost(e) {
       if (!username || !password || !nama) {
         return jsonResponse(false, null, 'Semua kolom pengguna wajib diisi.', 'VALIDATION_ERROR');
       }
+      if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+        return jsonResponse(false, null, 'Password wajib minimal 8 karakter kombinasi huruf dan angka.', 'VALIDATION_ERROR');
+      }
 
       const uSheet = ss.getSheetByName('users');
       const allUsers = getSheetData(ss, 'users');
@@ -1466,8 +1502,11 @@ function doPost(e) {
         return jsonResponse(false, null, 'Username "' + username + '" sudah digunakan.', 'DUPLICATE_USERNAME');
       }
 
-      const salt = getPasswordSalt();
-      const pHash = hashPasswordWithSalt(password, salt);
+      const salt = Utilities.base64EncodeWebSafe(
+        Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + '-' + Date.now(), Utilities.Charset.UTF_8)
+      ).substring(0, 32);
+
+      const pHash = hashPasswordPBKDF2(password, salt);
       const newId = 'USR-' + (allUsers.length + 1) + '-' + Utilities.getUuid().substring(0, 4);
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
@@ -1489,9 +1528,8 @@ function doPost(e) {
     }
 
     if (action === 'toggleUserStatus') {
-      if (session.role !== 'superadmin') {
-        return jsonResponse(false, null, 'Hanya superadmin yang berhak mengubah status akun pengguna.', 'FORBIDDEN');
-      }
+      enforceRole(session, ['superadmin']);
+
       const targetId = String(payload.id || '');
       const newStatus = String(payload.status || 'aktif').toLowerCase() === 'aktif' ? 'aktif' : 'nonaktif';
 
@@ -1510,13 +1548,12 @@ function doPost(e) {
     }
 
     if (action === 'resetUserPassword') {
-      if (session.role !== 'superadmin') {
-        return jsonResponse(false, null, 'Hanya superadmin yang berhak mereset password pengguna lain.', 'FORBIDDEN');
-      }
+      enforceRole(session, ['superadmin']);
+
       const targetId = String(payload.id || '');
       const newPass = String(payload.newPassword || '');
-      if (!newPass || newPass.length < 8) {
-        return jsonResponse(false, null, 'Password baru minimal 8 karakter.', 'VALIDATION_ERROR');
+      if (!newPass || newPass.length < 8 || !/[a-zA-Z]/.test(newPass) || !/[0-9]/.test(newPass)) {
+        return jsonResponse(false, null, 'Password baru minimal 8 karakter kombinasi huruf dan angka.', 'VALIDATION_ERROR');
       }
 
       const uSheet = ss.getSheetByName('users');
@@ -1524,10 +1561,13 @@ function doPost(e) {
       const target = allUsers.find(function(x) { return String(x.id) === targetId; });
       if (!target) return jsonResponse(false, null, 'Pengguna tidak ditemukan.', 'NOT_FOUND');
 
-      const salt = String(target.salt || getPasswordSalt());
-      const newHash = hashPasswordWithSalt(newPass, salt);
+      const newSalt = Utilities.base64EncodeWebSafe(
+        Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + '-' + Date.now(), Utilities.Charset.UTF_8)
+      ).substring(0, 32);
+      const newHash = hashPasswordPBKDF2(newPass, newSalt);
 
       uSheet.getRange(target._rowIndex, 3).setValue(newHash);
+      uSheet.getRange(target._rowIndex, 4).setValue(newSalt);
       uSheet.getRange(target._rowIndex, 8).setValue('true'); // wajib ganti password lagi
 
       recordActivity(ss, session.userId, session.username, session.role, 'RESET_USER_PASSWORD', 'Mereset password pengguna: ' + target.username);
@@ -1536,16 +1576,14 @@ function doPost(e) {
 
     // ---------------- AUDIT LOG AKTIVITAS ----------------
     if (action === 'getActivityLog') {
-      if (session.role !== 'superadmin' && session.role !== 'admin') {
-        return jsonResponse(false, null, 'Akses ditolak.', 'FORBIDDEN');
-      }
+      enforceRole(session, ['superadmin', 'admin']);
+
       const limit = parseInt(payload.limit, 10) || 50;
       const logs = getSheetData(ss, 'aktivitas_log');
       const sorted = logs.slice(-limit).reverse();
       return jsonResponse(true, sorted, 'Log aktivitas berhasil dimuat.');
     }
 
-    // Endpoint tidak ditemukan
     return jsonResponse(false, null, 'Aksi API tidak dikenali: ' + action, 'NOT_FOUND');
 
   } catch (err) {

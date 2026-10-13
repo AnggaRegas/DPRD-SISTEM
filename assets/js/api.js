@@ -20,7 +20,10 @@ export const GAS_API_URL = (ENV_GAS_URL || STORED_GAS_URL).trim();
 
 // Mode Mock HANYA diizinkan jika secara eksplisit disetel ke 'true' atau saat unit test Node.js berjalan
 const ENV_USE_MOCK = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK_API) || '';
-const isNodeTest = typeof process !== 'undefined' && process.env && (process.env.NODE_ENV === 'test' || process.env.npm_lifecycle_event === 'test');
+const isNodeTest = typeof process !== 'undefined' && (
+  (process.env && (process.env.NODE_ENV === 'test' || process.env.npm_lifecycle_event === 'test')) ||
+  (process.argv && process.argv.some(arg => arg.includes('test')))
+);
 export const IS_MOCK_MODE = ENV_USE_MOCK === 'true' || Boolean(isNodeTest);
 
 // Simpan active abort controller untuk query pencarian/navigasi yang cepat berganti
