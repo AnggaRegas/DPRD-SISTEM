@@ -235,12 +235,22 @@
         }
       }
 
+      let isSubmittingTahun = false;
       formTahun.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSubmittingTahun) return;
         const tahunVal = parseInt(document.getElementById('inputTahun').value, 10);
         if (isNaN(tahunVal)) return;
 
+        const btnSave = document.getElementById('btnSaveTahun');
+        const originalText = btnSave ? btnSave.textContent : 'Simpan Tahun';
+
         try {
+          isSubmittingTahun = true;
+          if (btnSave) {
+            btnSave.disabled = true;
+            btnSave.textContent = 'Menyimpan...';
+          }
           const res = await api.createTahun(dewanId, kategoriId, tahunVal);
           if (res && res.success) {
             showToast('Tahun anggaran berhasil ditambahkan.', 'success');
@@ -251,6 +261,12 @@
           }
         } catch (err) {
           showToast(err.message, 'error');
+        } finally {
+          isSubmittingTahun = false;
+          if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.textContent = originalText;
+          }
         }
       });
 

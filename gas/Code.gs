@@ -1135,6 +1135,20 @@ function doPost(e) {
 
       if (!namaFolder) return jsonResponse(false, null, 'Nama folder wajib diisi.', 'VALIDATION_ERROR');
 
+      // Idempotensi: kembalikan record jika folder dengan nama yang sama sudah ada
+      const allFolder = getSheetData(ss, 'folder_dokumen');
+      const existing = allFolder.find(function(f) {
+        return String(f.dewan_id || '').trim() === dewanId &&
+               String(f.kategori_id || '').trim() === katId &&
+               parseInt(f.tahun, 10) === yr &&
+               String(f.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase() &&
+               String(f.status || 'aktif').toLowerCase() === 'aktif';
+      });
+
+      if (existing) {
+        return jsonResponse(true, { id: existing.id, nama_folder: existing.nama_folder }, 'Folder berhasil dibuat.');
+      }
+
       const folderSheet = ss.getSheetByName('folder_dokumen');
       const newId = 'FLD-' + Date.now();
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -1148,8 +1162,8 @@ function doPost(e) {
       const dewanId = String(payload.dewan_id || '').trim();
       const katId = String(payload.kategori_id || '').trim();
       const yr = parseInt(payload.tahun, 10);
-      const folderLama = String(payload.folder_lama || '').trim();
-      const folderBaru = String(payload.folder_baru || '').trim();
+      const folderLama = String(payload.folder_lama || payload.nama_folder_lama || '').trim();
+      const folderBaru = String(payload.folder_baru || payload.nama_folder_baru || '').trim();
 
       if (!dewanId || !katId || !yr || !folderLama || !folderBaru) {
         return jsonResponse(false, null, 'Parameter pembaruan folder tidak lengkap.', 'VALIDATION_ERROR');
@@ -1181,36 +1195,33 @@ function doPost(e) {
       const yr = parseInt(payload.tahun, 10);
       const namaFolder = String(payload.nama_folder || '').trim();
 
-      const docSheet = ss.getSheetByName('dokumen');
       const allDocs = getSheetData(ss, 'dokumen');
-      const docsToDelete = allDocs.filter(function(d) {
-        return String(d.dewan_id).trim() === dewanId && String(d.kategori_id).trim() === katId && parseInt(d.tahun, 10) === yr && String(d.nama_folder).trim().toLowerCase() === namaFolder.toLowerCase();
+      const activeDocs = allDocs.filter(function(d) {
+        return String(d.dewan_id || '').trim() === dewanId &&
+               String(d.kategori_id || '').trim() === katId &&
+               parseInt(d.tahun, 10) === yr &&
+               String(d.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase() &&
+               String(d.status || '').toLowerCase() === 'aktif';
       });
 
-      docsToDelete.forEach(function(doc) {
-        if (doc.file_id) {
-          try { DriveApp.getFileById(String(doc.file_id).trim()).setTrashed(true); } catch (e) {}
-        }
-      });
-
-      for (let i = allDocs.length - 1; i >= 0; i--) {
-        const d = allDocs[i];
-        if (String(d.dewan_id).trim() === dewanId && String(d.kategori_id).trim() === katId && parseInt(d.tahun, 10) === yr && String(d.nama_folder).trim().toLowerCase() === namaFolder.toLowerCase()) {
-          docSheet.deleteRow(d._rowIndex);
-        }
+      if (activeDocs.length > 0) {
+        return jsonResponse(false, null, 'Folder tidak dapat dihapus karena masih berisi ' + activeDocs.length + ' berkas dokumen aktif. Hapus berkas dokumen di dalamnya terlebih dahulu.', 'HAS_DEPENDENT_RECORDS');
       }
 
       const folderSheet = ss.getSheetByName('folder_dokumen');
       const allFolder = getSheetData(ss, 'folder_dokumen');
       for (let i = allFolder.length - 1; i >= 0; i--) {
         const f = allFolder[i];
-        if (String(f.dewan_id).trim() === dewanId && String(f.kategori_id).trim() === katId && parseInt(f.tahun, 10) === yr && String(f.nama_folder).trim().toLowerCase() === namaFolder.toLowerCase()) {
+        if (String(f.dewan_id || '').trim() === dewanId &&
+            String(f.kategori_id || '').trim() === katId &&
+            parseInt(f.tahun, 10) === yr &&
+            String(f.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase()) {
           folderSheet.deleteRow(f._rowIndex);
         }
       }
 
       recordActivity(ss, session.userId, session.username, 'superadmin', 'HAPUS_FOLDER', 'Menghapus folder: ' + namaFolder);
-      return jsonResponse(true, null, 'Folder beserta berkas dokumen terkait berhasil dihapus.');
+      return jsonResponse(true, { nama_folder: namaFolder }, 'Folder berhasil dihapus.');
     }
 
     // ---------------- PENGELOLAAN DOKUMEN ARSIP & DRIVE ----------------
@@ -1263,6 +1274,26 @@ function doPost(e) {
       const allKat = getSheetData(ss, 'kategori_dokumen');
       const katExists = allKat.some(function(k) { return String(k.id).trim() === katId; });
       if (!katExists) return jsonResponse(false, null, 'ID Kategori tidak valid.', 'INVALID_CATEGORY');
+
+      // Idempotensi: deteksi duplikasi dokumen identik yang baru saja diunggah
+      const allDocs = getSheetData(ss, 'dokumen');
+      const existingDoc = allDocs.find(function(d) {
+        return String(d.dewan_id || '').trim() === dewanId &&
+               String(d.kategori_id || '').trim() === katId &&
+               parseInt(d.tahun, 10) === tahun &&
+               String(d.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase() &&
+               String(d.nama_dokumen || '').trim().toLowerCase() === namaDokumen.toLowerCase() &&
+               String(d.nama_file || '').trim().toLowerCase() === fileName.toLowerCase() &&
+               String(d.status || '').toLowerCase() === 'aktif';
+      });
+      if (existingDoc) {
+        return jsonResponse(true, {
+          id: existingDoc.id,
+          nama_dokumen: existingDoc.nama_dokumen,
+          file_id: existingDoc.file_id,
+          view_url: existingDoc.view_url
+        }, 'Dokumen arsip berhasil diunggah.');
+      }
 
       let validatedFile;
       try {

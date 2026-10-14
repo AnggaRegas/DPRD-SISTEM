@@ -43,7 +43,7 @@
       <div class="page-title-bar">
         <div class="page-title-text">
           <h1>Edit Folder Dokumen</h1>
-          <p>Ubah nama sub-folder atau hapus folder beserta seluruh berkas dokumen di dalamnya.</p>
+          <p>Ubah nama folder atau hapus folder kosong yang tidak lagi digunakan.</p>
         </div>
       </div>
 
@@ -128,9 +128,17 @@
         window.location.replace(returnUrl);
       });
 
+      let isSubmitting = false;
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         const folderBaru = inputFolderBaru.value.trim();
+        if (!folderBaru) {
+          showToast('Nama folder baru tidak boleh kosong.', 'error');
+          return;
+        }
+
+        isSubmitting = true;
         if (!folderBaru) {
           showToast('Nama folder baru tidak boleh kosong.', 'error');
           return;
@@ -155,27 +163,37 @@
             }, 600);
           } else {
             showToast(res.message || 'Gagal memperbarui folder.', 'error');
+            isSubmitting = false;
             btnSubmit.disabled = false;
             btnSubmit.textContent = 'Simpan Perubahan';
           }
         } catch (err) {
           showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
+          isSubmitting = false;
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Simpan Perubahan';
         }
       });
 
+      let isDeleting = false;
       btnDeleteFolder.addEventListener('click', () => {
+        if (isDeleting) return;
         showConfirmDialog({
           title: `Hapus Folder "${namaFolder}"?`,
-          message: `PERINGATAN: Menghapus folder ini akan menghapus seluruh file dokumen fisik di Google Drive yang tersimpan di dalamnya. Tindakan ini tidak dapat dibatalkan.`,
-          confirmLabel: 'Hapus Folder & Dokumen',
+          message: `Folder hanya dapat dihapus jika sudah kosong tanpa berkas dokumen aktif. Apakah Anda yakin ingin menghapus folder ini?`,
+          confirmLabel: 'Hapus Folder',
           danger: true,
           onConfirm: async () => {
+            isDeleting = true;
             btnDeleteFolder.disabled = true;
             btnDeleteFolder.textContent = 'Menghapus...';
             try {
-              const res = await api.deleteFolder(dewanId, kategoriId, tahun, namaFolder);
+              const res = await api.deleteFolder({
+                dewan_id: dewanId,
+                kategori_id: kategoriId,
+                tahun: parseInt(tahun, 10),
+                nama_folder: namaFolder
+              });
               if (res && res.success) {
                 showToast(`Folder "${namaFolder}" berhasil dihapus.`, 'success');
                 setTimeout(() => {
@@ -183,11 +201,13 @@
                 }, 600);
               } else {
                 showToast(res.message || 'Gagal menghapus folder.', 'error');
+                isDeleting = false;
                 btnDeleteFolder.disabled = false;
                 btnDeleteFolder.textContent = 'Hapus Folder';
               }
             } catch (e) {
               showToast(e.message || 'Gagal menghapus folder.', 'error');
+              isDeleting = false;
               btnDeleteFolder.disabled = false;
               btnDeleteFolder.textContent = 'Hapus Folder';
             }

@@ -128,7 +128,15 @@ export function showToast(message, type = 'info', duration = 3500) {
 /**
  * Dialog Konfirmasi Aksesibel (Pengganti confirm() browser)
  */
-export function showConfirmDialog({ title, message, confirmText = 'Ya, Lanjutkan', cancelText = 'Batal', isDanger = false, onConfirm }) {
+export function showConfirmDialog(options = {}) {
+  const title = options.title || 'Konfirmasi Tindakan';
+  const message = options.message || 'Apakah Anda yakin ingin melanjutkan?';
+  const confirmText = options.confirmText || options.confirmLabel || 'Ya, Lanjutkan';
+  const cancelText = options.cancelText || options.cancelLabel || 'Batal';
+  const isDanger = Boolean(options.isDanger || options.danger);
+  const onConfirm = options.onConfirm;
+  const onCancel = options.onCancel;
+
   let modal = document.getElementById('globalConfirmModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -164,10 +172,24 @@ export function showConfirmDialog({ title, message, confirmText = 'Ya, Lanjutkan
     modal.classList.remove('active');
   };
 
-  cancelBtn.onclick = closeModal;
-  okBtn.onclick = () => {
+  cancelBtn.onclick = () => {
     closeModal();
-    if (typeof onConfirm === 'function') onConfirm();
+    if (typeof onCancel === 'function') onCancel();
+  };
+
+  okBtn.onclick = async () => {
+    if (okBtn.disabled) return;
+    okBtn.disabled = true;
+    const originalText = okBtn.textContent;
+    try {
+      if (typeof onConfirm === 'function') {
+        await onConfirm();
+      }
+    } finally {
+      closeModal();
+      okBtn.disabled = false;
+      okBtn.textContent = originalText;
+    }
   };
 }
 

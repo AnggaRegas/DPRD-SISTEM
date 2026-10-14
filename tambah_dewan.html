@@ -115,8 +115,10 @@
       const form = document.getElementById('tambahDewanForm');
       const btnSubmit = document.getElementById('btnSubmit');
 
+      let isSubmitting = false;
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         const nama = document.getElementById('inputNama').value.trim();
         const jabatan = document.getElementById('inputJabatan').value.trim();
         const periode = document.getElementById('inputPeriode').value.trim();
@@ -128,6 +130,7 @@
           return;
         }
 
+        isSubmitting = true;
         btnSubmit.disabled = true;
         btnSubmit.textContent = 'Menyimpan...';
 
@@ -147,11 +150,13 @@
             }, 800);
           } else {
             showToast(res.message || 'Gagal menambahkan anggota dewan.', 'error');
+            isSubmitting = false;
             btnSubmit.disabled = false;
             btnSubmit.textContent = 'Simpan Anggota Dewan';
           }
         } catch (err) {
           showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
+          isSubmitting = false;
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Simpan Anggota Dewan';
         }

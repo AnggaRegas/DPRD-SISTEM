@@ -278,7 +278,11 @@
         btnUpload.href = `tambah_dokumen.html?dewan_id=${id}`;
 
         try {
-          const resDewan = await api.getDewanById(id);
+          const [resDewan, resKat] = await Promise.all([
+            api.getDewanById(id),
+            api.getKategoriWithDocCount(id)
+          ]);
+
           if (resDewan && resDewan.success && resDewan.data) {
             const d = resDewan.data;
             document.getElementById('dewanTitleName').textContent = d.nama || 'Arsip Dewan';
@@ -293,8 +297,6 @@
               <span class="breadcrumb-current">${d.nama}</span>
             `;
           }
-
-          const resKat = await api.getKategoriWithDocCount(id);
           const grid = document.getElementById('kategoriGrid');
           const badge = document.getElementById('badgeTotalKat');
 

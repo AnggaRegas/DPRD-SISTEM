@@ -624,10 +624,81 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'createFolder': {
-      const rec = { id: 'FLD-' + Date.now(), dewan_id: String(payload.dewan_id), kategori_id: String(payload.kategori_id), tahun: parseInt(payload.tahun, 10), nama_folder: String(payload.nama_folder || '').trim(), status: 'aktif' };
+      const dewanId = String(payload.dewan_id);
+      const katId = String(payload.kategori_id);
+      const yr = parseInt(payload.tahun, 10);
+      const nama = String(payload.nama_folder || '').trim();
+      if (!nama) return { success: false, message: 'Nama folder wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+
+      const existing = db.folder.find(f => String(f.dewan_id) === dewanId && String(f.kategori_id) === katId && f.tahun === yr && f.nama_folder.toLowerCase() === nama.toLowerCase());
+      if (existing) {
+        return { success: true, data: existing, message: 'Folder sudah ada.', already_existed: true };
+      }
+
+      const rec = { id: 'FLD-' + Date.now(), dewan_id: dewanId, kategori_id: katId, tahun: yr, nama_folder: nama, deskripsi: payload.deskripsi || '', status: 'aktif' };
       db.folder.push(rec);
       saveMockDb(db);
       return { success: true, data: rec, message: 'Folder berhasil ditambahkan.' };
+    }
+
+    case 'updateFolder': {
+      const dewanId = String(payload.dewan_id);
+      const katId = String(payload.kategori_id);
+      const yr = parseInt(payload.tahun, 10);
+      const folderLama = String(payload.folder_lama || payload.nama_folder_lama || '').trim();
+      const folderBaru = String(payload.folder_baru || payload.nama_folder_baru || '').trim();
+      if (!folderBaru) return { success: false, message: 'Nama folder baru wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+
+      const target = db.folder.find(f => String(f.dewan_id) === dewanId && String(f.kategori_id) === katId && f.tahun === yr && f.nama_folder.toLowerCase() === folderLama.toLowerCase());
+      if (target) {
+        target.nama_folder = folderBaru;
+        if (payload.deskripsi) target.deskripsi = payload.deskripsi;
+      }
+
+      db.dokumen.forEach(d => {
+        if (String(d.dewan_id) === dewanId && String(d.kategori_id) === katId && parseInt(d.tahun, 10) === yr && String(d.nama_folder || '').toLowerCase() === folderLama.toLowerCase()) {
+          d.nama_folder = folderBaru;
+        }
+      });
+      saveMockDb(db);
+      return { success: true, data: { nama_folder: folderBaru }, message: 'Folder berhasil diperbarui.' };
+    }
+
+    case 'deleteFolder': {
+      const dewanId = String(payload.dewan_id);
+      const katId = String(payload.kategori_id);
+      const yr = parseInt(payload.tahun, 10);
+      const namaFolder = String(payload.nama_folder || '').trim();
+
+      const activeDocs = db.dokumen.filter(d =>
+        String(d.dewan_id) === dewanId &&
+        String(d.kategori_id) === katId &&
+        parseInt(d.tahun, 10) === yr &&
+        String(d.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase() &&
+        d.status === 'aktif'
+      );
+
+      if (activeDocs.length > 0) {
+        return {
+          success: false,
+          data: null,
+          message: `Folder tidak dapat dihapus karena masih berisi ${activeDocs.length} berkas dokumen aktif. Hapus berkas dokumen di dalamnya terlebih dahulu.`,
+          error: { code: 'HAS_DEPENDENT_RECORDS' }
+        };
+      }
+
+      const idx = db.folder.findIndex(f =>
+        String(f.dewan_id) === dewanId &&
+        String(f.kategori_id) === katId &&
+        f.tahun === yr &&
+        String(f.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase()
+      );
+
+      if (idx !== -1) {
+        db.folder.splice(idx, 1);
+        saveMockDb(db);
+      }
+      return { success: true, data: { nama_folder: namaFolder }, message: 'Folder berhasil dihapus.' };
     }
 
     case 'getDokumenList': {
@@ -661,14 +732,32 @@ async function handleMockRequest(action, payload) {
         return { success: false, message: 'Ekstensi berkas tidak diizinkan.', error: { code: 'FILE_VALIDATION_ERROR' } };
       }
 
+      const yr = parseInt(data.tahun, 10);
+      const folder = String(data.nama_folder || '').trim();
+      const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
+
+      // Idempotency: deteksi duplikasi double-click dokumen identik
+      const existing = db.dokumen.find(d =>
+        String(d.dewan_id) === dewanId &&
+        String(d.kategori_id) === katId &&
+        parseInt(d.tahun, 10) === yr &&
+        String(d.nama_folder || '').toLowerCase() === folder.toLowerCase() &&
+        String(d.nama_dokumen || '').toLowerCase() === namaDokumen.toLowerCase() &&
+        String(d.nama_file || '').toLowerCase() === fileName.toLowerCase() &&
+        d.status === 'aktif'
+      );
+      if (existing) {
+        return { success: true, data: existing, message: 'Dokumen berhasil diunggah.', already_existed: true };
+      }
+
       const newId = 'DOC-' + Date.now();
       const doc = {
         id: newId,
         dewan_id: dewanId,
         kategori_id: katId,
-        tahun: parseInt(data.tahun, 10),
-        nama_folder: String(data.nama_folder || '').trim(),
-        nama_dokumen: String(data.nama_dokumen || data.judul || '').trim(),
+        tahun: yr,
+        nama_folder: folder,
+        nama_dokumen: namaDokumen,
         keterangan: String(data.keterangan || '').trim(),
         nama_file: fileName,
         file_id: 'mock-file-' + newId,
@@ -821,8 +910,39 @@ export const api = {
   // Folder Dokumen
   getFolderList: (dewan_id, kategori_id, tahun) => callAppsScript('getFolderList', { dewan_id, kategori_id, tahun }),
   createFolder: (dewan_id, kategori_id, tahun, nama_folder, deskripsi = '') => callAppsScript('createFolder', { dewan_id, kategori_id, tahun, nama_folder, deskripsi }),
-  updateFolder: (dewan_id, kategori_id, tahun, nama_folder_lama, nama_folder_baru, deskripsi = '') => callAppsScript('updateFolder', { dewan_id, kategori_id, tahun, nama_folder_lama, nama_folder_baru, deskripsi }),
-  deleteFolder: (dewan_id, kategori_id, tahun, nama_folder) => callAppsScript('deleteFolder', { dewan_id, kategori_id, tahun, nama_folder }),
+  updateFolder: (dewan_id, kategori_id, tahun, nama_folder_lama, nama_folder_baru, deskripsi = '') => {
+    if (typeof dewan_id === 'object' && dewan_id !== null) {
+      const o = dewan_id;
+      return callAppsScript('updateFolder', {
+        dewan_id: o.dewan_id,
+        kategori_id: o.kategori_id,
+        tahun: o.tahun,
+        folder_lama: o.folder_lama || o.nama_folder_lama,
+        folder_baru: o.folder_baru || o.nama_folder_baru,
+        deskripsi: o.deskripsi || ''
+      });
+    }
+    return callAppsScript('updateFolder', {
+      dewan_id,
+      kategori_id,
+      tahun,
+      folder_lama: nama_folder_lama,
+      folder_baru: nama_folder_baru,
+      deskripsi
+    });
+  },
+  deleteFolder: (dewan_id, kategori_id, tahun, nama_folder) => {
+    if (typeof dewan_id === 'object' && dewan_id !== null) {
+      const o = dewan_id;
+      return callAppsScript('deleteFolder', {
+        dewan_id: o.dewan_id,
+        kategori_id: o.kategori_id,
+        tahun: o.tahun,
+        nama_folder: o.nama_folder
+      });
+    }
+    return callAppsScript('deleteFolder', { dewan_id, kategori_id, tahun, nama_folder });
+  },
 
   // Dokumen Fisik & Google Drive
   getDokumenList: (params) => callAppsScript('getDokumenList', params),

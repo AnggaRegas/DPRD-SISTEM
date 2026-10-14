@@ -265,13 +265,23 @@
       });
 
       // Submit Tambah Kategori
+      let isSubmittingKat = false;
       formAdd.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSubmittingKat) return;
         const nama = document.getElementById('addNamaKat').value.trim();
         const desc = document.getElementById('addDescKat').value.trim();
         if (!nama) return;
 
+        const btnSave = document.getElementById('btnSaveKat');
+        const originalText = btnSave ? btnSave.textContent : 'Simpan Kategori';
+
         try {
+          isSubmittingKat = true;
+          if (btnSave) {
+            btnSave.disabled = true;
+            btnSave.textContent = 'Menyimpan...';
+          }
           const res = await api.createKategori(nama, desc);
           if (res && res.success) {
             showToast('Kategori berhasil ditambahkan.', 'success');
@@ -283,6 +293,12 @@
           }
         } catch (err) {
           showToast(err.message, 'error');
+        } finally {
+          isSubmittingKat = false;
+          if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.textContent = originalText;
+          }
         }
       });
 

@@ -266,8 +266,10 @@
       loadDropdowns();
 
       // Submit Handler
+      let isSubmitting = false;
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
 
         const dewanId = selectDewan.value;
         const kategoriId = selectKategori.value;
@@ -288,6 +290,7 @@
 
         const file = inputFile.files[0];
 
+        isSubmitting = true;
         btnSubmit.disabled = true;
         btnSubmitText.textContent = 'Membaca & Mengunggah Berkas ke Google Drive...';
 
@@ -313,11 +316,13 @@
             }, 1000);
           } else {
             showToast(res.message || 'Gagal mengunggah dokumen.', 'error');
+            isSubmitting = false;
             btnSubmit.disabled = false;
             btnSubmitText.textContent = 'Unggah ke Google Drive';
           }
         } catch (err) {
           showToast(err.message || 'Terjadi gangguan saat mengunggah.', 'error');
+          isSubmitting = false;
           btnSubmit.disabled = false;
           btnSubmitText.textContent = 'Unggah ke Google Drive';
         }

@@ -117,6 +117,20 @@
           </div>
           <div class="page-actions">
             <a href="#" id="btnBackToFolderList" class="btn btn-secondary">&larr; Kembali ke Daftar Folder</a>
+            <a href="#" id="btnEditThisFolder" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              Ubah Folder
+            </a>
+            <button type="button" class="btn btn-secondary" id="btnDeleteThisFolder" style="color: var(--status-danger);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Hapus Folder
+            </button>
             <a href="#" id="btnUploadInThisFolder" class="btn btn-gold">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -246,6 +260,49 @@
         document.getElementById('titleFolderName').textContent = `Folder: ${namaFolder}`;
         document.getElementById('btnBackToFolderList').href = `dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`;
         document.getElementById('btnUploadInThisFolder').href = `tambah_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`;
+        
+        const btnEditThisFolder = document.getElementById('btnEditThisFolder');
+        if (btnEditThisFolder) {
+          btnEditThisFolder.href = `edit_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`;
+        }
+
+        const btnDeleteThisFolder = document.getElementById('btnDeleteThisFolder');
+        if (btnDeleteThisFolder) {
+          btnDeleteThisFolder.addEventListener('click', () => {
+            if (allDocsInFolder.length > 0) {
+              showToast(`Folder tidak dapat dihapus karena masih berisi ${allDocsInFolder.length} berkas dokumen aktif. Hapus berkas dokumen di dalamnya terlebih dahulu.`, 'warning');
+              return;
+            }
+
+            showConfirmDialog({
+              title: 'Hapus Folder Dokumen',
+              message: `Apakah Anda yakin ingin menghapus folder "${namaFolder}"?`,
+              confirmText: 'Ya, Hapus Folder',
+              isDanger: true,
+              onConfirm: async () => {
+                try {
+                  const res = await api.deleteFolder({
+                    dewan_id: dewanId,
+                    kategori_id: kategoriId,
+                    tahun: parseInt(tahun, 10),
+                    nama_folder: namaFolder
+                  });
+                  if (res && res.success) {
+                    showToast(`Folder "${namaFolder}" berhasil dihapus.`, 'success');
+                    setTimeout(() => {
+                      window.location.replace(`dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`);
+                    }, 500);
+                  } else {
+                    showToast(res.message || 'Gagal menghapus folder.', 'error');
+                  }
+                } catch (err) {
+                  showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
+                }
+              }
+            });
+          });
+        }
+
         loadDocumentList();
       }
 
@@ -299,9 +356,23 @@
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                     </svg>
                   </div>
-                  <div>
+                  <div style="flex: 1; overflow: hidden;">
                     <div class="archive-card-title">${f.nama_folder}</div>
                     <div class="archive-card-desc">${f.deskripsi || 'Folder berkas sidang / pokir'}</div>
+                  </div>
+                  <div style="display: flex; gap: 4px;">
+                    <a href="edit_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(f.nama_folder)}" class="btn-icon-action" title="Ubah Nama Folder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </a>
+                    <button type="button" class="btn-icon-action btn-danger" data-action="delete-folder" data-folder="${f.nama_folder}" data-count="${f.jumlah_dokumen || 0}" title="Hapus Folder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
                   </div>
                 </div>
                 <div class="archive-card-footer">
@@ -315,6 +386,44 @@
                 </div>
               </div>
             `).join('');
+
+            // Event Hapus Folder dari Card
+            grid.querySelectorAll('button[data-action="delete-folder"]').forEach(btn => {
+              btn.addEventListener('click', () => {
+                const folderName = btn.dataset.folder;
+                const count = parseInt(btn.dataset.count, 10) || 0;
+
+                if (count > 0) {
+                  showToast(`Folder "${folderName}" tidak dapat dihapus karena masih berisi ${count} berkas dokumen aktif. Hapus berkas dokumen di dalamnya terlebih dahulu.`, 'warning');
+                  return;
+                }
+
+                showConfirmDialog({
+                  title: 'Hapus Folder Dokumen',
+                  message: `Apakah Anda yakin ingin menghapus folder "${folderName}"?`,
+                  confirmText: 'Ya, Hapus Folder',
+                  isDanger: true,
+                  onConfirm: async () => {
+                    try {
+                      const res = await api.deleteFolder({
+                        dewan_id: dewanId,
+                        kategori_id: kategoriId,
+                        tahun: parseInt(tahun, 10),
+                        nama_folder: folderName
+                      });
+                      if (res && res.success) {
+                        showToast(`Folder "${folderName}" berhasil dihapus.`, 'success');
+                        loadFolderList();
+                      } else {
+                        showToast(res.message || 'Gagal menghapus folder.', 'error');
+                      }
+                    } catch (err) {
+                      showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
+                    }
+                  }
+                });
+              });
+            });
           }
         } catch (e) {
           grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${e.message}</div>`;
@@ -330,14 +439,24 @@
       if (btnOpenFolder) btnOpenFolder.addEventListener('click', () => modalFolder.classList.add('active'));
       if (btnCancelFolder) btnCancelFolder.addEventListener('click', () => modalFolder.classList.remove('active'));
 
+      let isSubmittingFolder = false;
       if (formFolder) {
         formFolder.addEventListener('submit', async (e) => {
           e.preventDefault();
+          if (isSubmittingFolder) return;
           const nama = document.getElementById('inputNamaFolder').value.trim();
           const deskripsi = document.getElementById('inputDeskripsiFolder').value.trim();
           if (!nama) return;
 
+          const btnSave = document.getElementById('btnSaveFolder');
+          const originalText = btnSave ? btnSave.textContent : 'Simpan Folder';
+
           try {
+            isSubmittingFolder = true;
+            if (btnSave) {
+              btnSave.disabled = true;
+              btnSave.textContent = 'Menyimpan...';
+            }
             const res = await api.createFolder(dewanId, kategoriId, tahun, nama, deskripsi);
             if (res && res.success) {
               showToast('Folder berhasil dibuat.', 'success');
@@ -349,6 +468,12 @@
             }
           } catch (err) {
             showToast(err.message, 'error');
+          } finally {
+            isSubmittingFolder = false;
+            if (btnSave) {
+              btnSave.disabled = false;
+              btnSave.textContent = originalText;
+            }
           }
         });
       }
