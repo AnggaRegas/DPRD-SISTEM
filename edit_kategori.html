@@ -3,183 +3,195 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Kategori - Sistem Pengarsipan DPRD</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
-    .page-container {
-      width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 {
-      margin: 0 0 8px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
-    }
-  </style>
+  <title>Edit Kategori — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header">
-        <div class="breadcrumb">
-          <a href="dashboard.html">Dashboard</a>
-          <span>/</span>
-          <a href="dewan.html">Anggota Dewan</a>
-          <span>/</span>
-          <span>Edit Kategori</span>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="kategori_dokumen.html">Kategori Arsip</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Edit Kategori</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Master Data
         </div>
-        <h1>Edit Kategori Dokumen</h1>
-        <p>Perbarui atau hapus kategori pengarsipan dokumen.</p>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" style="max-width: 650px;">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Edit Kategori Dokumen</h1>
+          <p>Perbarui penamaan klasifikasi kategori atau hapus kategori yang sudah tidak digunakan.</p>
+        </div>
       </div>
 
-      <div class="form-box">
-        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
-        <div id="loadingBox" class="loading-indicator">
-          <div class="spinner"></div> Memuat kategori...
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Formulir Kategori Arsip</h2>
+            <p class="card-subtitle">Kategori yang masih memiliki dokumen aktif tidak dapat dihapus.</p>
+          </div>
         </div>
-
-        <form id="editKatForm" style="display:none;">
-          <div class="form-group">
-            <label for="inputNamaKategori">Nama Kategori Dokumen <span class="required">*</span></label>
-            <input type="text" id="inputNamaKategori" required>
+        <div class="card-body">
+          <div id="loadingBox" class="loading-state" style="padding: 40px 0;">
+            <div class="spinner"></div>
+            <p>Memuat rincian kategori...</p>
           </div>
 
-          <div class="form-actions" style="justify-content: space-between;">
-            <div style="display:flex; gap:10px;">
-              <button type="submit" id="btnSubmit" class="btn btn-primary">Simpan Perubahan</button>
-              <button type="button" onclick="window.history.back()" class="btn btn-reset">Batal</button>
+          <form id="editKatForm" style="display:none;">
+            <div class="form-group">
+              <label for="inputNamaKategori" class="form-label">Nama Kategori Dokumen <span class="required">*</span></label>
+              <input type="text" id="inputNamaKategori" class="form-input" required autofocus>
             </div>
-            <button type="button" id="btnDeleteKat" class="btn btn-danger">Hapus Kategori</button>
-          </div>
-        </form>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px;">
+              <div style="display:flex; gap:10px;">
+                <button type="submit" id="btnSubmit" class="btn btn-gold">Simpan Perubahan</button>
+                <a href="kategori_dokumen.html" class="btn btn-secondary">Batal</a>
+              </div>
+              <button type="button" id="btnDeleteKat" class="btn btn-danger">Hapus Kategori</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('kategori');
 
-    const params = new URLSearchParams(window.location.search);
-    const katId = params.get('id');
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
+      }
 
-    if (!katId) {
-      window.location.replace('dewan.html');
-    }
+      const params = new URLSearchParams(window.location.search);
+      const katId = params.get('id');
 
-    const form = document.getElementById('editKatForm');
-    const inputNama = document.getElementById('inputNamaKategori');
-    const alertBox = document.getElementById('alertBox');
-    const loadingBox = document.getElementById('loadingBox');
-    const btnSubmit = document.getElementById('btnSubmit');
-    const btnDelete = document.getElementById('btnDeleteKat');
+      if (!katId) {
+        window.location.replace('kategori_dokumen.html');
+      }
 
-    loadKategori();
+      const form = document.getElementById('editKatForm');
+      const inputNama = document.getElementById('inputNamaKategori');
+      const loadingBox = document.getElementById('loadingBox');
+      const btnSubmit = document.getElementById('btnSubmit');
+      const btnDeleteKat = document.getElementById('btnDeleteKat');
 
-    async function loadKategori() {
-      try {
-        const res = await api.getKategoriList();
-        if (res && res.success && Array.isArray(res.data)) {
-          const matched = res.data.find((k) => String(k.id) === String(katId));
-          if (matched) {
-            inputNama.value = matched.nama_kategori || '';
-            loadingBox.style.display = 'none';
-            form.style.display = 'block';
-          } else {
-            alertBox.textContent = 'Kategori tidak ditemukan.';
-            alertBox.style.display = 'flex';
-            loadingBox.style.display = 'none';
+      loadData();
+
+      async function loadData() {
+        try {
+          const res = await api.getKategoriList();
+          if (res && res.success && Array.isArray(res.data)) {
+            const found = res.data.find(k => String(k.id) === String(katId));
+            if (found) {
+              inputNama.value = found.nama_kategori || '';
+              loadingBox.style.display = 'none';
+              form.style.display = 'block';
+            } else {
+              showToast('Kategori tidak ditemukan.', 'error');
+              loadingBox.innerHTML = '<p class="text-danger" style="text-align:center;">Kategori tidak ditemukan.</p>';
+            }
           }
+        } catch (err) {
+          showToast(err.message || 'Gagal memuat kategori.', 'error');
+          loadingBox.innerHTML = '<p class="text-danger" style="text-align:center;">Gagal memuat data.</p>';
         }
-      } catch (err) {
-        alertBox.textContent = err.message || 'Gagal memuat kategori.';
-        alertBox.style.display = 'flex';
-        loadingBox.style.display = 'none';
-      }
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      alertBox.style.display = 'none';
-
-      const nama = inputNama.value.trim();
-      if (!nama) {
-        alertBox.textContent = 'Nama kategori wajib diisi.';
-        alertBox.style.display = 'flex';
-        return;
       }
 
-      btnSubmit.disabled = true;
-      btnSubmit.textContent = 'Menyimpan...';
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nama = inputNama.value.trim();
+        if (!nama) {
+          showToast('Nama kategori wajib diisi.', 'error');
+          return;
+        }
 
-      try {
-        const res = await api.updateKategori(katId, nama);
-        if (res && res.success) {
-          window.history.back();
-        } else {
-          alertBox.textContent = res.message || 'Gagal memperbarui kategori.';
-          alertBox.style.display = 'flex';
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Menyimpan...';
+
+        try {
+          const res = await api.updateKategori(katId, nama);
+          if (res && res.success) {
+            showToast('Kategori berhasil diperbarui.', 'success');
+            setTimeout(() => {
+              window.location.replace('kategori_dokumen.html');
+            }, 600);
+          } else {
+            showToast(res.message || 'Gagal memperbarui kategori.', 'error');
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Simpan Perubahan';
+          }
+        } catch (err) {
+          showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Simpan Perubahan';
         }
-      } catch (err) {
-        alertBox.textContent = err.message || 'Terjadi kesalahan.';
-        alertBox.style.display = 'flex';
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = 'Simpan Perubahan';
-      }
-    });
+      });
 
-    btnDelete.addEventListener('click', async () => {
-      const yakin = confirm('Apakah Anda yakin ingin menghapus kategori ini? Kategori yang masih memiliki dokumen tidak dapat dihapus.');
-      if (!yakin) return;
-
-      btnDelete.disabled = true;
-      btnDelete.textContent = 'Menghapus...';
-
-      try {
-        const res = await api.deleteKategori(katId);
-        if (res && res.success) {
-          window.history.back();
-        } else {
-          alert(res.message || 'Gagal menghapus kategori.');
-          btnDelete.disabled = false;
-          btnDelete.textContent = 'Hapus Kategori';
-        }
-      } catch (e) {
-        alert(e.message || 'Gagal menghapus kategori.');
-        btnDelete.disabled = false;
-        btnDelete.textContent = 'Hapus Kategori';
-      }
-    });
+      btnDeleteKat.addEventListener('click', () => {
+        const namaKat = inputNama.value;
+        showConfirmDialog({
+          title: 'Hapus Kategori Dokumen?',
+          message: `Apakah Anda yakin ingin menghapus kategori "${namaKat}"? Kategori yang memiliki dokumen terkait akan ditolak untuk melindungi arsip.`,
+          confirmLabel: 'Hapus Kategori',
+          danger: true,
+          onConfirm: async () => {
+            btnDeleteKat.disabled = true;
+            btnDeleteKat.textContent = 'Menghapus...';
+            try {
+              const res = await api.deleteKategori(katId);
+              if (res && res.success) {
+                showToast('Kategori berhasil dihapus.', 'success');
+                setTimeout(() => {
+                  window.location.replace('kategori_dokumen.html');
+                }, 600);
+              } else {
+                showToast(res.message || 'Gagal menghapus kategori.', 'error');
+                btnDeleteKat.disabled = false;
+                btnDeleteKat.textContent = 'Hapus Kategori';
+              }
+            } catch (e) {
+              showToast(e.message || 'Gagal menghapus kategori.', 'error');
+              btnDeleteKat.disabled = false;
+              btnDeleteKat.textContent = 'Hapus Kategori';
+            }
+          }
+        });
+      });
+    }
   </script>
 </body>
 </html>

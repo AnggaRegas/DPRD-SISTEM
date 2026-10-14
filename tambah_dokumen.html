@@ -3,282 +3,325 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tambah Dokumen - Sistem Pengarsipan DPRD</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
-    .page-container {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 {
-      margin: 0 0 8px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .page-header p {
-      margin: 0;
-      color: #64748b;
-      font-size: 13px;
-    }
-    .file-upload-zone {
-      border: 2px dashed #cbd5e1;
-      border-radius: 10px;
-      padding: 24px;
-      text-align: center;
-      background: #f8fafc;
-      cursor: pointer;
-      transition: border-color .2s, background-color .2s;
-    }
-    .file-upload-zone:hover {
-      border-color: #3b82f6;
-      background: #eff6ff;
-    }
-    .selected-file-info {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #1e40af;
-      font-weight: 600;
-    }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
-    }
-  </style>
+  <title>Unggah Dokumen Arsip — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header">
-        <div class="breadcrumb">
-          <a href="dashboard.html">Dashboard</a>
-          <span>/</span>
-          <a href="dewan.html">Anggota Dewan</a>
-          <span>/</span>
-          <span>Tambah Dokumen</span>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="arsip_dewan.html">Arsip Dokumen</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Unggah Berkas</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Cloud Storage Drive
         </div>
-        <h1>Tambah & Unggah Dokumen Arsip</h1>
-        <p>Unggah berkas fisik ke Google Drive dan simpan informasi metadata arsip.</p>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" style="max-width: 900px;">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Unggah Berkas Fisik & Metadata Arsip</h1>
+          <p>Berkas fisik akan diunggah ke Google Drive dan metadata dicatat ke basis data DPRD Kota Parepare.</p>
+        </div>
       </div>
 
-      <div class="form-box">
-        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
-        <div id="successBox" style="display:none;" class="alert-banner success"></div>
-
-        <form id="uploadDokumenForm">
-          <div class="form-group">
-            <label for="selectDewan">Anggota Dewan <span class="required">*</span></label>
-            <select id="selectDewan" name="dewan_id" required>
-              <option value="">-- Pilih Anggota Dewan --</option>
-            </select>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Formulir Pengarsipan Berkas</h2>
+            <p class="card-subtitle">Lengkapi identitas kedewanan, klasifikasi, dan pilih berkas dokumen.</p>
           </div>
-
-          <div class="form-group">
-            <label for="selectKategori">Kategori Dokumen <span class="required">*</span></label>
-            <select id="selectKategori" name="kategori_id" required>
-              <option value="">-- Pilih Kategori Dokumen --</option>
-            </select>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 2fr; gap:16px;">
+        </div>
+        <div class="card-body">
+          <form id="uploadDokumenForm">
             <div class="form-group">
-              <label for="inputTahun">Tahun Dokumen <span class="required">*</span></label>
-              <input type="number" id="inputTahun" name="tahun" min="1900" max="2100" value="2024" required>
+              <label for="selectDewan" class="form-label">Anggota DPRD Terkait <span class="required">*</span></label>
+              <select id="selectDewan" class="form-select" required>
+                <option value="">-- Pilih Anggota DPRD --</option>
+              </select>
             </div>
 
             <div class="form-group">
-              <label for="inputFolder">Nama Folder <span class="required">*</span></label>
-              <input type="text" id="inputFolder" name="nama_folder" placeholder="Contoh: Masa Sidang I" required>
+              <label for="selectKategori" class="form-label">Kategori Arsip Dokumen <span class="required">*</span></label>
+              <select id="selectKategori" class="form-select" required>
+                <option value="">-- Pilih Kategori Dokumen --</option>
+              </select>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label for="inputNamaDokumen">Nama / Judul Dokumen <span class="required">*</span></label>
-            <input type="text" id="inputNamaDokumen" name="nama_dokumen" placeholder="Contoh: Laporan Pokir Masa Persidangan I Tahun 2024" required>
-          </div>
-
-          <div class="form-group">
-            <label for="inputFile">Pilih Berkas Dokumen <span class="required">*</span></label>
-            <div class="file-upload-zone" id="uploadZone">
-              <input type="file" id="inputFile" style="display:none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
-              <div style="font-size: 28px; margin-bottom: 6px;">📄</div>
-              <strong style="color:#1e3a8a;">Klik di sini untuk memilih berkas</strong>
-              <p style="margin:4px 0 0; color:#64748b; font-size:12px;">Format didukung: PDF, DOCX, XLSX, PPTX, JPG, PNG (Maksimal 10 MB)</p>
-              <div id="fileInfoText" class="selected-file-info" style="display:none;"></div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px;">
+              <div class="form-group">
+                <label for="inputTahun" class="form-label">Tahun Anggaran <span class="required">*</span></label>
+                <input type="number" id="inputTahun" class="form-input" min="2020" max="2035" value="2026" required>
+              </div>
+              <div class="form-group">
+                <label for="inputFolder" class="form-label">Nama Folder Berkas <span class="required">*</span></label>
+                <input type="text" id="inputFolder" class="form-input" placeholder="Contoh: Masa Sidang I" required>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label for="inputKeterangan">Keterangan Dokumen (Opsional)</label>
-            <textarea id="inputKeterangan" name="keterangan" rows="3" placeholder="Tambahkan catatan ringkas mengenai isi dokumen arsip"></textarea>
-          </div>
+            <div class="form-group">
+              <label for="inputNamaDokumen" class="form-label">Judul / Nama Dokumen Resmi <span class="required">*</span></label>
+              <input type="text" id="inputNamaDokumen" class="form-input" placeholder="Contoh: Laporan Pokir Masa Persidangan I Tahun 2026" required>
+            </div>
 
-          <div class="form-actions">
-            <button type="submit" id="btnSubmitUpload" class="btn btn-primary">
-              <span id="btnSubmitText">Unggah ke Google Drive</span>
-            </button>
-            <a href="dewan.html" class="btn btn-reset">Batal</a>
-          </div>
-        </form>
+            <!-- DROPZONE BERKAS FISIK -->
+            <div class="form-group">
+              <label class="form-label">Berkas Fisik Dokumen (Maks. 20 MB) <span class="required">*</span></label>
+              <div class="upload-dropzone" id="dropzone">
+                <input type="file" id="inputFile" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                <div class="upload-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                </div>
+                <div class="upload-title">Klik atau seret berkas dokumen ke sini</div>
+                <div class="upload-subtitle">Format resmi didukung: PDF, DOCX, DOC, XLSX, XLS, JPG, PNG</div>
+              </div>
+
+              <!-- PREVIEW BERKAS DIPILIH -->
+              <div id="filePreviewCard" class="file-preview-card" style="display: none;">
+                <div class="archive-card-icon" style="width: 38px; height: 38px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+                <div style="flex: 1; overflow: hidden;">
+                  <strong id="previewFileName" style="display: block; font-size: 13.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">nama_file.pdf</strong>
+                  <span id="previewFileSize" style="font-size: 12px; color: var(--text-muted);">0 KB</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnChangeFile">Ganti Berkas</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="inputKeterangan" class="form-label">Catatan / Ringkasan Dokumen (Opsional)</label>
+              <textarea id="inputKeterangan" class="form-textarea" placeholder="Tambahkan informasi penting mengenai isi dokumen arsip"></textarea>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+              <a href="arsip_dewan.html" class="btn btn-secondary">Batal</a>
+              <button type="submit" class="btn btn-gold" id="btnSubmitUpload">
+                <span id="btnSubmitText">Unggah ke Google Drive</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api, fileToBase64 } from './assets/js/api.js';
+    import { requireAuth, formatFileSize, showToast } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('arsip');
 
-    const params = new URLSearchParams(window.location.search);
-    const initialDewanId = params.get('dewan_id');
-    const initialKategoriId = params.get('kategori_id');
-    const initialTahun = params.get('tahun');
-    const initialFolder = params.get('nama_folder');
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
+      }
 
-    const selectDewan = document.getElementById('selectDewan');
-    const selectKategori = document.getElementById('selectKategori');
-    const inputTahun = document.getElementById('inputTahun');
-    const inputFolder = document.getElementById('inputFolder');
-    const inputNamaDokumen = document.getElementById('inputNamaDokumen');
-    const inputFile = document.getElementById('inputFile');
-    const uploadZone = document.getElementById('uploadZone');
-    const fileInfoText = document.getElementById('fileInfoText');
-    const inputKeterangan = document.getElementById('inputKeterangan');
-    const form = document.getElementById('uploadDokumenForm');
-    const alertBox = document.getElementById('alertBox');
-    const successBox = document.getElementById('successBox');
-    const btnSubmit = document.getElementById('btnSubmitUpload');
-    const btnSubmitText = document.getElementById('btnSubmitText');
+      const params = new URLSearchParams(window.location.search);
+      const initialDewanId = params.get('dewan_id');
+      const initialKategoriId = params.get('kategori_id');
+      const initialTahun = params.get('tahun');
+      const initialFolder = params.get('nama_folder');
 
-    if (initialTahun) inputTahun.value = initialTahun;
-    if (initialFolder) inputFolder.value = initialFolder;
+      const selectDewan = document.getElementById('selectDewan');
+      const selectKategori = document.getElementById('selectKategori');
+      const inputTahun = document.getElementById('inputTahun');
+      const inputFolder = document.getElementById('inputFolder');
+      const inputNamaDokumen = document.getElementById('inputNamaDokumen');
+      const inputKeterangan = document.getElementById('inputKeterangan');
+      const inputFile = document.getElementById('inputFile');
+      const dropzone = document.getElementById('dropzone');
+      const filePreviewCard = document.getElementById('filePreviewCard');
+      const previewFileName = document.getElementById('previewFileName');
+      const previewFileSize = document.getElementById('previewFileSize');
+      const btnChangeFile = document.getElementById('btnChangeFile');
+      const form = document.getElementById('uploadDokumenForm');
+      const btnSubmit = document.getElementById('btnSubmitUpload');
+      const btnSubmitText = document.getElementById('btnSubmitText');
 
-    // File picker trigger
-    uploadZone.addEventListener('click', () => inputFile.click());
-    inputFile.addEventListener('change', () => {
-      if (inputFile.files && inputFile.files[0]) {
-        const file = inputFile.files[0];
-        fileInfoText.style.display = 'block';
-        fileInfoText.textContent = `Berkas dipilih: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+      if (initialTahun) inputTahun.value = initialTahun;
+      if (initialFolder) inputFolder.value = initialFolder;
+
+      // Dropzone Interactions
+      dropzone.addEventListener('click', () => inputFile.click());
+      btnChangeFile.addEventListener('click', () => inputFile.click());
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          inputFile.files = e.dataTransfer.files;
+          handleFileSelected(e.dataTransfer.files[0]);
+        }
+      });
+
+      inputFile.addEventListener('change', () => {
+        if (inputFile.files && inputFile.files[0]) {
+          handleFileSelected(inputFile.files[0]);
+        }
+      });
+
+      function handleFileSelected(file) {
+        const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
+        if (file.size > MAX_SIZE) {
+          showToast('Ukuran berkas melebihi batas maksimal 20 MB.', 'warning');
+          inputFile.value = '';
+          filePreviewCard.style.display = 'none';
+          dropzone.style.display = 'block';
+          return;
+        }
+
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        const allowed = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
+        if (!allowed.includes(ext)) {
+          showToast(`Ekstensi berkas "${ext}" tidak diizinkan.`, 'error');
+          inputFile.value = '';
+          filePreviewCard.style.display = 'none';
+          dropzone.style.display = 'block';
+          return;
+        }
+
+        dropzone.style.display = 'none';
+        filePreviewCard.style.display = 'flex';
+        previewFileName.textContent = file.name;
+        previewFileSize.textContent = formatFileSize(file.size);
+
         if (!inputNamaDokumen.value) {
           inputNamaDokumen.value = file.name.replace(/\.[^/.]+$/, '');
         }
       }
-    });
 
-    loadDropdowns();
+      // Populate Dropdowns
+      async function loadDropdowns() {
+        try {
+          const [resDewan, resKat] = await Promise.all([
+            api.getDewanList(),
+            api.getKategoriList()
+          ]);
 
-    async function loadDropdowns() {
-      try {
-        const [resDewan, resKat] = await Promise.all([
-          api.getDewanList(),
-          api.getKategoriList()
-        ]);
+          if (resDewan && resDewan.success && Array.isArray(resDewan.data)) {
+            selectDewan.innerHTML = '<option value="">-- Pilih Anggota DPRD --</option>' +
+              resDewan.data.map(d => `
+                <option value="${d.id}" ${String(d.id) === String(initialDewanId) ? 'selected' : ''}>
+                  ${d.nama} (${d.jabatan || 'Anggota'})
+                </option>
+              `).join('');
+          }
 
-        if (resDewan && resDewan.success && Array.isArray(resDewan.data)) {
-          selectDewan.innerHTML = '<option value="">-- Pilih Anggota Dewan --</option>' +
-            resDewan.data.map((d) => `<option value="${d.id}" ${String(d.id) === String(initialDewanId) ? 'selected' : ''}>${d.nama} (${d.jabatan})</option>`).join('');
+          if (resKat && resKat.success && Array.isArray(resKat.data)) {
+            selectKategori.innerHTML = '<option value="">-- Pilih Kategori Dokumen --</option>' +
+              resKat.data.map(k => `
+                <option value="${k.id}" ${String(k.id) === String(initialKategoriId) ? 'selected' : ''}>
+                  ${k.nama_kategori}
+                </option>
+              `).join('');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      loadDropdowns();
+
+      // Submit Handler
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const dewanId = selectDewan.value;
+        const kategoriId = selectKategori.value;
+        const tahun = parseInt(inputTahun.value, 10);
+        const namaFolder = inputFolder.value.trim();
+        const namaDokumen = inputNamaDokumen.value.trim();
+        const keterangan = inputKeterangan.value.trim();
+
+        if (!dewanId || !kategoriId || isNaN(tahun) || !namaFolder || !namaDokumen) {
+          showToast('Harap lengkapi semua kolom bertanda bintang (*).', 'warning');
+          return;
         }
 
-        if (resKat && resKat.success && Array.isArray(resKat.data)) {
-          selectKategori.innerHTML = '<option value="">-- Pilih Kategori Dokumen --</option>' +
-            resKat.data.map((k) => `<option value="${k.id}" ${String(k.id) === String(initialKategoriId) ? 'selected' : ''}>${k.nama_kategori}</option>`).join('');
+        if (!inputFile.files || !inputFile.files[0]) {
+          showToast('Berkas fisik dokumen wajib dipilih.', 'warning');
+          return;
         }
-      } catch (err) {
-        console.error('Gagal memuat dropdown:', err);
-      }
-    }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      alertBox.style.display = 'none';
-      successBox.style.display = 'none';
+        const file = inputFile.files[0];
 
-      const dewanId = selectDewan.value;
-      const kategoriId = selectKategori.value;
-      const tahun = parseInt(inputTahun.value, 10);
-      const namaFolder = inputFolder.value.trim();
-      const namaDokumen = inputNamaDokumen.value.trim();
-      const keterangan = inputKeterangan.value.trim();
+        btnSubmit.disabled = true;
+        btnSubmitText.textContent = 'Membaca & Mengunggah Berkas ke Google Drive...';
 
-      if (!dewanId || !kategoriId || isNaN(tahun) || !namaFolder || !namaDokumen) {
-        showError('Harap lengkapi semua kolom bertanda bintang (*).');
-        return;
-      }
+        try {
+          const base64 = await fileToBase64(file);
+          btnSubmitText.textContent = 'Mencatat Metadata ke Database...';
 
-      if (!inputFile.files || !inputFile.files[0]) {
-        showError('Berkas fisik dokumen wajib dipilih.');
-        return;
-      }
+          const res = await api.uploadDokumen({
+            dewan_id: dewanId,
+            kategori_id: kategoriId,
+            tahun: tahun,
+            nama_folder: namaFolder,
+            nama_dokumen: namaDokumen,
+            keterangan: keterangan,
+            fileName: file.name,
+            base64: base64
+          });
 
-      const file = inputFile.files[0];
-      const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
-      if (file.size > MAX_SIZE) {
-        showError('Ukuran berkas melebihi batas 10 MB. Silakan kompres atau pilih berkas lebih kecil.');
-        return;
-      }
-
-      btnSubmit.disabled = true;
-      btnSubmitText.textContent = 'Membaca berkas & Mengunggah ke Google Drive...';
-
-      try {
-        const base64 = await fileToBase64(file);
-        btnSubmitText.textContent = 'Menyimpan metadata ke Google Sheets...';
-
-        const res = await api.uploadDokumen({
-          dewan_id: dewanId,
-          kategori_id: kategoriId,
-          tahun: tahun,
-          nama_folder: namaFolder,
-          nama_dokumen: namaDokumen,
-          keterangan: keterangan,
-          fileName: file.name,
-          base64: base64
-        });
-
-        if (res && res.success) {
-          successBox.textContent = 'Dokumen berhasil diunggah ke Google Drive!';
-          successBox.style.display = 'flex';
-          setTimeout(() => {
-            window.location.replace(`dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`);
-          }, 600);
-        } else {
-          showError(res.message || 'Gagal mengunggah dokumen.');
+          if (res && res.success) {
+            showToast('Dokumen berhasil diunggah ke Google Drive dan dicatat ke database!', 'success');
+            setTimeout(() => {
+              window.location.replace(`dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`);
+            }, 1000);
+          } else {
+            showToast(res.message || 'Gagal mengunggah dokumen.', 'error');
+            btnSubmit.disabled = false;
+            btnSubmitText.textContent = 'Unggah ke Google Drive';
+          }
+        } catch (err) {
+          showToast(err.message || 'Terjadi gangguan saat mengunggah.', 'error');
           btnSubmit.disabled = false;
           btnSubmitText.textContent = 'Unggah ke Google Drive';
         }
-      } catch (err) {
-        showError(err.message || 'Terjadi kesalahan pengunggahan.');
-        btnSubmit.disabled = false;
-        btnSubmitText.textContent = 'Unggah ke Google Drive';
-      }
-    });
-
-    function showError(msg) {
-      alertBox.textContent = msg;
-      alertBox.style.display = 'flex';
+      });
     }
   </script>
 </body>

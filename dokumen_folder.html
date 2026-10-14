@@ -3,300 +3,535 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dokumen Folder - Sistem Pengarsipan DPRD</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
-    .page-container {
-      width: 100%;
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-    .page-header h1 {
-      margin: 0 0 6px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .page-header p {
-      margin: 0;
-      color: #64748b;
-      font-size: 13px;
-    }
-    .file-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 6px;
-      color: #1d4ed8;
-      font-size: 12px;
-      font-weight: 600;
-      text-decoration: none;
-    }
-    .file-badge:hover {
-      background: #dbeafe;
-    }
-    .action-btns {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
-    }
-  </style>
+  <title>Folder Dokumen — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header">
-        <div>
-          <div class="breadcrumb">
-            <a href="dashboard.html">Dashboard</a>
-            <span>/</span>
-            <a href="dewan.html">Anggota Dewan</a>
-            <span>/</span>
-            <a href="#" id="breadcrumbArsipLink">Arsip Dewan</a>
-            <span>/</span>
-            <a href="#" id="breadcrumbKatLink">Kategori</a>
-            <span>/</span>
-            <a href="#" id="breadcrumbTahunLink">Tahun</a>
-            <span>/</span>
-            <span id="breadcrumbFolderName">Folder</span>
-          </div>
-          <h1 id="pageTitleFolder">Nama Folder</h1>
-          <p id="pageSubtitleDetails">Memuat informasi...</p>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="arsip_dewan.html">Arsip Dokumen</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="#" id="breadcrumbDewanLink">Dewan</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="#" id="breadcrumbKatLink">Kategori</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="#" id="breadcrumbTahunLink">Tahun</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current" id="breadcrumbFolderText">Folder</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Level 4 & 5: Arsip Berkas
         </div>
-        <div style="display:flex; gap:10px;">
-          <a href="#" id="btnEditFolder" class="btn btn-reset">Edit Folder</a>
-          <a href="#" id="btnTambahDokumen" class="btn btn-primary">+ Tambah Dokumen</a>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- STEPPER INDIKATOR ALUR PENGARSIPAN -->
+      <div class="stepper-nav">
+        <div class="step-item completed">
+          <span class="step-number">&check;</span>
+          <span id="stepDewan">Dewan</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item completed">
+          <span class="step-number">&check;</span>
+          <span id="stepKategori">Kategori</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item completed">
+          <span class="step-number">&check;</span>
+          <span id="stepTahun">Tahun</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item active" id="stepFolder">
+          <span class="step-number">4</span>
+          <span id="stepFolderLabel">Folder Dokumen</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item" id="stepDokumen">
+          <span class="step-number">5</span>
+          <span>Berkas Arsip</span>
         </div>
       </div>
 
-      <section class="content-panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <h2>Daftar Dokumen Arsip</h2>
-            <p>Dokumen yang tersimpan aman di Google Drive.</p>
+      <!-- TAMPILAN 1: DAFTAR FOLDER (Jika nama_folder belum dipilih) -->
+      <div id="viewPilihFolder" style="display: none;">
+        <div class="page-title-bar">
+          <div class="page-title-text">
+            <h1 id="titlePilihFolder">Folder Dokumen Arsip</h1>
+            <p id="descPilihFolder">Pilih folder penyimpanan atau buat folder baru.</p>
           </div>
-          <div class="panel-actions">
-            <div class="total-badge">
-              Total Dokumen: <span id="totalDocCount">0</span>
+          <div class="page-actions">
+            <a href="#" id="btnBackToTahun" class="btn btn-secondary">&larr; Kembali ke Tahun</a>
+            <button type="button" class="btn btn-gold" id="btnOpenAddFolderModal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Tambah Folder Baru
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Daftar Folder Tersedia</h2>
+              <p class="card-subtitle">Pilih folder untuk membuka berkas fisik.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="archive-grid" id="folderListGrid">
+              <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">
+                Memuat daftar folder...
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div id="loadingIndicator" class="loading-indicator">
-          <div class="spinner"></div> Memuat daftar dokumen...
-        </div>
-
-        <div id="tableContainer" class="table-box" style="display:none;">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 50px;">No.</th>
-                <th>Nama Dokumen</th>
-                <th>Keterangan</th>
-                <th>Berkas File</th>
-                <th>Tanggal Upload</th>
-                <th style="width: 140px;">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="docTableBody"></tbody>
-          </table>
-
-          <div class="table-footer">
-            <span id="footerCount">Menampilkan 0 dokumen</span>
-            <span>Sistem Pengarsipan DPRD</span>
+      <!-- TAMPILAN 2: BERKAS ARSIP DI DALAM FOLDER TERTENTU -->
+      <div id="viewDokumenInFolder" style="display: none;">
+        <div class="page-title-bar">
+          <div class="page-title-text">
+            <h1 id="titleFolderName">Berkas Dokumen</h1>
+            <p id="descFolderMeta">Daftar berkas arsip resmi yang tersimpan di Google Drive.</p>
+          </div>
+          <div class="page-actions">
+            <a href="#" id="btnBackToFolderList" class="btn btn-secondary">&larr; Kembali ke Daftar Folder</a>
+            <a href="#" id="btnUploadInThisFolder" class="btn btn-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Unggah Dokumen ke Folder Ini
+            </a>
           </div>
         </div>
 
-        <div id="emptyContainer" class="empty-data" style="display:none;">
-          <div class="empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Daftar Berkas Dokumen</h2>
+              <p class="card-subtitle">Berkas fisik arsip dewan.</p>
+            </div>
+            <div class="search-box">
+              <span class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <input type="text" class="search-input" id="searchDocInput" placeholder="Cari judul dokumen atau nama file...">
+            </div>
           </div>
-          <h3>Belum Ada Dokumen di Folder Ini</h3>
-          <p>Klik tombol <strong>+ Tambah Dokumen</strong> untuk mengunggah berkas arsip pertama ke Google Drive.</p>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">No</th>
+                    <th>Judul Dokumen</th>
+                    <th>Keterangan</th>
+                    <th>Berkas Fisik</th>
+                    <th>Waktu Unggah</th>
+                    <th style="text-align: center; width: 140px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="docTableBody">
+                  <tr>
+                    <td colspan="6" style="text-align: center; padding: 30px;">
+                      Memuat daftar dokumen arsip...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL TAMBAH FOLDER -->
+  <div id="modalTambahFolder" class="confirm-modal-backdrop">
+    <div class="confirm-modal-box" style="text-align: left; max-width: 440px;">
+      <h3 class="confirm-modal-title" style="margin-bottom: 4px;">Tambah Folder Baru</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Buat wadah folder untuk mengelompokkan dokumen arsip.</p>
+      
+      <form id="formTambahFolder">
+        <div class="form-group">
+          <label for="inputNamaFolder" class="form-label">Nama Folder <span class="required">*</span></label>
+          <input type="text" id="inputNamaFolder" class="form-input" required placeholder="Contoh: Masa Sidang I">
+        </div>
+        <div class="form-group">
+          <label for="inputDeskripsiFolder" class="form-label">Deskripsi (Opsional)</label>
+          <input type="text" id="inputDeskripsiFolder" class="form-input" placeholder="Keterangan singkat folder">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelFolder">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSaveFolder">Simpan Folder</button>
+        </div>
+      </form>
     </div>
-  </main>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, formatDateIndonesia, formatFileSize, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('arsip');
 
-    const params = new URLSearchParams(window.location.search);
-    const dewanId = params.get('dewan_id');
-    const kategoriId = params.get('kategori_id');
-    const tahun = params.get('tahun');
-    const namaFolder = params.get('nama_folder');
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
+      }
 
-    if (!dewanId || !kategoriId || !tahun || !namaFolder) {
-      window.location.replace('dewan.html');
-    }
+      const params = new URLSearchParams(window.location.search);
+      const dewanId = params.get('dewan_id');
+      const kategoriId = params.get('kategori_id');
+      const tahun = params.get('tahun');
+      const namaFolder = params.get('nama_folder');
 
-    const breadcrumbArsipLink = document.getElementById('breadcrumbArsipLink');
-    const breadcrumbKatLink = document.getElementById('breadcrumbKatLink');
-    const breadcrumbTahunLink = document.getElementById('breadcrumbTahunLink');
-    const breadcrumbFolderName = document.getElementById('breadcrumbFolderName');
-    const pageTitleFolder = document.getElementById('pageTitleFolder');
-    const pageSubtitleDetails = document.getElementById('pageSubtitleDetails');
-    const btnEditFolder = document.getElementById('btnEditFolder');
-    const btnTambahDokumen = document.getElementById('btnTambahDokumen');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const tableContainer = document.getElementById('tableContainer');
-    const emptyContainer = document.getElementById('emptyContainer');
-    const docTableBody = document.getElementById('docTableBody');
-    const totalDocCount = document.getElementById('totalDocCount');
-    const footerCount = document.getElementById('footerCount');
+      if (!dewanId || !kategoriId || !tahun) {
+        window.location.replace('arsip_dewan.html');
+      }
 
-    breadcrumbArsipLink.href = `arsip_dewan.html?id=${dewanId}`;
-    breadcrumbKatLink.href = `kategori_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`;
-    breadcrumbTahunLink.href = `dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`;
-    breadcrumbTahunLink.textContent = `Tahun ${tahun}`;
-    breadcrumbFolderName.textContent = namaFolder;
-    pageTitleFolder.textContent = namaFolder;
+      document.getElementById('breadcrumbDewanLink').href = `arsip_dewan.html?dewan_id=${dewanId}`;
+      document.getElementById('breadcrumbKatLink').href = `dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`;
+      document.getElementById('breadcrumbTahunLink').href = `dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`;
+      document.getElementById('breadcrumbTahunLink').textContent = `Tahun ${tahun}`;
 
-    btnEditFolder.href = `edit_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`;
-    btnTambahDokumen.href = `tambah_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`;
+      document.getElementById('btnBackToTahun').href = `dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`;
 
-    loadDokumen();
+      // Routing Tampilan: Folder List vs Document List
+      if (!namaFolder) {
+        document.getElementById('viewPilihFolder').style.display = 'block';
+        document.getElementById('viewDokumenInFolder').style.display = 'none';
+        document.getElementById('breadcrumbFolderText').textContent = 'Pilih Folder';
+        loadFolderList();
+      } else {
+        document.getElementById('viewPilihFolder').style.display = 'none';
+        document.getElementById('viewDokumenInFolder').style.display = 'block';
+        document.getElementById('stepFolder').className = 'step-item completed';
+        document.getElementById('stepFolder').innerHTML = '<span class="step-number">&check;</span><span>' + namaFolder + '</span>';
+        document.getElementById('stepDokumen').className = 'step-item active';
+        document.getElementById('breadcrumbFolderText').textContent = namaFolder;
+        document.getElementById('titleFolderName').textContent = `Folder: ${namaFolder}`;
+        document.getElementById('btnBackToFolderList').href = `dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`;
+        document.getElementById('btnUploadInThisFolder').href = `tambah_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}`;
+        loadDocumentList();
+      }
 
-    async function loadDokumen() {
-      loadingIndicator.style.display = 'flex';
-      tableContainer.style.display = 'none';
-      emptyContainer.style.display = 'none';
+      // Metadata Info Header
+      api.getDewanById(dewanId).then(res => {
+        if (res && res.success && res.data) {
+          document.getElementById('breadcrumbDewanLink').textContent = res.data.nama;
+          document.getElementById('stepDewan').textContent = res.data.nama;
+        }
+      });
+      api.getKategoriList().then(res => {
+        if (res && res.success && Array.isArray(res.data)) {
+          const k = res.data.find(x => String(x.id) === String(kategoriId));
+          if (k) {
+            document.getElementById('breadcrumbKatLink').textContent = k.nama_kategori;
+            document.getElementById('stepKategori').textContent = k.nama_kategori;
+          }
+        }
+      });
+      document.getElementById('stepTahun').textContent = `Tahun ${tahun}`;
 
-      try {
-        const [resDewan, resDocs] = await Promise.all([
-          api.getDewanById(dewanId),
-          api.getDokumenList({
+      // 1. Logika Load Folder
+      async function loadFolderList() {
+        const grid = document.getElementById('folderListGrid');
+        try {
+          const res = await api.getFolderList(dewanId, kategoriId, tahun);
+          if (res && res.success && Array.isArray(res.data)) {
+            let folders = res.data;
+            if (!folders.length) {
+              grid.innerHTML = `
+                <div style="grid-column: 1/-1;">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                    </div>
+                    <h3 class="empty-state-title">Belum Ada Folder Dokumen</h3>
+                    <p class="empty-state-desc">Klik tombol "Tambah Folder Baru" di atas untuk membuat wadah arsip pertama Anda.</p>
+                  </div>
+                </div>
+              `;
+              return;
+            }
+
+            grid.innerHTML = folders.map(f => `
+              <div class="archive-card">
+                <div class="archive-card-header">
+                  <div class="archive-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="archive-card-title">${f.nama_folder}</div>
+                    <div class="archive-card-desc">${f.deskripsi || 'Folder berkas sidang / pokir'}</div>
+                  </div>
+                </div>
+                <div class="archive-card-footer">
+                  <span class="status-pill aktif" style="font-size: 11.5px;">
+                    <span class="status-pill-dot"></span>
+                    ${f.jumlah_dokumen || 0} Dokumen
+                  </span>
+                  <a href="dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(f.nama_folder)}" class="btn btn-gold btn-sm">
+                    Buka Berkas &rarr;
+                  </a>
+                </div>
+              </div>
+            `).join('');
+          }
+        } catch (e) {
+          grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${e.message}</div>`;
+        }
+      }
+
+      // Modal Tambah Folder
+      const modalFolder = document.getElementById('modalTambahFolder');
+      const btnOpenFolder = document.getElementById('btnOpenAddFolderModal');
+      const btnCancelFolder = document.getElementById('btnCancelFolder');
+      const formFolder = document.getElementById('formTambahFolder');
+
+      if (btnOpenFolder) btnOpenFolder.addEventListener('click', () => modalFolder.classList.add('active'));
+      if (btnCancelFolder) btnCancelFolder.addEventListener('click', () => modalFolder.classList.remove('active'));
+
+      if (formFolder) {
+        formFolder.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const nama = document.getElementById('inputNamaFolder').value.trim();
+          const deskripsi = document.getElementById('inputDeskripsiFolder').value.trim();
+          if (!nama) return;
+
+          try {
+            const res = await api.createFolder(dewanId, kategoriId, tahun, nama, deskripsi);
+            if (res && res.success) {
+              showToast('Folder berhasil dibuat.', 'success');
+              modalFolder.classList.remove('active');
+              formFolder.reset();
+              loadFolderList();
+            } else {
+              showToast(res.message || 'Gagal membuat folder.', 'error');
+            }
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        });
+      }
+
+      // 2. Logika Load Dokumen dalam Folder
+      let allDocsInFolder = [];
+
+      async function loadDocumentList() {
+        const tbody = document.getElementById('docTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Memuat dokumen arsip...</td></tr>';
+
+        try {
+          const res = await api.getDokumenList({
             dewan_id: dewanId,
             kategori_id: kategoriId,
             tahun: tahun,
             nama_folder: namaFolder
-          })
-        ]);
+          });
 
-        if (resDewan && resDewan.success && resDewan.data) {
-          pageSubtitleDetails.textContent = `Anggota Dewan: ${resDewan.data.nama} • Tahun: ${tahun}`;
-        }
-
-        loadingIndicator.style.display = 'none';
-
-        if (resDocs && resDocs.success && Array.isArray(resDocs.data)) {
-          const docs = resDocs.data;
-          totalDocCount.textContent = docs.length;
-
-          if (docs.length === 0) {
-            emptyContainer.style.display = 'block';
-            tableContainer.style.display = 'none';
+          if (res && res.success && Array.isArray(res.data)) {
+            allDocsInFolder = res.data;
+            renderDocRows(allDocsInFolder);
           } else {
-            emptyContainer.style.display = 'none';
-            tableContainer.style.display = 'block';
-            footerCount.textContent = `Menampilkan ${docs.length} dokumen`;
-
-            docTableBody.innerHTML = docs.map((doc, idx) => {
-              const fileLink = doc.view_url || doc.direct_url || '#';
-              const formattedDate = doc.tanggal_upload
-                ? new Date(doc.tanggal_upload).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-                : '-';
-
-              return `
-                <tr>
-                  <td class="number-cell">${idx + 1}</td>
-                  <td><strong>${escapeHtml(doc.nama_dokumen || '-')}</strong></td>
-                  <td style="color:#64748b; font-size:12px;">${escapeHtml(doc.keterangan || '-')}</td>
-                  <td>
-                    ${doc.nama_file ? `
-                      <a href="${fileLink}" target="_blank" rel="noopener noreferrer" class="file-badge">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px;">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                          <polyline points="14 2 14 8 20 8"/>
-                        </svg>
-                        <span>${escapeHtml(doc.nama_file)}</span>
-                      </a>
-                    ` : '<span style="color:#94a3b8;">Tidak ada file</span>'}
-                  </td>
-                  <td style="color:#64748b; font-size:12px;">${formattedDate}</td>
-                  <td>
-                    <div class="action-btns">
-                      <a href="edit_dokumen.html?id=${doc.id}" class="btn btn-reset btn-sm">Edit</a>
-                      <button type="button" class="btn btn-danger btn-sm" onclick="window.hapusDokumen(${doc.id}, '${escapeJs(doc.nama_dokumen)}')">Hapus</button>
-                    </div>
-                  </td>
-                </tr>
-              `;
-            }).join('');
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--status-danger); padding: 30px;">Gagal memuat dokumen: ${res.message || 'Kesalahan server'}</td></tr>`;
           }
+        } catch (e) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${e.message}</td></tr>`;
         }
-      } catch (err) {
-        loadingIndicator.style.display = 'none';
-        emptyContainer.style.display = 'block';
-        console.error(err);
       }
-    }
 
-    window.hapusDokumen = async (id, nama) => {
-      const yakin = confirm(`Apakah Anda yakin ingin menghapus dokumen "${nama}" dari sistem dan Google Drive?`);
-      if (!yakin) return;
-
-      try {
-        const res = await api.deleteDokumen(id);
-        if (res && res.success) {
-          loadDokumen();
-        } else {
-          alert(res.message || 'Gagal menghapus dokumen.');
+      function renderDocRows(docs) {
+        const tbody = document.getElementById('docTableBody');
+        if (!docs.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </div>
+                  <h3 class="empty-state-title">Folder Masih Kosong</h3>
+                  <p class="empty-state-desc">Belum ada berkas fisik yang diunggah ke folder "${namaFolder}".</p>
+                  <a href="tambah_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(namaFolder)}" class="btn btn-gold">
+                    Unggah Dokumen Sekarang
+                  </a>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
         }
-      } catch (e) {
-        alert(e.message || 'Gagal menghapus dokumen.');
+
+        tbody.innerHTML = docs.map((doc, idx) => `
+          <tr>
+            <td style="text-align: center; color: var(--text-light); font-size: 12px;">${idx + 1}</td>
+            <td>
+              <strong>${doc.nama_dokumen || '-'}</strong>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Diunggah oleh: ${doc.uploaded_by || 'staf'}</div>
+            </td>
+            <td style="color: var(--text-secondary); font-size: 13px;">${doc.keterangan || '-'}</td>
+            <td>
+              <button type="button" class="btn btn-secondary btn-sm" data-action="download" data-id="${doc.id}" data-filename="${doc.nama_file || 'dokumen.pdf'}" title="Unduh Berkas Resmi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                ${doc.nama_file || 'Berkas'} (${formatFileSize(doc.ukuran_file)})
+              </button>
+            </td>
+            <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+              ${formatDateIndonesia(doc.tanggal_upload)}
+            </td>
+            <td style="text-align: center;">
+              <div class="action-buttons" style="justify-content: center;">
+                <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${doc.id}" data-title="${doc.nama_dokumen}" title="Hapus Dokumen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+
+        // Event Download Aman
+        tbody.querySelectorAll('button[data-action="download"]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const docId = btn.dataset.id;
+            const fileName = btn.dataset.filename;
+            btn.disabled = true;
+            btn.innerHTML = 'Mengunduh...';
+
+            try {
+              const res = await api.downloadDokumen(docId);
+              if (res && res.success && res.data && res.data.base64) {
+                // Decode base64 dan trigger download di browser
+                const byteCharacters = atob(res.data.base64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: res.data.mime_type || 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+
+                const downloadLink = document.createElement('a');
+                downloadLink.href = blobUrl;
+                downloadLink.download = res.data.nama_file || fileName;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(blobUrl);
+
+                showToast('Berkas berhasil diunduh.', 'success');
+              } else {
+                showToast(res.message || 'Gagal mengunduh berkas.', 'error');
+              }
+            } catch (err) {
+              showToast(err.message, 'error');
+            } finally {
+              btn.disabled = false;
+              btn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                ${fileName}
+              `;
+            }
+          });
+        });
+
+        // Event Hapus Dokumen
+        tbody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const title = btn.dataset.title;
+            showConfirmDialog({
+              title: 'Hapus Berkas Dokumen',
+              message: `Apakah Anda yakin ingin menghapus arsip "${title}" secara permanen dari sistem dan Google Drive?`,
+              confirmText: 'Ya, Hapus Permanen',
+              isDanger: true,
+              onConfirm: async () => {
+                try {
+                  const res = await api.deleteDokumen(id);
+                  if (res && res.success) {
+                    showToast('Dokumen berhasil dihapus.', 'success');
+                    loadDocumentList();
+                  } else {
+                    showToast(res.message || 'Gagal menghapus dokumen.', 'error');
+                  }
+                } catch (e) {
+                  showToast(e.message, 'error');
+                }
+              }
+            });
+          });
+        });
       }
-    };
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function escapeJs(str) {
-      if (!str) return '';
-      return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+      // Filter Pencarian Dokumen
+      const searchInput = document.getElementById('searchDocInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const q = e.target.value.toLowerCase().trim();
+          if (!q) {
+            renderDocRows(allDocsInFolder);
+            return;
+          }
+          const filtered = allDocsInFolder.filter(d =>
+            (d.nama_dokumen && d.nama_dokumen.toLowerCase().includes(q)) ||
+            (d.nama_file && d.nama_file.toLowerCase().includes(q)) ||
+            (d.keterangan && d.keterangan.toLowerCase().includes(q))
+          );
+          renderDocRows(filtered);
+        });
+      }
     }
   </script>
 </body>

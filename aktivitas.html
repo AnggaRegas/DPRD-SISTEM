@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aktivitas & Audit Log — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Aktivitas & Audit</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Audit Keamanan Aktif
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Log Aktivitas & Audit Keamanan</h1>
+          <p>Catatan kronologis seluruh operasi sistem, autentikasi, dan riwayat dokumen.</p>
+        </div>
+        <div class="page-actions">
+          <button type="button" class="btn btn-secondary" id="btnRefresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Segarkan Log
+          </button>
+          <button type="button" class="btn btn-danger" id="btnClearLogs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            Bersihkan Semua Aktivitas
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD AUDIT LOG -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Riwayat Aktivitas Terakhir</h2>
+            <p class="card-subtitle">Menampilkan riwayat tindakan pengguna secara berurutan.</p>
+          </div>
+          <div class="search-box">
+            <span class="search-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input type="text" class="search-input" id="searchLogInput" placeholder="Cari aksi, pengguna, atau detail...">
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="tableLogs">
+              <thead>
+                <tr>
+                  <th style="width: 170px;">Waktu & Tanggal</th>
+                  <th style="width: 160px;">Pengguna</th>
+                  <th style="width: 180px;">Aksi</th>
+                  <th>Detail Aktivitas</th>
+                </tr>
+              </thead>
+              <tbody id="logTableBody">
+                <tr>
+                  <td colspan="4" style="text-align: center; padding: 30px;">
+                    Memuat log aktivitas sistem...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { api } from './assets/js/api.js';
+    import { requireAuth, formatDateIndonesia, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+
+    const currentUser = requireAuth();
+    if (currentUser) {
+      renderSidebar('aktivitas');
+
+      // Mobile Menu Trigger
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
+      }
+
+      let allLogs = [];
+
+      async function loadLogs() {
+        const tbody = document.getElementById('logTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 30px;">Memuat riwayat log...</td></tr>';
+        try {
+          const res = await api.getActivityLog(100);
+          if (res.success && Array.isArray(res.data)) {
+            allLogs = res.data;
+            renderLogRows(allLogs);
+          } else {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--status-danger); padding: 30px;">Gagal memuat log: ${res.message || 'Kesalahan server'}</td></tr>`;
+          }
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--status-danger); padding: 30px;">Koneksi terputus: ${err.message}</td></tr>`;
+        }
+      }
+
+      function renderLogRows(logs) {
+        const tbody = document.getElementById('logTableBody');
+        if (!logs.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4">
+                <div class="empty-state">
+                  <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </div>
+                  <h3 class="empty-state-title">Belum Ada Aktivitas</h3>
+                  <p class="empty-state-desc">Riwayat tindakan sistem belum tersedia atau tidak cocok dengan filter pencarian.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = logs.map(l => `
+          <tr>
+            <td style="font-size: 12.5px; color: var(--text-muted); white-space: nowrap;">
+              ${formatDateIndonesia(l.waktu)}
+            </td>
+            <td>
+              <strong>${l.username || 'system'}</strong>
+              <span class="user-role-badge superadmin" style="margin-left: 6px;">PENGELOLA</span>
+            </td>
+            <td>
+              <span class="status-pill ${l.aksi.includes('GAGAL') || l.aksi.includes('HAPUS') ? 'nonaktif' : 'aktif'}">
+                <span class="status-pill-dot"></span>
+                ${l.aksi || '-'}
+              </span>
+            </td>
+            <td style="color: var(--text-secondary);">
+              ${l.detail || '-'}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Filter Pencarian
+      const searchInput = document.getElementById('searchLogInput');
+      searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        if (!q) {
+          renderLogRows(allLogs);
+          return;
+        }
+        const filtered = allLogs.filter(l =>
+          (l.username && l.username.toLowerCase().includes(q)) ||
+          (l.aksi && l.aksi.toLowerCase().includes(q)) ||
+          (l.detail && l.detail.toLowerCase().includes(q))
+        );
+        renderLogRows(filtered);
+      });
+
+      document.getElementById('btnRefresh').addEventListener('click', () => {
+        loadLogs();
+        showToast('Memperbarui log aktivitas...', 'info', 1500);
+      });
+
+      const btnClear = document.getElementById('btnClearLogs');
+      if (btnClear) {
+        btnClear.addEventListener('click', () => {
+          showConfirmDialog({
+            title: 'Bersihkan Semua Aktivitas?',
+            message: 'Tindakan ini akan menghapus seluruh catatan riwayat log aktivitas dari server Google Sheets secara permanen. Hanya entri pencatatan pembersihan yang akan tersisa.',
+            confirmText: 'Ya, Bersihkan Semua',
+            cancelText: 'Batal',
+            isDanger: true,
+            onConfirm: async () => {
+              showToast('Sedang membersihkan log aktivitas...', 'info', 2000);
+              try {
+                const res = await api.clearActivityLog();
+                if (res.success) {
+                  showToast(res.message || 'Seluruh log aktivitas berhasil dibersihkan.', 'success');
+                  await loadLogs();
+                } else {
+                  showToast(res.message || 'Gagal membersihkan log aktivitas.', 'error');
+                }
+              } catch (err) {
+                showToast('Terjadi kesalahan: ' + err.message, 'error');
+              }
+            }
+          });
+        });
+      }
+
+      loadLogs();
+    }
+  </script>
+</body>
+</html>

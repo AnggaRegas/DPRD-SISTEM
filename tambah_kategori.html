@@ -3,128 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tambah Kategori - Sistem Pengarsipan DPRD</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
-    .page-container {
-      width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 {
-      margin: 0 0 8px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
-    }
-  </style>
+  <title>Tambah Kategori — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header">
-        <div class="breadcrumb">
-          <a href="dashboard.html">Dashboard</a>
-          <span>/</span>
-          <a href="dewan.html">Anggota Dewan</a>
-          <span>/</span>
-          <span>Tambah Kategori</span>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="kategori_dokumen.html">Kategori Arsip</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Tambah Kategori</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Master Data
         </div>
-        <h1>Tambah Kategori Dokumen</h1>
-        <p>Tambahkan kategori pengarsipan baru untuk mengelompokkan dokumen DPRD.</p>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" style="max-width: 650px;">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Tambah Kategori Arsip</h1>
+          <p>Tambahkan klasifikasi kategori baru untuk pengelompokan dokumen kedewanan.</p>
+        </div>
       </div>
 
-      <div class="form-box">
-        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
-
-        <form id="tambahKatForm">
-          <div class="form-group">
-            <label for="inputNamaKategori">Nama Kategori Dokumen <span class="required">*</span></label>
-            <input type="text" id="inputNamaKategori" placeholder="Contoh: Laporan Kunjungan Kerja Komisi" required autofocus>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Formulir Kategori Dokumen</h2>
+            <p class="card-subtitle">Nama kategori akan digunakan sebagai struktur klasifikasi arsip.</p>
           </div>
+        </div>
+        <div class="card-body">
+          <form id="tambahKatForm">
+            <div class="form-group">
+              <label for="inputNamaKategori" class="form-label">Nama Kategori Dokumen <span class="required">*</span></label>
+              <input type="text" id="inputNamaKategori" class="form-input" placeholder="Contoh: Laporan Kunjungan Kerja Komisi" required autofocus>
+            </div>
 
-          <div class="form-actions">
-            <button type="submit" id="btnSubmit" class="btn btn-primary">Simpan Kategori</button>
-            <button type="button" onclick="window.history.back()" class="btn btn-reset">Batal</button>
-          </div>
-        </form>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+              <a href="kategori_dokumen.html" class="btn btn-secondary">Batal</a>
+              <button type="submit" id="btnSubmit" class="btn btn-gold">Simpan Kategori</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, showToast } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('kategori');
 
-    const params = new URLSearchParams(window.location.search);
-    const dewanId = params.get('dewan_id');
-
-    const form = document.getElementById('tambahKatForm');
-    const inputNama = document.getElementById('inputNamaKategori');
-    const alertBox = document.getElementById('alertBox');
-    const btnSubmit = document.getElementById('btnSubmit');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      alertBox.style.display = 'none';
-
-      const nama = inputNama.value.trim();
-      if (!nama) {
-        alertBox.textContent = 'Nama kategori wajib diisi.';
-        alertBox.style.display = 'flex';
-        return;
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
       }
 
-      btnSubmit.disabled = true;
-      btnSubmit.textContent = 'Menyimpan...';
+      const form = document.getElementById('tambahKatForm');
+      const inputNama = document.getElementById('inputNamaKategori');
+      const btnSubmit = document.getElementById('btnSubmit');
 
-      try {
-        const res = await api.createKategori(nama);
-        if (res && res.success) {
-          if (dewanId) {
-            window.location.replace(`arsip_dewan.html?id=${dewanId}`);
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nama = inputNama.value.trim();
+        if (!nama) {
+          showToast('Nama kategori wajib diisi.', 'error');
+          return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Menyimpan...';
+
+        try {
+          const res = await api.createKategori(nama);
+          if (res && res.success) {
+            showToast('Kategori baru berhasil ditambahkan.', 'success');
+            setTimeout(() => {
+              window.location.replace('kategori_dokumen.html');
+            }, 600);
           } else {
-            window.location.replace('dewan.html');
+            showToast(res.message || 'Gagal menambahkan kategori.', 'error');
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Simpan Kategori';
           }
-        } else {
-          alertBox.textContent = res.message || 'Gagal menambahkan kategori.';
-          alertBox.style.display = 'flex';
+        } catch (err) {
+          showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Simpan Kategori';
         }
-      } catch (err) {
-        alertBox.textContent = err.message || 'Terjadi kesalahan.';
-        alertBox.style.display = 'flex';
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = 'Simpan Kategori';
-      }
-    });
+      });
+    }
   </script>
 </body>
 </html>

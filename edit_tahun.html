@@ -3,166 +3,195 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Tahun - Sistem Pengarsipan DPRD</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
-    .page-container {
-      width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 {
-      margin: 0 0 8px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
-    }
-  </style>
+  <title>Edit Folder Tahun — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header">
-        <div class="breadcrumb">
-          <a href="dashboard.html">Dashboard</a>
-          <span>/</span>
-          <a href="dewan.html">Anggota Dewan</a>
-          <span>/</span>
-          <span>Edit Tahun</span>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="arsip_dewan.html">Arsip Dokumen</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="#" id="breadcrumbTahunLink">Tahun</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Edit Tahun</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Kelola Tahun
         </div>
-        <h1>Edit Folder Tahun</h1>
-        <p>Ubah angka tahun atau hapus seluruh folder tahun beserta dokumen di dalamnya.</p>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" style="max-width: 650px;">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Edit Folder Tahun Arsip</h1>
+          <p>Ubah tahun pengelompokan berkas atau hapus folder tahun beserta berkas di dalamnya.</p>
+        </div>
       </div>
 
-      <div class="form-box">
-        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
-
-        <form id="editTahunForm">
-          <div class="form-group">
-            <label for="inputTahunLama">Tahun Saat Ini</label>
-            <input type="text" id="inputTahunLama" readonly style="background:#f8fafc; color:#64748b;">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Formulir Perubahan Tahun</h2>
+            <p class="card-subtitle">Semua dokumen di bawah tahun ini akan otomatis diperbarui.</p>
           </div>
-
-          <div class="form-group">
-            <label for="inputTahunBaru">Tahun Baru <span class="required">*</span></label>
-            <input type="number" id="inputTahunBaru" min="1900" max="2100" required>
-          </div>
-
-          <div class="form-actions" style="justify-content: space-between;">
-            <div style="display:flex; gap:10px;">
-              <button type="submit" id="btnSubmit" class="btn btn-primary">Simpan Perubahan</button>
-              <button type="button" onclick="window.history.back()" class="btn btn-reset">Batal</button>
+        </div>
+        <div class="card-body">
+          <form id="editTahunForm">
+            <div class="form-group">
+              <label for="inputTahunLama" class="form-label">Tahun Saat Ini</label>
+              <input type="text" id="inputTahunLama" class="form-input" readonly style="background: var(--bg-hover); color: var(--navy-500); cursor: not-allowed;">
             </div>
-            <button type="button" id="btnDeleteTahun" class="btn btn-danger">Hapus Tahun</button>
-          </div>
-        </form>
+
+            <div class="form-group">
+              <label for="inputTahunBaru" class="form-label">Tahun Baru <span class="required">*</span></label>
+              <input type="number" id="inputTahunBaru" class="form-input" min="1900" max="2100" required autofocus>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px;">
+              <div style="display:flex; gap:10px;">
+                <button type="submit" id="btnSubmit" class="btn btn-gold">Simpan Perubahan</button>
+                <button type="button" id="btnBatal" class="btn btn-secondary">Batal</button>
+              </div>
+              <button type="button" id="btnDeleteTahun" class="btn btn-danger">Hapus Tahun</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('arsip');
 
-    const params = new URLSearchParams(window.location.search);
-    const dewanId = params.get('dewan_id');
-    const kategoriId = params.get('kategori_id');
-    const tahun = params.get('tahun');
-
-    if (!dewanId || !kategoriId || !tahun) {
-      window.location.replace('dewan.html');
-    }
-
-    const inputTahunLama = document.getElementById('inputTahunLama');
-    const inputTahunBaru = document.getElementById('inputTahunBaru');
-    const form = document.getElementById('editTahunForm');
-    const alertBox = document.getElementById('alertBox');
-    const btnSubmit = document.getElementById('btnSubmit');
-    const btnDelete = document.getElementById('btnDeleteTahun');
-
-    inputTahunLama.value = tahun;
-    inputTahunBaru.value = tahun;
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      alertBox.style.display = 'none';
-
-      const thnBaru = parseInt(inputTahunBaru.value, 10);
-      if (isNaN(thnBaru) || thnBaru < 1900 || thnBaru > 2100) {
-        alertBox.textContent = 'Tahun tidak valid.';
-        alertBox.style.display = 'flex';
-        return;
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
       }
 
-      btnSubmit.disabled = true;
-      btnSubmit.textContent = 'Menyimpan...';
+      const params = new URLSearchParams(window.location.search);
+      const dewanId = params.get('dewan_id');
+      const kategoriId = params.get('kategori_id');
+      const tahun = params.get('tahun');
 
-      try {
-        const res = await api.updateTahun(dewanId, kategoriId, parseInt(tahun, 10), thnBaru);
-        if (res && res.success) {
-          window.location.replace(`kategori_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`);
-        } else {
-          alertBox.textContent = res.message || 'Gagal mengubah tahun.';
-          alertBox.style.display = 'flex';
+      if (!dewanId || !kategoriId || !tahun) {
+        window.location.replace('arsip_dewan.html');
+      }
+
+      const breadcrumbTahunLink = document.getElementById('breadcrumbTahunLink');
+      if (breadcrumbTahunLink) {
+        breadcrumbTahunLink.href = `dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`;
+      }
+
+      const form = document.getElementById('editTahunForm');
+      const inputTahunLama = document.getElementById('inputTahunLama');
+      const inputTahunBaru = document.getElementById('inputTahunBaru');
+      const btnSubmit = document.getElementById('btnSubmit');
+      const btnDeleteTahun = document.getElementById('btnDeleteTahun');
+      const btnBatal = document.getElementById('btnBatal');
+
+      inputTahunLama.value = tahun;
+      inputTahunBaru.value = tahun;
+
+      btnBatal.addEventListener('click', () => {
+        window.location.replace(`dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`);
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const tahunBaru = parseInt(inputTahunBaru.value, 10);
+        if (!tahunBaru || isNaN(tahunBaru)) {
+          showToast('Tahun baru tidak valid.', 'error');
+          return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Menyimpan...';
+
+        try {
+          const res = await api.updateTahun({
+            dewan_id: dewanId,
+            kategori_id: kategoriId,
+            tahun_lama: parseInt(tahun, 10),
+            tahun_baru: tahunBaru
+          });
+
+          if (res && res.success) {
+            showToast('Tahun arsip berhasil diperbarui.', 'success');
+            setTimeout(() => {
+              window.location.replace(`dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`);
+            }, 600);
+          } else {
+            showToast(res.message || 'Gagal memperbarui tahun.', 'error');
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Simpan Perubahan';
+          }
+        } catch (err) {
+          showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Simpan Perubahan';
         }
-      } catch (err) {
-        alertBox.textContent = err.message || 'Terjadi kesalahan.';
-        alertBox.style.display = 'flex';
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = 'Simpan Perubahan';
-      }
-    });
+      });
 
-    btnDelete.addEventListener('click', async () => {
-      const yakin = confirm(`Peringatan: Menghapus tahun ${tahun} akan menghapus seluruh folder dan berkas arsip di dalamnya. Anda yakin?`);
-      if (!yakin) return;
-
-      btnDelete.disabled = true;
-      btnDelete.textContent = 'Menghapus...';
-
-      try {
-        const res = await api.deleteTahun(dewanId, kategoriId, parseInt(tahun, 10));
-        if (res && res.success) {
-          window.location.replace(`kategori_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`);
-        } else {
-          alert(res.message || 'Gagal menghapus tahun.');
-          btnDelete.disabled = false;
-          btnDelete.textContent = 'Hapus Tahun';
-        }
-      } catch (e) {
-        alert(e.message || 'Gagal menghapus tahun.');
-        btnDelete.disabled = false;
-        btnDelete.textContent = 'Hapus Tahun';
-      }
-    });
+      btnDeleteTahun.addEventListener('click', () => {
+        showConfirmDialog({
+          title: `Hapus Seluruh Arsip Tahun ${tahun}?`,
+          message: `PERINGATAN: Menghapus folder tahun ${tahun} akan menghapus seluruh dokumen dan file fisik di Google Drive yang tercakup pada tahun ini. Tindakan ini tidak dapat dibatalkan.`,
+          confirmLabel: `Hapus Tahun ${tahun}`,
+          danger: true,
+          onConfirm: async () => {
+            btnDeleteTahun.disabled = true;
+            btnDeleteTahun.textContent = 'Menghapus...';
+            try {
+              const res = await api.deleteTahun(dewanId, kategoriId, tahun);
+              if (res && res.success) {
+                showToast(`Folder tahun ${tahun} berhasil dihapus.`, 'success');
+                setTimeout(() => {
+                  window.location.replace(`dokumen_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`);
+                }, 600);
+              } else {
+                showToast(res.message || 'Gagal menghapus tahun.', 'error');
+                btnDeleteTahun.disabled = false;
+                btnDeleteTahun.textContent = 'Hapus Tahun';
+              }
+            } catch (e) {
+              showToast(e.message || 'Gagal menghapus tahun.', 'error');
+              btnDeleteTahun.disabled = false;
+              btnDeleteTahun.textContent = 'Hapus Tahun';
+            }
+          }
+        });
+      });
+    }
   </script>
 </body>
 </html>

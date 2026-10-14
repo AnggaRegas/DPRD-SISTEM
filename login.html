@@ -3,194 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Sistem Pengarsipan Dokumen DPRD Kota Parepare</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      min-height: 100vh;
-      background: #f1f5f9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .login-container {
-      width: 900px;
-      min-height: 540px;
-      background: white;
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.10);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-    .login-left {
-      background: #1e3a8a;
-      color: white;
-      padding: 55px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .logo-box {
-      width: 65px;
-      height: 65px;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-      margin-bottom: 25px;
-    }
-    .login-left h1 {
-      font-size: 28px;
-      line-height: 1.3;
-      margin-bottom: 12px;
-      font-weight: 700;
-    }
-    .login-left p {
-      color: #dbeafe;
-      font-size: 14px;
-      line-height: 1.7;
-      max-width: 350px;
-    }
-    .system-info {
-      margin-top: 35px;
-      padding-top: 25px;
-      border-top: 1px solid rgba(255,255,255,0.2);
-    }
-    .system-info p {
-      font-size: 12px;
-      color: #bfdbfe;
-      line-height: 1.6;
-    }
-    .login-right {
-      padding: 55px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .login-right h2 {
-      font-size: 25px;
-      color: #111827;
-      margin-bottom: 8px;
-    }
-    .login-subtitle {
-      font-size: 14px;
-      color: #6b7280;
-      margin-bottom: 25px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    .form-group label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 8px;
-    }
-    .form-group input {
-      width: 100%;
-      height: 46px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      padding: 0 14px;
-      font-size: 14px;
-      outline: none;
-      transition: 0.2s;
-    }
-    .form-group input:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-    .login-button {
-      width: 100%;
-      height: 46px;
-      border: none;
-      border-radius: 8px;
-      background: #1e3a8a;
-      color: white;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 5px;
-      transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .login-button:hover {
-      background: #1d4ed8;
-    }
-    .login-button:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-    .login-footer {
-      text-align: center;
-      margin-top: 25px;
-      font-size: 12px;
-      color: #9ca3af;
-      line-height: 1.6;
-    }
-    @media (max-width: 800px) {
-      .login-container {
-        width: 100%;
-        max-width: 480px;
-        grid-template-columns: 1fr;
-      }
-      .login-left {
-        display: none;
-      }
-      .login-right {
-        padding: 35px 25px;
-      }
-    }
-  </style>
+  <title>Masuk ke Sistem — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
-  <div class="login-container">
-    <!-- BAGIAN KIRI -->
-    <div class="login-left">
-      <div class="logo-box">🏛️</div>
-      <h1>DPRD KOTA PAREPARE</h1>
-      <p>Bagian Fasilitasi Penganggaran dan Pengawasan</p>
-      <div class="system-info">
-        <p>Sistem informasi pengarsipan dokumen dan risalah sidang dewan terintegrasi secara aman berbasis cloud storage.</p>
+<body class="login-body">
+  <div class="login-card-container">
+    <div class="login-header-banner">
+      <div class="login-emblem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
       </div>
+      <h1>DPRD KOTA PAREPARE</h1>
+      <p>Bagian Fasilitasi Penganggaran & Pengawasan</p>
     </div>
 
-    <!-- BAGIAN KANAN -->
-    <div class="login-right">
-      <h2>Masuk ke Sistem</h2>
-      <p class="login-subtitle">Masukkan username dan password akun Anda.</p>
+    <div class="login-card-body">
+      <div id="alertBox" style="display:none; margin-bottom: 20px; padding: 12px 16px; border-radius: var(--border-radius-md); font-size: 13.5px; background-color: var(--status-danger-bg); color: var(--status-danger); border: 1px solid var(--status-danger-border);"></div>
 
-      <div id="alertBox" style="display:none;" class="alert-banner error"></div>
-
-      <form id="loginForm">
+      <form id="loginForm" autocomplete="on">
         <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" name="username" placeholder="Masukkan username" required autofocus autocomplete="username">
+          <label for="username" class="form-label">Username Akun <span class="required">*</span></label>
+          <input type="text" id="username" name="username" class="form-input" placeholder="Masukkan username" required autofocus autocomplete="username">
         </div>
 
         <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" placeholder="Masukkan password" required autocomplete="current-password">
+          <label for="password" class="form-label">Kata Sandi <span class="required">*</span></label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="Masukkan kata sandi" required autocomplete="current-password">
         </div>
 
-        <button type="submit" id="btnSubmit" class="login-button">
+        <button type="submit" id="btnSubmit" class="btn btn-gold" style="width: 100%; padding: 12px; margin-top: 10px; font-size: 14.5px;">
           <span id="btnText">Masuk ke Sistem</span>
         </button>
       </form>
 
-      <div class="login-footer">
-        Sistem Pengarsipan Dokumen DPRD Kota Parepare<br>
-        Sekretariat DPRD Kota Parepare
+      <div style="margin-top: 28px; text-align: center; font-size: 12px; color: var(--text-muted); line-height: 1.5; border-top: 1px solid var(--border-light); padding-top: 18px;">
+        Sistem Pengarsipan Dokumen Resmi &bull; Sekretariat DPRD Kota Parepare<br>
+        Akses terproteksi audit keamanan berlapis.
       </div>
     </div>
   </div>
@@ -199,7 +48,7 @@
     import { api } from './assets/js/api.js';
     import { saveSession, getStoredToken } from './assets/js/auth.js';
 
-    // Jika sudah ada sesi aktif, periksa dan arahkan
+    // Jika sudah ada sesi aktif, periksa dan arahkan langsung
     if (getStoredToken()) {
       window.location.replace('dashboard.html');
     }
@@ -217,12 +66,12 @@
       const password = document.getElementById('password').value;
 
       if (!username || !password) {
-        showAlert('Username dan password wajib diisi.');
+        showAlert('Username dan kata sandi wajib diisi.');
         return;
       }
 
       btnSubmit.disabled = true;
-      btnText.textContent = 'Memverifikasi...';
+      btnText.textContent = 'Memverifikasi Kredensial...';
 
       try {
         const res = await api.login(username, password);
@@ -236,12 +85,11 @@
             window.location.replace('dashboard.html');
           }
         } else {
-          // Pesan kesalahan generik yang aman tanpa membocorkan eksistensi user
           const msg = res && res.message ? res.message : 'Username atau password tidak valid.';
           showAlert(msg);
         }
       } catch (err) {
-        showAlert('Layanan autentikasi sedang tidak tersedia. Silakan coba kembali.');
+        showAlert('Layanan autentikasi sedang tidak tersedia. Silakan coba beberapa saat lagi.');
       } finally {
         btnSubmit.disabled = false;
         btnText.textContent = 'Masuk ke Sistem';
@@ -250,7 +98,7 @@
 
     function showAlert(msg) {
       alertBox.textContent = msg;
-      alertBox.style.display = 'flex';
+      alertBox.style.display = 'block';
     }
   </script>
 </body>

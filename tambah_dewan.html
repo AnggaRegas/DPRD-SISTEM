@@ -3,172 +3,160 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tambah Anggota Dewan - Sistem Pengarsipan DPRD</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
-    .page-container {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 {
-      margin: 0 0 8px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .page-header p {
-      margin: 0;
-      color: #64748b;
-      font-size: 13px;
-    }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
-    }
-  </style>
+  <title>Tambah Anggota DPRD — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header">
-        <div class="breadcrumb">
-          <a href="dashboard.html">Dashboard</a>
-          <span>/</span>
-          <a href="dewan.html">Anggota Dewan</a>
-          <span>/</span>
-          <span>Tambah Dewan</span>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="dewan.html">Anggota DPRD</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Tambah Dewan</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Master Data
         </div>
-        <h1>Tambah Anggota Dewan</h1>
-        <p>Lengkapi formulir berikut untuk mendaftarkan anggota DPRD baru.</p>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" style="max-width: 800px;">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Tambah Anggota DPRD Baru</h1>
+          <p>Masukkan identitas dewan resmi untuk menghubungkan arsip dokumen kedewanan.</p>
+        </div>
       </div>
 
-      <div class="form-box">
-        <div id="alertBox" style="display:none;" class="alert-banner error"></div>
-
-        <form id="tambahDewanForm">
-          <div class="form-group">
-            <label for="nama">Nama Lengkap & Gelar <span class="required">*</span></label>
-            <input type="text" id="nama" name="nama" placeholder="Contoh: H. Andi Muhammad Fajar, S.Pd." required>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Formulir Identitas Anggota Dewan</h2>
+            <p class="card-subtitle">Lengkapi nama lengkap beserta gelar, jabatan, dan fraksi.</p>
           </div>
+        </div>
+        <div class="card-body">
+          <form id="tambahDewanForm">
+            <div class="form-group">
+              <label for="inputNama" class="form-label">Nama Lengkap & Gelar <span class="required">*</span></label>
+              <input type="text" id="inputNama" class="form-input" placeholder="Contoh: Ir. H. KAHARUDDIN KADIR, M.Si." required autofocus>
+            </div>
 
-          <div class="form-group">
-            <label for="jabatan">Jabatan di DPRD <span class="required">*</span></label>
-            <input type="text" id="jabatan" name="jabatan" placeholder="Contoh: Ketua DPRD / Wakil Ketua I / Anggota Komisi I" required>
-          </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label for="inputJabatan" class="form-label">Jabatan di DPRD <span class="required">*</span></label>
+                <input type="text" id="inputJabatan" class="form-input" placeholder="Contoh: Ketua DPRD / Anggota" value="Anggota" required>
+              </div>
 
-          <div class="form-group">
-            <label for="periode">Periode Masa Jabatan <span class="required">*</span></label>
-            <input type="text" id="periode" name="periode" value="2024–2029" required>
-          </div>
+              <div class="form-group">
+                <label for="inputPeriode" class="form-label">Periode Masa Jabatan <span class="required">*</span></label>
+                <input type="text" id="inputPeriode" class="form-input" value="2024 - 2029" required>
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label for="nama_partai">Partai Politik <span class="required">*</span></label>
-            <select id="nama_partai" name="nama_partai" required>
-              <option value="">-- Pilih Partai Politik --</option>
-              <option value="Partai Golongan Karya">Partai Golongan Karya</option>
-              <option value="Partai Nasional Demokrat">Partai Nasional Demokrat</option>
-              <option value="Partai Gerakan Indonesia Raya">Partai Gerakan Indonesia Raya</option>
-              <option value="Partai Keadilan Sejahtera">Partai Keadilan Sejahtera</option>
-              <option value="Partai Demokrasi Indonesia Perjuangan">Partai Demokrasi Indonesia Perjuangan</option>
-              <option value="Partai Kebangkitan Bangsa">Partai Kebangkitan Bangsa</option>
-              <option value="Partai Amanat Nasional">Partai Amanat Nasional</option>
-              <option value="Partai Demokrat">Partai Demokrat</option>
-              <option value="Partai Persatuan Pembangunan">Partai Persatuan Pembangunan</option>
-              <option value="Partai Gelombang Rakyat Indonesia">Partai Gelombang Rakyat Indonesia</option>
-              <option value="Partai Hati Nurani Rakyat">Partai Hati Nurani Rakyat</option>
-              <option value="Partai Bulan Bintang">Partai Bulan Bintang</option>
-            </select>
-          </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label for="inputPartai" class="form-label">Partai Politik / Fraksi <span class="required">*</span></label>
+                <input type="text" id="inputPartai" class="form-input" placeholder="Contoh: Partai Golongan Karya" required>
+              </div>
 
-          <div class="form-group">
-            <label for="nama_pengawas">Pendamping / Pengawas (Opsional)</label>
-            <input type="text" id="nama_pengawas" name="nama_pengawas" placeholder="Nama staf pendamping atau pengawas dewan">
-          </div>
+              <div class="form-group">
+                <label for="inputPendamping" class="form-label">Nama Staf Pendamping</label>
+                <input type="text" id="inputPendamping" class="form-input" placeholder="Nama staf pendamping dewan">
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label for="keterangan">Keterangan / Catatan (Opsional)</label>
-            <textarea id="keterangan" name="keterangan" rows="3" placeholder="Informasi tambahan mengenai anggota dewan"></textarea>
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" id="btnSubmit" class="btn btn-primary">Simpan Anggota Dewan</button>
-            <a href="dewan.html" class="btn btn-reset">Batal</a>
-          </div>
-        </form>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+              <a href="dewan.html" class="btn btn-secondary">Batal</a>
+              <button type="submit" class="btn btn-gold" id="btnSubmit">Simpan Anggota Dewan</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, showToast } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('dewan');
 
-    const form = document.getElementById('tambahDewanForm');
-    const alertBox = document.getElementById('alertBox');
-    const btnSubmit = document.getElementById('btnSubmit');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      alertBox.style.display = 'none';
-
-      const data = {
-        nama: document.getElementById('nama').value.trim(),
-        jabatan: document.getElementById('jabatan').value.trim(),
-        periode: document.getElementById('periode').value.trim(),
-        nama_partai: document.getElementById('nama_partai').value,
-        nama_pengawas: document.getElementById('nama_pengawas').value.trim(),
-        keterangan: document.getElementById('keterangan').value.trim()
-      };
-
-      if (!data.nama || !data.jabatan || !data.periode || !data.nama_partai) {
-        alertBox.textContent = 'Harap isi semua kolom wajib.';
-        alertBox.style.display = 'flex';
-        return;
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
       }
 
-      btnSubmit.disabled = true;
-      btnSubmit.textContent = 'Menyimpan...';
+      const form = document.getElementById('tambahDewanForm');
+      const btnSubmit = document.getElementById('btnSubmit');
 
-      try {
-        const res = await api.createDewan(data);
-        if (res && res.success) {
-          window.location.replace('dewan.html');
-        } else {
-          alertBox.textContent = res.message || 'Gagal menyimpan data dewan.';
-          alertBox.style.display = 'flex';
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nama = document.getElementById('inputNama').value.trim();
+        const jabatan = document.getElementById('inputJabatan').value.trim();
+        const periode = document.getElementById('inputPeriode').value.trim();
+        const partai = document.getElementById('inputPartai').value.trim();
+        const pendamping = document.getElementById('inputPendamping').value.trim();
+
+        if (!nama || !jabatan || !partai) {
+          showToast('Harap lengkapi kolom yang wajib diisi (*).', 'warning');
+          return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Menyimpan...';
+
+        try {
+          const res = await api.createDewan({
+            nama: nama,
+            jabatan: jabatan,
+            periode: periode,
+            nama_partai: partai,
+            nama_pendamping: pendamping
+          });
+
+          if (res && res.success) {
+            showToast('Anggota dewan berhasil ditambahkan!', 'success');
+            setTimeout(() => {
+              window.location.replace('dewan.html');
+            }, 800);
+          } else {
+            showToast(res.message || 'Gagal menambahkan anggota dewan.', 'error');
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Simpan Anggota Dewan';
+          }
+        } catch (err) {
+          showToast(err.message || 'Terjadi kesalahan sistem.', 'error');
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Simpan Anggota Dewan';
         }
-      } catch (err) {
-        alertBox.textContent = err.message || 'Terjadi kesalahan jaringan.';
-        alertBox.style.display = 'flex';
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = 'Simpan Anggota Dewan';
-      }
-    });
+      });
+    }
   </script>
 </body>
 </html>

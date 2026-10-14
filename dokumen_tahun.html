@@ -3,299 +3,258 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dokumen Tahun - Sistem Pengarsipan DPRD</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .main-content {
-      margin-left: 250px;
-      min-height: 100vh;
-      background: #f5f7fb;
-      transition: margin-left .25s ease;
-    }
-    .main-content.sidebar-collapsed { margin-left: 78px; }
-    .page-container {
-      width: 100%;
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-    .page-header h1 {
-      margin: 0 0 6px;
-      color: #172554;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .page-header p {
-      margin: 0;
-      color: #64748b;
-      font-size: 13px;
-    }
-    .modal-box {
-      width: 440px;
-      max-width: calc(100% - 40px);
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.20);
-    }
-    @media (max-width: 650px) {
-      .main-content { margin-left: 78px; }
-      .page-container { padding: 20px 14px; }
-    }
-  </style>
+  <title>Pilih Tahun Anggaran — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header">
-        <div>
-          <div class="breadcrumb">
-            <a href="dashboard.html">Dashboard</a>
-            <span>/</span>
-            <a href="dewan.html">Anggota Dewan</a>
-            <span>/</span>
-            <a href="#" id="breadcrumbArsipLink">Arsip Dewan</a>
-            <span>/</span>
-            <a href="#" id="breadcrumbKatLink">Kategori</a>
-            <span>/</span>
-            <span id="breadcrumbTahunText">Tahun</span>
-          </div>
-          <h1 id="pageTitleTahun">Tahun Dokumen</h1>
-          <p id="pageSubtitleInfo">Memuat informasi...</p>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="arsip_dewan.html">Arsip Dokumen</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="#" id="breadcrumbDewanLink">Dewan</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current" id="breadcrumbKatName">Kategori</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Level 3: Tahun
         </div>
-        <div style="display:flex; gap:10px;">
-          <a href="#" id="btnEditTahun" class="btn btn-reset">
-            Edit Tahun
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- STEPPER INDIKATOR ALUR PENGARSIPAN -->
+      <div class="stepper-nav">
+        <div class="step-item completed">
+          <span class="step-number">&check;</span>
+          <span id="stepDewanName">Anggota DPRD</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item completed">
+          <span class="step-number">&check;</span>
+          <span id="stepKategoriName">Kategori</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item active">
+          <span class="step-number">3</span>
+          <span>Pilih Tahun</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item">
+          <span class="step-number">4</span>
+          <span>Folder Dokumen</span>
+        </div>
+        <span class="step-divider">&rsaquo;</span>
+        <div class="step-item">
+          <span class="step-number">5</span>
+          <span>Berkas Arsip</span>
+        </div>
+      </div>
+
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1 id="pageTitleTahun">Tahun Anggaran Dokumen</h1>
+          <p id="pageSubtitleInfo">Pilih tahun anggaran berkas atau tambahkan tahun anggaran baru.</p>
+        </div>
+        <div class="page-actions">
+          <a href="#" id="btnBackToKategori" class="btn btn-secondary">
+            &larr; Kembali ke Kategori
           </a>
-          <button type="button" id="btnBukaModalFolder" class="btn btn-primary">
-            + Tambah Folder
+          <button type="button" class="btn btn-gold" id="btnOpenAddTahun">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Tambah Tahun Anggaran
           </button>
         </div>
       </div>
 
-      <section class="content-panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <h2>Folder Dokumen</h2>
-            <p>Pilih folder untuk membuka dan mengelola dokumen di dalamnya.</p>
+      <!-- KARTU TAHUN ANGGARAN -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Daftar Tahun Anggaran Tersedia</h2>
+            <p class="card-subtitle">Klasifikasi arsip berdasarkan tahun anggaran.</p>
           </div>
-          <div class="panel-actions">
-            <div class="total-badge">
-              Total Folder: <span id="totalFolderCount">0</span>
+          <div class="header-badge" id="badgeTotalTahun">
+            Memuat...
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="archive-grid" id="tahunGrid">
+            <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">
+              Memuat daftar tahun anggaran...
             </div>
           </div>
         </div>
+      </div>
+    </main>
+  </div>
 
-        <div style="padding: 22px;">
-          <div id="loadingIndicator" class="loading-indicator">
-            <div class="spinner"></div> Memuat daftar folder...
-          </div>
-
-          <div id="folderGrid" class="grid-container" style="display:none;"></div>
-
-          <div id="emptyFolder" class="empty-data" style="display:none;">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-              </svg>
-            </div>
-            <h3>Belum Ada Folder Dokumen</h3>
-            <p>Klik tombol <strong>+ Tambah Folder</strong> di atas untuk membuat subfolder pertama.</p>
-          </div>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- MODAL TAMBAH FOLDER -->
-  <div id="modalTambahFolder" class="logout-modal">
-    <div class="modal-box">
-      <h3 style="margin-bottom:12px; color:#1e293b;">Tambah Folder Dokumen</h3>
-      <div id="modalError" class="alert-banner error" style="display:none; margin-bottom:12px;"></div>
-      <form id="formTambahFolder">
+  <!-- MODAL TAMBAH TAHUN -->
+  <div id="modalTambahTahun" class="confirm-modal-backdrop">
+    <div class="confirm-modal-box" style="text-align: left; max-width: 400px;">
+      <h3 class="confirm-modal-title" style="margin-bottom: 4px;">Tambah Tahun Anggaran</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Masukkan tahun anggaran baru untuk arsip kategori ini.</p>
+      
+      <form id="formTambahTahun">
         <div class="form-group">
-          <label for="inputNamaFolder">Nama Folder <span class="required">*</span></label>
-          <input type="text" id="inputNamaFolder" placeholder="Contoh: Masa Sidang I / Surat Masuk" required>
+          <label for="inputTahun" class="form-label">Tahun Anggaran <span class="required">*</span></label>
+          <input type="number" id="inputTahun" class="form-input" required min="2020" max="2035" value="2026">
         </div>
-        <div class="form-actions" style="margin-top:18px; padding-top:14px; justify-content: flex-end;">
-          <button type="button" id="btnTutupModalFolder" class="btn btn-reset">Batal</button>
-          <button type="submit" id="btnSimpanFolder" class="btn btn-primary">Simpan Folder</button>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelTahun">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSaveTahun">Simpan Tahun</button>
         </div>
       </form>
     </div>
   </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, showToast } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const user = requireAuth();
+    if (user) {
+      renderSidebar('arsip');
 
-    const params = new URLSearchParams(window.location.search);
-    const dewanId = params.get('dewan_id');
-    const kategoriId = params.get('kategori_id');
-    const tahun = params.get('tahun');
-
-    if (!dewanId || !kategoriId || !tahun) {
-      window.location.replace('dewan.html');
-    }
-
-    const breadcrumbArsipLink = document.getElementById('breadcrumbArsipLink');
-    const breadcrumbKatLink = document.getElementById('breadcrumbKatLink');
-    const breadcrumbTahunText = document.getElementById('breadcrumbTahunText');
-    const pageTitleTahun = document.getElementById('pageTitleTahun');
-    const pageSubtitleInfo = document.getElementById('pageSubtitleInfo');
-    const btnEditTahun = document.getElementById('btnEditTahun');
-    const folderGrid = document.getElementById('folderGrid');
-    const emptyFolder = document.getElementById('emptyFolder');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const totalFolderCount = document.getElementById('totalFolderCount');
-
-    // Modal
-    const modal = document.getElementById('modalTambahFolder');
-    const btnBuka = document.getElementById('btnBukaModalFolder');
-    const btnTutup = document.getElementById('btnTutupModalFolder');
-    const formFolder = document.getElementById('formTambahFolder');
-    const inputNamaFolder = document.getElementById('inputNamaFolder');
-    const modalError = document.getElementById('modalError');
-    const btnSimpanFolder = document.getElementById('btnSimpanFolder');
-
-    breadcrumbArsipLink.href = `arsip_dewan.html?id=${dewanId}`;
-    breadcrumbKatLink.href = `kategori_dokumen.html?dewan_id=${dewanId}&kategori_id=${kategoriId}`;
-    breadcrumbTahunText.textContent = `Tahun ${tahun}`;
-    pageTitleTahun.textContent = `Tahun Anggaran ${tahun}`;
-    btnEditTahun.href = `edit_tahun.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}`;
-
-    btnBuka.addEventListener('click', () => {
-      modalError.style.display = 'none';
-      inputNamaFolder.value = '';
-      modal.classList.add('show');
-    });
-
-    btnTutup.addEventListener('click', () => {
-      modal.classList.remove('show');
-    });
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('show');
-    });
-
-    formFolder.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      modalError.style.display = 'none';
-      const nama = inputNamaFolder.value.trim();
-      if (!nama) {
-        modalError.textContent = 'Nama folder wajib diisi.';
-        modalError.style.display = 'flex';
-        return;
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
       }
 
-      btnSimpanFolder.disabled = true;
-      btnSimpanFolder.textContent = 'Menyimpan...';
+      const params = new URLSearchParams(window.location.search);
+      const dewanId = params.get('dewan_id');
+      const kategoriId = params.get('kategori_id');
 
-      try {
-        const res = await api.createFolder(dewanId, kategoriId, tahun, nama);
-        if (res && res.success) {
-          modal.classList.remove('show');
-          loadData();
-        } else {
-          modalError.textContent = res.message || 'Gagal menambahkan folder.';
-          modalError.style.display = 'flex';
-        }
-      } catch (err) {
-        modalError.textContent = err.message || 'Terjadi kesalahan.';
-        modalError.style.display = 'flex';
-      } finally {
-        btnSimpanFolder.disabled = false;
-        btnSimpanFolder.textContent = 'Simpan Folder';
+      if (!dewanId || !kategoriId) {
+        window.location.replace('arsip_dewan.html');
       }
-    });
 
-    loadData();
+      document.getElementById('breadcrumbDewanLink').href = `arsip_dewan.html?dewan_id=${dewanId}`;
+      document.getElementById('btnBackToKategori').href = `arsip_dewan.html?dewan_id=${dewanId}`;
 
-    async function loadData() {
-      loadingIndicator.style.display = 'flex';
-      folderGrid.style.display = 'none';
-      emptyFolder.style.display = 'none';
+      const modalTahun = document.getElementById('modalTambahTahun');
+      const btnOpenTahun = document.getElementById('btnOpenAddTahun');
+      const btnCancelTahun = document.getElementById('btnCancelTahun');
+      const formTahun = document.getElementById('formTambahTahun');
 
-      try {
-        const [resDewan, resKat, resFolder] = await Promise.all([
-          api.getDewanById(dewanId),
-          api.getKategoriList(),
-          api.getFolderList(dewanId, kategoriId, tahun)
-        ]);
+      btnOpenTahun.addEventListener('click', () => modalTahun.classList.add('active'));
+      btnCancelTahun.addEventListener('click', () => modalTahun.classList.remove('active'));
 
-        if (resDewan && resDewan.success && resDewan.data) {
-          pageSubtitleInfo.textContent = `Anggota Dewan: ${resDewan.data.nama}`;
-        }
+      async function loadInfoAndYears() {
+        try {
+          const [resDewan, resKat, resTahun] = await Promise.all([
+            api.getDewanById(dewanId),
+            api.getKategoriList(),
+            api.getTahunList(dewanId, kategoriId)
+          ]);
 
-        if (resKat && resKat.success && Array.isArray(resKat.data)) {
-          const k = resKat.data.find((x) => String(x.id) === String(kategoriId));
-          if (k) breadcrumbKatLink.textContent = k.nama_kategori;
-        }
+          if (resDewan && resDewan.success && resDewan.data) {
+            const d = resDewan.data;
+            document.getElementById('breadcrumbDewanLink').textContent = d.nama;
+            document.getElementById('stepDewanName').textContent = d.nama;
+          }
 
-        loadingIndicator.style.display = 'none';
+          if (resKat && resKat.success && Array.isArray(resKat.data)) {
+            const k = resKat.data.find(x => String(x.id) === String(kategoriId));
+            if (k) {
+              document.getElementById('breadcrumbKatName').textContent = k.nama_kategori;
+              document.getElementById('stepKategoriName').textContent = k.nama_kategori;
+              document.getElementById('pageTitleTahun').textContent = `Tahun Anggaran: ${k.nama_kategori}`;
+            }
+          }
 
-        if (resFolder && resFolder.success && Array.isArray(resFolder.data)) {
-          const list = resFolder.data;
-          totalFolderCount.textContent = list.length;
+          const grid = document.getElementById('tahunGrid');
+          const badge = document.getElementById('badgeTotalTahun');
 
-          if (list.length === 0) {
-            emptyFolder.style.display = 'block';
-            folderGrid.style.display = 'none';
-          } else {
-            emptyFolder.style.display = 'none';
-            folderGrid.style.display = 'grid';
-            folderGrid.innerHTML = list.map((f) => `
-              <a href="dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${tahun}&nama_folder=${encodeURIComponent(f.nama_folder)}" class="item-card">
-                <div class="item-card-header">
-                  <div class="item-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          if (resTahun && resTahun.success && Array.isArray(resTahun.data)) {
+            let years = resTahun.data;
+
+            // Jika belum ada tahun sama sekali, default sediakan tahun sekarang
+            if (years.length === 0) {
+              years = [{ tahun: 2026, jumlah_dokumen: 0 }];
+            }
+
+            badge.textContent = `${years.length} Tahun Terdaftar`;
+
+            grid.innerHTML = years.map(y => `
+              <div class="archive-card">
+                <div class="archive-card-header">
+                  <div class="archive-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                   </div>
                   <div>
-                    <div class="item-card-title">${escapeHtml(f.nama_folder)}</div>
-                    <div class="item-card-desc">Folder arsip dokumen</div>
+                    <div class="archive-card-title">Tahun ${y.tahun}</div>
+                    <div class="archive-card-desc">Tahun anggaran pelaksanaan</div>
                   </div>
                 </div>
-                <div class="item-card-footer">
-                  <span class="doc-count-badge">${f.jumlah_dokumen || 0} Dokumen</span>
-                  <span style="color:#2563eb; font-weight:600;">Buka Dokumen &rarr;</span>
+                <div class="archive-card-footer">
+                  <span class="status-pill aktif" style="font-size: 11.5px;">
+                    <span class="status-pill-dot"></span>
+                    ${y.jumlah_dokumen || 0} Dokumen
+                  </span>
+                  <a href="dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${y.tahun}" class="btn btn-gold btn-sm">
+                    Pilih Folder &rarr;
+                  </a>
                 </div>
-              </a>
+              </div>
             `).join('');
           }
+        } catch (e) {
+          console.error(e);
         }
-      } catch (err) {
-        loadingIndicator.style.display = 'none';
-        emptyFolder.style.display = 'block';
-        console.error(err);
       }
-    }
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      formTahun.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const tahunVal = parseInt(document.getElementById('inputTahun').value, 10);
+        if (isNaN(tahunVal)) return;
+
+        try {
+          const res = await api.createTahun(dewanId, kategoriId, tahunVal);
+          if (res && res.success) {
+            showToast('Tahun anggaran berhasil ditambahkan.', 'success');
+            modalTahun.classList.remove('active');
+            loadInfoAndYears();
+          } else {
+            showToast(res.message || 'Gagal menambahkan tahun.', 'error');
+          }
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+
+      loadInfoAndYears();
     }
   </script>
 </body>

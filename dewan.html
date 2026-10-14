@@ -3,336 +3,245 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anggota Dewan - DPRD Kota Parepare</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .dewan-page {
-      width: 100%;
-      max-width: 1800px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .btn-action-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-icon {
-      padding: 5px 9px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid #cbd5e1;
-      background: white;
-      color: #475569;
-      cursor: pointer;
-    }
-    .btn-icon:hover {
-      background: #f8fafc;
-      border-color: #94a3b8;
-    }
-    .btn-icon.edit {
-      color: #1d4ed8;
-      border-color: #bfdbfe;
-      background: #eff6ff;
-    }
-    .btn-icon.edit:hover { background: #dbeafe; }
-    .btn-icon.delete {
-      color: #dc2626;
-      border-color: #fecaca;
-      background: #fef2f2;
-    }
-    .btn-icon.delete:hover { background: #fee2e2; }
-    .badge-status {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 5px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .badge-status.aktif { background: #dcfce7; color: #15803d; }
-    .badge-status.nonaktif { background: #fee2e2; color: #b91c1c; }
-  </style>
+  <title>Anggota DPRD — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <section class="dewan-page">
-      <header class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
-        <div class="page-heading">
-          <div class="breadcrumb">
-            <a href="dashboard.html">Dashboard</a>
-            <span>/</span>
-            <span>Anggota Dewan</span>
-          </div>
-          <h1 style="font-size: 24px; font-weight: 700; color: #1e3a8a; margin: 6px 0;">Daftar Anggota DPRD Kota Parepare</h1>
-          <p style="font-size: 13px; color: #64748b; margin: 0;">Kelola data 25 anggota dewan periode 2024 - 2029, jabatan, pendamping, dan berkas arsip terkait.</p>
-        </div>
-        <a href="tambah_dewan.html" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 8px; font-weight: 600;">
-          <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
-          Tambah Anggota Dewan
-        </a>
-      </header>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Anggota DPRD</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Periode 2024–2029
+        </div>
+      </div>
+    </header>
 
-      <div id="alertFeedback" style="display: none;" class="alert-banner"></div>
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Daftar Anggota DPRD Kota Parepare</h1>
+          <p>Data resmi 25 anggota dewan periode 2024–2029, jabatan, pendamping, dan berkas arsip terkait.</p>
+        </div>
+        <div class="page-actions" id="adminActionsArea">
+          <a href="tambah_dewan.html" class="btn btn-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Tambah Anggota Dewan
+          </a>
+        </div>
+      </div>
 
-      <section class="content-panel" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-        <div class="toolbar" style="padding: 16px 20px; border-bottom: 1px solid #edf0f5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <form id="searchForm" class="search-form" style="display: flex; gap: 8px; flex: 1; max-width: 500px;">
-            <div class="search-input-wrap" style="position: relative; flex: 1;">
-              <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #94a3b8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="m20 20-4-4"></path>
+      <!-- CARD TABEL ANGGOTA DEWAN -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Data Anggota Dewan</h2>
+            <p class="card-subtitle">Menampilkan seluruh legislator resmi DPRD Kota Parepare.</p>
+          </div>
+          <div class="search-box">
+            <span class="search-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <input type="text" id="searchInput" placeholder="Cari nama anggota dewan atau partai..." style="width: 100%; height: 38px; padding-left: 36px; padding-right: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;" autocomplete="off">
-            </div>
-            <button type="submit" class="btn btn-primary">Cari</button>
-            <button type="button" id="btnResetSearch" class="btn btn-reset" style="display:none;">Reset</button>
-          </form>
-
-          <div style="font-size: 13px; color: #64748b;">
-            Total Terdaftar: <strong id="totalDewanText" style="color: #1e3a8a;">0</strong> Anggota
+            </span>
+            <input type="text" class="search-input" id="searchDewanInput" placeholder="Cari nama, jabatan, atau fraksi/partai...">
           </div>
         </div>
-
-        <div id="searchInfo" class="search-result-info" style="display:none; padding: 10px 20px; background: #f8fafc; font-size: 12px; color: #475569; border-bottom: 1px solid #e2e8f0;"></div>
-
-        <div id="loadingIndicator" class="loading-indicator" style="padding: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #64748b;">
-          <div class="spinner"></div> Memuat data anggota DPRD Kota Parepare...
-        </div>
-
-        <div id="tableContainer" class="table-box" style="display:none; overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 55px; text-align: center;">No.</th>
-                <th>Nama Anggota Dewan</th>
-                <th>Jabatan</th>
-                <th>Periode</th>
-                <th>Pendamping</th>
-                <th>Partai Politik</th>
-                <th style="width: 80px; text-align: center;">Status</th>
-                <th style="width: 220px; text-align: center;">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="dewanTableBody"></tbody>
-          </table>
-
-          <div class="table-footer" style="padding: 14px 20px; border-top: 1px solid #edf0f5; display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
-            <span id="footerCount">Menampilkan 0 data anggota dewan</span>
-            <span>DPRD Kota Parepare 2024 - 2029</span>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">No</th>
+                  <th>Nama Lengkap & Gelar</th>
+                  <th>Jabatan</th>
+                  <th>Partai Politik / Fraksi</th>
+                  <th>Staf Pendamping</th>
+                  <th>Status</th>
+                  <th style="text-align: center; width: 170px;">Aksi & Arsip</th>
+                </tr>
+              </thead>
+              <tbody id="dewanTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 30px;">
+                    Memuat data anggota dewan...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <div id="emptyContainer" class="empty-data" style="display:none; padding: 50px 20px; text-align: center;">
-          <h3 id="emptyTitle" style="color: #1e293b; margin-bottom: 6px;">Belum ada data anggota dewan</h3>
-          <p id="emptyDesc" style="color: #64748b; font-size: 13px; margin: 0;">Data anggota dewan dapat disiapkan melalui setup otomatis atau tombol tambah.</p>
-        </div>
-      </section>
-    </section>
-  </main>
+      </div>
+    </main>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('dewan');
+    const currentUser = requireAuth();
+    if (currentUser) {
+      renderSidebar('dewan');
 
-    let allDewan = [];
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
+      }
 
-    const loadingEl = document.getElementById('loadingIndicator');
-    const tableContainer = document.getElementById('tableContainer');
-    const emptyContainer = document.getElementById('emptyContainer');
-    const tableBody = document.getElementById('dewanTableBody');
-    const totalDewanText = document.getElementById('totalDewanText');
-    const footerCount = document.getElementById('footerCount');
-    const searchForm = document.getElementById('searchForm');
-    const searchInput = document.getElementById('searchInput');
-    const btnResetSearch = document.getElementById('btnResetSearch');
-    const searchInfo = document.getElementById('searchInfo');
-    const alertFeedback = document.getElementById('alertFeedback');
+      const tableBody = document.getElementById('dewanTableBody');
+      let allDewan = [];
 
-    loadDewan();
-
-    async function loadDewan(search = '') {
-      loadingEl.style.display = 'flex';
-      tableContainer.style.display = 'none';
-      emptyContainer.style.display = 'none';
-
-      try {
-        const res = await api.getDewanList(search);
-        if (res && res.success && Array.isArray(res.data)) {
-          allDewan = res.data;
-          renderTable(allDewan, search);
-        } else {
-          showEmpty('Gagal memuat data', res.message || 'Terjadi kesalahan sistem.');
+      async function loadDewan() {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Memuat data anggota dewan...</td></tr>';
+        try {
+          const res = await api.getDewanList();
+          if (res && res.success && Array.isArray(res.data)) {
+            allDewan = res.data;
+            renderTable(allDewan);
+          } else {
+            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">Gagal memuat dewan: ${res.message || 'Kesalahan server'}</td></tr>`;
+          }
+        } catch (err) {
+          tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${err.message}</td></tr>`;
         }
-      } catch (err) {
-        showEmpty('Koneksi Terputus', err.message || 'Gagal memuat data dewan.');
-      } finally {
-        loadingEl.style.display = 'none';
-      }
-    }
-
-    function renderTable(data, search = '') {
-      totalDewanText.textContent = data.length;
-
-      if (search) {
-        btnResetSearch.style.display = 'inline-flex';
-        searchInfo.style.display = 'block';
-        searchInfo.innerHTML = `Hasil pencarian untuk <strong>"${escapeHtml(search)}"</strong>. Ditemukan ${data.length} anggota dewan.`;
-      } else {
-        btnResetSearch.style.display = 'none';
-        searchInfo.style.display = 'none';
       }
 
-      if (data.length === 0) {
-        showEmpty(
-          search ? 'Anggota dewan tidak ditemukan' : 'Belum ada data anggota dewan',
-          search ? `Tidak ada data dengan kata kunci "${escapeHtml(search)}". Coba kata kunci lain.` : 'Silakan gunakan tombol tambah dewan.'
+      function renderTable(list) {
+        if (!list.length) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <h3 class="empty-state-title">Data Anggota Dewan Tidak Ditemukan</h3>
+                  <p class="empty-state-desc">Tidak ada data anggota dewan yang cocok dengan pencarian Anda.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tableBody.innerHTML = list.map((d, i) => {
+          const isAktif = (d.status || 'aktif').toLowerCase() === 'aktif';
+
+          return `
+            <tr>
+              <td style="text-align: center; color: var(--text-light); font-size: 12px;">${d.nomor_urut || i + 1}</td>
+              <td>
+                <strong style="color: var(--navy-900); font-size: 13.5px;">${d.nama}</strong>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">ID: ${d.id}</div>
+              </td>
+              <td>${d.jabatan || 'Anggota DPRD'}</td>
+              <td>${d.nama_partai || '-'}</td>
+              <td>${d.nama_pendamping || '<span style="color:var(--text-light);">-</span>'}</td>
+              <td>
+                <span class="status-pill ${isAktif ? 'aktif' : 'nonaktif'}">
+                  <span class="status-pill-dot"></span>
+                  ${isAktif ? 'Aktif' : 'Nonaktif'}
+                </span>
+              </td>
+              <td style="text-align: center;">
+                <div class="action-buttons" style="justify-content: center;">
+                  <a href="arsip_dewan.html?dewan_id=${d.id}" class="btn btn-secondary btn-sm" title="Buka Arsip Dokumen">
+                    Buka Arsip &rarr;
+                  </a>
+                  <a href="edit_dewan.html?id=${d.id}" class="btn-icon-action" title="Ubah Data Dewan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </a>
+                  <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${d.id}" data-nama="${d.nama}" title="Hapus Anggota Dewan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Event Hapus Anggota Dewan
+        tableBody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const nama = btn.dataset.nama;
+            showConfirmDialog({
+              title: 'Hapus Anggota Dewan',
+              message: `Apakah Anda yakin ingin menghapus data anggota dewan "${nama}"? Data hanya dapat dihapus jika tidak memiliki dokumen arsip terikat.`,
+              confirmText: 'Ya, Hapus',
+              isDanger: true,
+              onConfirm: async () => {
+                try {
+                  const res = await api.deleteDewan(id);
+                  if (res && res.success) {
+                    showToast('Anggota dewan berhasil dihapus.', 'success');
+                    loadDewan();
+                  } else {
+                    showToast(res.message || 'Gagal menghapus dewan.', 'error');
+                  }
+                } catch (e) {
+                  showToast(e.message, 'error');
+                }
+              }
+            });
+          });
+        });
+      }
+
+      // Filter Pencarian
+      const searchInput = document.getElementById('searchDewanInput');
+      searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        if (!q) {
+          renderTable(allDewan);
+          return;
+        }
+        const filtered = allDewan.filter(d =>
+          (d.nama && d.nama.toLowerCase().includes(q)) ||
+          (d.nama_partai && d.nama_partai.toLowerCase().includes(q)) ||
+          (d.jabatan && d.jabatan.toLowerCase().includes(q))
         );
-        return;
-      }
-
-      tableContainer.style.display = 'block';
-      emptyContainer.style.display = 'none';
-      footerCount.textContent = `Menampilkan ${data.length} data anggota dewan`;
-
-      tableBody.innerHTML = data.map((row, idx) => {
-        const isAktif = String(row.status || 'aktif').toLowerCase() === 'aktif';
-        const pendamping = row.nama_pendamping || row.nama_pengawas || '-';
-        const dewanId = row.id || row.nomor_urut;
-
-        return `
-          <tr>
-            <td class="number-cell" style="text-align: center; font-weight: 600; color: #64748b;">${row.nomor_urut || (idx + 1)}</td>
-            <td>
-              <a href="arsip_dewan.html?id=${dewanId}" class="dewan-name" style="font-weight: 600; color: #1e3a8a; text-decoration: none;">
-                ${escapeHtml(row.nama || '-')}
-              </a>
-            </td>
-            <td class="jabatan-text" style="font-weight: 600; color: #334155;">${escapeHtml(row.jabatan || '-')}</td>
-            <td class="periode-text" style="color: #64748b; font-size: 12px;">${escapeHtml(row.periode || '2024 - 2029')}</td>
-            <td style="color: #475569; font-size: 13px;">${escapeHtml(pendamping)}</td>
-            <td class="party-text" style="color: #1e293b; font-size: 12px; font-weight: 500;">${escapeHtml(row.nama_partai || '-')}</td>
-            <td style="text-align: center;">
-              <span class="badge-status ${isAktif ? 'aktif' : 'nonaktif'}">${isAktif ? 'Aktif' : 'Nonaktif'}</span>
-            </td>
-            <td style="text-align: center;">
-              <div class="btn-action-group">
-                <a href="arsip_dewan.html?id=${dewanId}" class="lihat-arsip" title="Buka Arsip Dokumen">
-                  <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  Arsip
-                </a>
-                <a href="edit_dewan.html?id=${dewanId}" class="btn-icon edit" title="Edit Data Dewan">
-                  Edit
-                </a>
-                <button type="button" class="btn-icon" data-action="toggle" data-id="${dewanId}" data-status="${isAktif ? 'nonaktif' : 'aktif'}" title="${isAktif ? 'Nonaktifkan' : 'Aktifkan'}">
-                  ${isAktif ? 'Off' : 'On'}
-                </button>
-                <button type="button" class="btn-icon delete" data-action="delete" data-id="${dewanId}" data-name="${escapeHtml(row.nama)}" title="Hapus Data">
-                  Hapus
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-
-      // Event listener tombol toggle status
-      tableBody.querySelectorAll('button[data-action="toggle"]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const id = btn.dataset.id;
-          const targetStatus = btn.dataset.status;
-          try {
-            const res = await api.toggleDewanStatus(id, targetStatus);
-            if (res && res.success) {
-              showFeedback('Status anggota dewan berhasil diperbarui.', 'success');
-              loadDewan(searchInput.value.trim());
-            } else {
-              showFeedback(res.message || 'Gagal mengubah status dewan.', 'error');
-            }
-          } catch (e) {
-            showFeedback(e.message, 'error');
-          }
-        });
+        renderTable(filtered);
       });
 
-      // Event listener tombol hapus
-      tableBody.querySelectorAll('button[data-action="delete"]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const id = btn.dataset.id;
-          const name = btn.dataset.name;
-          if (!confirm(`Apakah Anda yakin ingin menghapus data anggota dewan: "${name}"?\n\nPerhatian: Data yang memiliki berkas arsip terkait tidak dapat dihapus secara permanen.`)) {
-            return;
-          }
-
-          try {
-            const res = await api.deleteDewan(id);
-            if (res && res.success) {
-              showFeedback('Data anggota dewan berhasil dihapus.', 'success');
-              loadDewan(searchInput.value.trim());
-            } else {
-              showFeedback(res.message || 'Gagal menghapus anggota dewan.', 'error');
-            }
-          } catch (e) {
-            showFeedback(e.message, 'error');
-          }
-        });
-      });
-    }
-
-    function showEmpty(title, desc) {
-      tableContainer.style.display = 'none';
-      emptyContainer.style.display = 'block';
-      document.getElementById('emptyTitle').textContent = title;
-      document.getElementById('emptyDesc').innerHTML = desc;
-    }
-
-    function showFeedback(msg, type) {
-      alertFeedback.textContent = msg;
-      alertFeedback.className = 'alert-banner ' + type;
-      alertFeedback.style.display = 'flex';
-      setTimeout(() => { alertFeedback.style.display = 'none'; }, 5000);
-    }
-
-    searchForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      loadDewan(searchInput.value.trim());
-    });
-
-    btnResetSearch.addEventListener('click', () => {
-      searchInput.value = '';
-      loadDewan('');
-    });
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+      loadDewan();
     }
   </script>
 </body>

@@ -3,378 +3,290 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kategori Arsip - DPRD Kota Parepare</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #f5f7fb;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #334155;
-    }
-    .page-container {
-      width: 100%;
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 26px 24px;
-    }
-    .btn-action-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-icon {
-      padding: 5px 9px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      border: 1px solid #cbd5e1;
-      background: white;
-      color: #475569;
-      cursor: pointer;
-    }
-    .btn-icon:hover { background: #f8fafc; }
-    .btn-icon.edit { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }
-    .btn-icon.delete { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
-    .badge-status {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 5px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .badge-status.aktif { background: #dcfce7; color: #15803d; }
-    .badge-status.nonaktif { background: #fee2e2; color: #b91c1c; }
-  </style>
+  <title>Kategori Arsip — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div id="sidebarContainer"></div>
 
-  <main class="main-content" id="mainContent">
-    <div class="page-container">
-      <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <div class="breadcrumb">
-            <a href="dashboard.html">Dashboard</a>
-            <span>/</span>
-            <span>Kategori Arsip</span>
-          </div>
-          <h1 style="font-size: 24px; font-weight: 700; color: #1e3a8a; margin: 6px 0;">Pengelolaan Kategori Dokumen Arsip</h1>
-          <p style="font-size: 13px; color: #64748b; margin: 0;">Kelola jenis dan klasifikasi dokumen arsip DPRD Kota Parepare.</p>
-        </div>
-        <button type="button" class="btn btn-primary" id="btnOpenAddModal" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 8px; font-weight: 600;">
-          <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
-          Tambah Kategori Baru
         </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Kategori Arsip</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Klasifikasi Resmi
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Pengelolaan Kategori Dokumen Arsip</h1>
+          <p>Klasifikasi resmi dokumen penganggaran, pengawasan, risalah rapat, reses, dan pokir dewan.</p>
+        </div>
+        <div class="page-actions" id="adminActionsArea">
+          <button type="button" class="btn btn-gold" id="btnOpenAddModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Tambah Kategori Baru
+          </button>
+        </div>
       </div>
 
-      <div id="alertFeedback" style="display: none;" class="alert-banner"></div>
-
-      <section class="content-panel" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-        <div class="toolbar" style="padding: 16px 20px; border-bottom: 1px solid #edf0f5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <div style="font-size: 13px; color: #64748b;">
-            Total Kategori: <strong id="totalKatText" style="color: #1e3a8a;">0</strong> Kategori
+      <!-- CARD DAFTAR KATEGORI -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Daftar Kategori Dokumen</h2>
+            <p class="card-subtitle">Klasifikasi dokumen arsip kedewanan Kota Parepare.</p>
+          </div>
+          <div class="search-box">
+            <span class="search-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input type="text" class="search-input" id="searchKatInput" placeholder="Cari nama kategori atau deskripsi...">
           </div>
         </div>
-
-        <div id="loadingIndicator" class="loading-indicator" style="padding: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #64748b;">
-          <div class="spinner"></div> Memuat daftar kategori...
-        </div>
-
-        <div id="tableContainer" class="table-box" style="display:none; overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 55px; text-align: center;">No.</th>
-                <th>Nama Kategori Dokumen</th>
-                <th>Deskripsi</th>
-                <th style="width: 120px; text-align: center;">Total Berkas</th>
-                <th style="width: 90px; text-align: center;">Status</th>
-                <th style="width: 200px; text-align: center;">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="katTableBody"></tbody>
-          </table>
-
-          <div class="table-footer" style="padding: 14px 20px; border-top: 1px solid #edf0f5; display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
-            <span id="footerCount">Menampilkan 0 kategori</span>
-            <span>Klasifikasi Dokumen DPRD Kota Parepare</span>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">No</th>
+                  <th>Nama Kategori</th>
+                  <th>Deskripsi Kategori</th>
+                  <th style="text-align: center; width: 130px;">Total Dokumen</th>
+                  <th>Status</th>
+                  <th style="text-align: center; width: 140px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="katTableBody">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 30px;">
+                    Memuat daftar kategori dokumen...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <div id="emptyContainer" class="empty-data" style="display:none; padding: 50px 20px; text-align: center;">
-          <h3 style="color: #1e293b; margin-bottom: 6px;">Belum ada kategori dokumen</h3>
-          <p style="color: #64748b; font-size: 13px; margin: 0;">Gunakan tombol Tambah Kategori Baru di atas untuk membuat klasifikasi baru.</p>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- MODAL TAMBAH KATEGORI -->
-  <div id="modalAddKat" class="logout-modal">
-    <div class="logout-modal-box" style="text-align: left; max-width: 480px;">
-      <h3 style="font-size: 18px; margin-bottom: 14px; color: #1e3a8a;">Tambah Kategori Arsip Baru</h3>
-      <form id="formAddKat">
-        <div class="form-group" style="margin-bottom: 14px;">
-          <label style="font-size: 12px; font-weight: 600; color: #374151;">Nama Kategori <span class="required">*</span></label>
-          <input type="text" id="addNamaKat" required placeholder="Contoh: Risalah Sidang Paripurna" style="width: 100%; height: 38px; padding: 0 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;">
-        </div>
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label style="font-size: 12px; font-weight: 600; color: #374151;">Deskripsi / Keterangan</label>
-          <textarea id="addDescKat" rows="3" placeholder="Penjelasan singkat mengenai kategori ini..." style="width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;"></textarea>
-        </div>
-        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-          <button type="button" class="btn btn-secondary" id="btnCancelAdd">Batal</button>
-          <button type="submit" class="btn btn-primary" id="btnSaveKat">Simpan Kategori</button>
-        </div>
-      </form>
-    </div>
+      </div>
+    </main>
   </div>
 
-  <!-- MODAL EDIT KATEGORI -->
-  <div id="modalEditKat" class="logout-modal">
-    <div class="logout-modal-box" style="text-align: left; max-width: 480px;">
-      <h3 style="font-size: 18px; margin-bottom: 14px; color: #1e3a8a;">Ubah Kategori Arsip</h3>
-      <form id="formEditKat">
-        <input type="hidden" id="editKatId">
-        <div class="form-group" style="margin-bottom: 14px;">
-          <label style="font-size: 12px; font-weight: 600; color: #374151;">Nama Kategori <span class="required">*</span></label>
-          <input type="text" id="editNamaKat" required style="width: 100%; height: 38px; padding: 0 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;">
+  <!-- MODAL TAMBAH KATEGORI -->
+  <div id="modalAddKat" class="confirm-modal-backdrop">
+    <div class="confirm-modal-box" style="text-align: left; max-width: 460px;">
+      <h3 class="confirm-modal-title" style="margin-bottom: 4px;">Tambah Kategori Baru</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Tambahkan klasifikasi dokumen arsip baru.</p>
+      
+      <form id="formAddKat">
+        <div class="form-group">
+          <label for="addNamaKat" class="form-label">Nama Kategori <span class="required">*</span></label>
+          <input type="text" id="addNamaKat" class="form-input" required placeholder="Contoh: Dokumen Uji Publik">
         </div>
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label style="font-size: 12px; font-weight: 600; color: #374151;">Deskripsi / Keterangan</label>
-          <textarea id="editDescKat" rows="3" style="width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px;"></textarea>
+        <div class="form-group">
+          <label for="addDescKat" class="form-label">Deskripsi</label>
+          <textarea id="addDescKat" class="form-textarea" placeholder="Keterangan singkat mengenai kategori"></textarea>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-          <button type="button" class="btn btn-secondary" id="btnCancelEdit">Batal</button>
-          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelAdd">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSaveKat">Simpan Kategori</button>
         </div>
       </form>
     </div>
   </div>
 
   <script type="module">
-    import { requireAuth } from './assets/js/auth.js';
-    import { renderSidebar } from './assets/js/sidebar.js';
     import { api } from './assets/js/api.js';
+    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
 
-    requireAuth();
-    renderSidebar('kategori');
+    const currentUser = requireAuth();
+    if (currentUser) {
+      renderSidebar('kategori');
 
-    let allKategori = [];
-
-    const loadingEl = document.getElementById('loadingIndicator');
-    const tableContainer = document.getElementById('tableContainer');
-    const emptyContainer = document.getElementById('emptyContainer');
-    const tableBody = document.getElementById('katTableBody');
-    const totalKatText = document.getElementById('totalKatText');
-    const footerCount = document.getElementById('footerCount');
-    const alertFeedback = document.getElementById('alertFeedback');
-
-    const modalAdd = document.getElementById('modalAddKat');
-    const btnOpenAdd = document.getElementById('btnOpenAddModal');
-    const btnCancelAdd = document.getElementById('btnCancelAdd');
-    const formAdd = document.getElementById('formAddKat');
-
-    const modalEdit = document.getElementById('modalEditKat');
-    const btnCancelEdit = document.getElementById('btnCancelEdit');
-    const formEdit = document.getElementById('formEditKat');
-
-    btnOpenAdd.addEventListener('click', () => modalAdd.classList.add('show'));
-    btnCancelAdd.addEventListener('click', () => modalAdd.classList.remove('show'));
-    btnCancelEdit.addEventListener('click', () => modalEdit.classList.remove('show'));
-
-    loadKategori();
-
-    async function loadKategori() {
-      loadingEl.style.display = 'flex';
-      tableContainer.style.display = 'none';
-      emptyContainer.style.display = 'none';
-
-      try {
-        const res = await api.getKategoriWithDocCount();
-        if (res && res.success && Array.isArray(res.data)) {
-          allKategori = res.data;
-          renderTable(allKategori);
-        } else {
-          showEmpty();
-        }
-      } catch (err) {
-        showFeedback(err.message, 'error');
-        showEmpty();
-      } finally {
-        loadingEl.style.display = 'none';
-      }
-    }
-
-    function renderTable(list) {
-      totalKatText.textContent = list.length;
-      footerCount.textContent = `Menampilkan ${list.length} kategori arsip`;
-
-      if (!list.length) {
-        showEmpty();
-        return;
-      }
-
-      tableContainer.style.display = 'block';
-      emptyContainer.style.display = 'none';
-
-      tableBody.innerHTML = list.map((item, idx) => {
-        const isAktif = String(item.status || 'aktif').toLowerCase() === 'aktif';
-        const docCount = parseInt(item.jumlah_dokumen, 10) || 0;
-
-        return `
-          <tr>
-            <td style="text-align: center; color: #94a3b8; font-size: 12px;">${idx + 1}</td>
-            <td><strong>${escapeHtml(item.nama_kategori)}</strong></td>
-            <td style="color: #64748b; font-size: 13px;">${escapeHtml(item.deskripsi || '-')}</td>
-            <td style="text-align: center;">
-              <span class="doc-count-badge" style="background: ${docCount > 0 ? '#eff6ff' : '#f1f5f9'}; color: ${docCount > 0 ? '#1e40af' : '#64748b'};">
-                ${docCount} Berkas
-              </span>
-            </td>
-            <td style="text-align: center;">
-              <span class="badge-status ${isAktif ? 'aktif' : 'nonaktif'}">${isAktif ? 'Aktif' : 'Nonaktif'}</span>
-            </td>
-            <td style="text-align: center;">
-              <div class="btn-action-group">
-                <button type="button" class="btn-icon edit" data-action="edit" data-id="${item.id}" data-name="${escapeHtml(item.nama_kategori)}" data-desc="${escapeHtml(item.deskripsi || '')}">
-                  Edit
-                </button>
-                <button type="button" class="btn-icon" data-action="toggle" data-id="${item.id}" data-status="${isAktif ? 'nonaktif' : 'aktif'}" title="${isAktif ? 'Nonaktifkan Kategori' : 'Aktifkan Kategori'}">
-                  ${isAktif ? 'Off' : 'On'}
-                </button>
-                <button type="button" class="btn-icon delete" data-action="delete" data-id="${item.id}" data-name="${escapeHtml(item.nama_kategori)}" data-count="${docCount}">
-                  Hapus
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-
-      // Tombol Edit
-      tableBody.querySelectorAll('button[data-action="edit"]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          document.getElementById('editKatId').value = btn.dataset.id;
-          document.getElementById('editNamaKat').value = btn.dataset.name;
-          document.getElementById('editDescKat').value = btn.dataset.desc;
-          modalEdit.classList.add('show');
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
         });
+      }
+
+      const tableBody = document.getElementById('katTableBody');
+      const modalAdd = document.getElementById('modalAddKat');
+      const btnOpenAdd = document.getElementById('btnOpenAddModal');
+      const btnCancelAdd = document.getElementById('btnCancelAdd');
+      const formAdd = document.getElementById('formAddKat');
+
+      if (btnOpenAdd) btnOpenAdd.addEventListener('click', () => modalAdd.classList.add('active'));
+      if (btnCancelAdd) btnCancelAdd.addEventListener('click', () => modalAdd.classList.remove('active'));
+
+      let allKat = [];
+
+      async function loadKategori() {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Memuat data kategori...</td></tr>';
+        try {
+          const res = await api.getKategoriWithDocCount();
+          if (res && res.success && Array.isArray(res.data)) {
+            allKat = res.data;
+            renderTable(allKat);
+          } else {
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--status-danger); padding: 30px;">Gagal memuat: ${res.message || 'Kesalahan server'}</td></tr>`;
+          }
+        } catch (err) {
+          tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${err.message}</td></tr>`;
+        }
+      }
+
+      function renderTable(list) {
+        if (!list.length) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                  </div>
+                  <h3 class="empty-state-title">Kategori Tidak Ditemukan</h3>
+                  <p class="empty-state-desc">Tidak ada kategori yang cocok dengan pencarian Anda.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tableBody.innerHTML = list.map((k, idx) => {
+          const isAktif = (k.status || 'aktif').toLowerCase() === 'aktif';
+          return `
+            <tr>
+              <td style="text-align: center; color: var(--text-light); font-size: 12px;">${idx + 1}</td>
+              <td>
+                <strong style="color: var(--navy-900); font-size: 13.5px;">${k.nama_kategori}</strong>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">ID: ${k.id}</div>
+              </td>
+              <td style="color: var(--text-secondary);">${k.deskripsi || '-'}</td>
+              <td style="text-align: center;">
+                <span class="status-pill aktif" style="font-size: 11.5px;">
+                  <span class="status-pill-dot"></span>
+                  ${k.jumlah_dokumen || 0} Dokumen
+                </span>
+              </td>
+              <td>
+                <span class="status-pill ${isAktif ? 'aktif' : 'nonaktif'}">
+                  <span class="status-pill-dot"></span>
+                  ${isAktif ? 'Aktif' : 'Nonaktif'}
+                </span>
+              </td>
+              <td style="text-align: center;">
+                <div class="action-buttons" style="justify-content: center;">
+                  <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${k.id}" data-nama="${k.nama_kategori}" title="Hapus Kategori">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Event Hapus Kategori
+        tableBody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const nama = btn.dataset.nama;
+            showConfirmDialog({
+              title: 'Hapus Kategori Arsip',
+              message: `Apakah Anda yakin ingin menghapus kategori "${nama}"? Penghapusan akan ditolak jika masih terdapat berkas dokumen yang terikat.`,
+              confirmText: 'Ya, Hapus',
+              isDanger: true,
+              onConfirm: async () => {
+                try {
+                  const res = await api.deleteKategori(id);
+                  if (res && res.success) {
+                    showToast('Kategori berhasil dihapus.', 'success');
+                    loadKategori();
+                  } else {
+                    showToast(res.message || 'Gagal menghapus kategori.', 'error');
+                  }
+                } catch (e) {
+                  showToast(e.message, 'error');
+                }
+              }
+            });
+          });
+        });
+      }
+
+      // Filter Pencarian
+      const searchInput = document.getElementById('searchKatInput');
+      searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        if (!q) {
+          renderTable(allKat);
+          return;
+        }
+        const filtered = allKat.filter(k =>
+          (k.nama_kategori && k.nama_kategori.toLowerCase().includes(q)) ||
+          (k.deskripsi && k.deskripsi.toLowerCase().includes(q))
+        );
+        renderTable(filtered);
       });
 
-      // Tombol Toggle Status
-      tableBody.querySelectorAll('button[data-action="toggle"]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const id = btn.dataset.id;
-          const status = btn.dataset.status;
-          try {
-            const res = await api.toggleKategoriStatus(id, status);
-            if (res && res.success) {
-              showFeedback('Status kategori berhasil diperbarui.', 'success');
-              loadKategori();
-            } else {
-              showFeedback(res.message || 'Gagal mengubah status kategori.', 'error');
-            }
-          } catch (e) {
-            showFeedback(e.message, 'error');
+      // Submit Tambah Kategori
+      formAdd.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nama = document.getElementById('addNamaKat').value.trim();
+        const desc = document.getElementById('addDescKat').value.trim();
+        if (!nama) return;
+
+        try {
+          const res = await api.createKategori(nama, desc);
+          if (res && res.success) {
+            showToast('Kategori berhasil ditambahkan.', 'success');
+            modalAdd.classList.remove('active');
+            formAdd.reset();
+            loadKategori();
+          } else {
+            showToast(res.message || 'Gagal menambahkan kategori.', 'error');
           }
-        });
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
       });
 
-      // Tombol Hapus (dengan pencegahan jika masih ada dokumen)
-      tableBody.querySelectorAll('button[data-action="delete"]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const id = btn.dataset.id;
-          const name = btn.dataset.name;
-          const count = parseInt(btn.dataset.count, 10);
-
-          if (count > 0) {
-            alert(`Peringatan: Kategori "${name}" masih digunakan oleh ${count} dokumen arsip.\n\nKategori tidak dapat dihapus permanen agar tidak merusak referensi berkas. Silakan nonaktifkan kategori ini jika tidak ingin digunakan lagi.`);
-            return;
-          }
-
-          if (!confirm(`Apakah Anda yakin ingin menghapus kategori "${name}"?`)) return;
-
-          try {
-            const res = await api.deleteKategori(id);
-            if (res && res.success) {
-              showFeedback('Kategori berhasil dihapus.', 'success');
-              loadKategori();
-            } else {
-              showFeedback(res.message || 'Gagal menghapus kategori.', 'error');
-            }
-          } catch (e) {
-            showFeedback(e.message, 'error');
-          }
-        });
-      });
-    }
-
-    formAdd.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nama = document.getElementById('addNamaKat').value.trim();
-      const desc = document.getElementById('addDescKat').value.trim();
-
-      try {
-        const res = await api.createKategori(nama, desc);
-        if (res && res.success) {
-          showFeedback('Kategori baru berhasil ditambahkan.', 'success');
-          modalAdd.classList.remove('show');
-          formAdd.reset();
-          loadKategori();
-        } else {
-          showFeedback(res.message || 'Gagal menambahkan kategori.', 'error');
-        }
-      } catch (err) {
-        showFeedback(err.message, 'error');
-      }
-    });
-
-    formEdit.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('editKatId').value;
-      const nama = document.getElementById('editNamaKat').value.trim();
-      const desc = document.getElementById('editDescKat').value.trim();
-
-      try {
-        const res = await api.updateKategori(id, nama, desc);
-        if (res && res.success) {
-          showFeedback('Kategori berhasil diperbarui.', 'success');
-          modalEdit.classList.remove('show');
-          loadKategori();
-        } else {
-          showFeedback(res.message || 'Gagal memperbarui kategori.', 'error');
-        }
-      } catch (err) {
-        showFeedback(err.message, 'error');
-      }
-    });
-
-    function showEmpty() {
-      tableContainer.style.display = 'none';
-      emptyContainer.style.display = 'block';
-    }
-
-    function showFeedback(msg, type) {
-      alertFeedback.textContent = msg;
-      alertFeedback.className = 'alert-banner ' + type;
-      alertFeedback.style.display = 'flex';
-      setTimeout(() => { alertFeedback.style.display = 'none'; }, 5000);
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+      loadKategori();
     }
   </script>
 </body>

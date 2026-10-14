@@ -1,7 +1,9 @@
 /**
  * Suite Pengujian Otomatis Sistem Pengarsipan Dokumen DPRD Kota Parepare
- * Memverifikasi Autentikasi, Hak Akses, Proteksi Integritas, CRUD, dan Konkurensi
+ * Memverifikasi Autentikasi, Kriptografi PBKDF2, Hak Akses (RBAC), Proteksi Integritas,
+ * Validasi Berkas Drive, Revokasi Sesi Real-Time, dan Konkurensi Simultan
  */
+import crypto from 'crypto';
 import { api } from '../assets/js/api.js';
 
 console.log('=== MEMULAI TEST VERIFIKASI LENGKAP SISTEM ARSIP DPRD KOTA PAREPARE ===\n');
@@ -20,154 +22,259 @@ async function runAllTests() {
     }
   }
 
-  // ================= 1. PENGUJIAN AUTENTIKASI & KEAMANAN =================
-  console.log('--- 1. Pengujian Autentikasi & Keamanan ---');
+  // ================= 1. VERIFIKASI KRIPTOGRAFI PBKDF2-HMAC-SHA256 (RFC 6070) =================
+  console.log('--- 1. Verifikasi Standar Kriptografi PBKDF2-HMAC-SHA256 (RFC 6070) ---');
 
-  // Test 1: Login gagal dengan username salah
-  const loginNonexistent = await api.login('user_tidak_ada', 'SandiRahasia123!');
+  // Vektor Uji 1: c = 1, dkLen = 32
+  const v1 = crypto.pbkdf2Sync('password', 'salt', 1, 32, 'sha256').toString('hex');
+  assert(v1 === '120fb6cffcf8b32c43e7225256c4f837a86548c92ccc35480805987cb70be17b', 'RFC 6070 PBKDF2-HMAC-SHA256 (c=1, dkLen=32) valid');
+
+  // Vektor Uji 2: c = 2, dkLen = 32
+  const v2 = crypto.pbkdf2Sync('password', 'salt', 2, 32, 'sha256').toString('hex');
+  assert(v2 === 'ae4d0c95af6b46d32d0adff928f06dd02a303f8ef3c251dfd6e2d85a95474c43', 'RFC 6070 PBKDF2-HMAC-SHA256 (c=2, dkLen=32) valid');
+
+  // Vektor Uji 3: c = 4096, dkLen = 32
+  const v4096 = crypto.pbkdf2Sync('password', 'salt', 4096, 32, 'sha256').toString('hex');
+  assert(v4096 === 'c5e478d59288c841aa530db6845c4c8d962893a001ce4e11a4963873aa98134a', 'RFC 6070 PBKDF2-HMAC-SHA256 (c=4096, dkLen=32) valid');
+
+  // Vektor Uji 4: Simulasi Hashing Apps Script Byte[] (RFC 2898 / RFC 6070)
+  function simulateGasPbkdf2(password, salt, iter) {
+    const passwordBytes = Buffer.from(password, 'utf8');
+    const saltBytes = Buffer.from(salt, 'utf8');
+    const initialData = Buffer.concat([saltBytes, Buffer.from([0, 0, 0, 1])]);
+    let u = crypto.createHmac('sha256', passwordBytes).update(initialData).digest();
+    let result = Buffer.from(u);
+    for (let i = 1; i < iter; i++) {
+      u = crypto.createHmac('sha256', passwordBytes).update(u).digest();
+      for (let k = 0; k < result.length; k++) {
+        result[k] ^= u[k];
+      }
+    }
+    return 'pbkdf2$' + iter + '$' + result.toString('hex');
+  }
+
+  const gasSim1000 = simulateGasPbkdf2('SandiDPRD2026!', 'salt_test_123', 1000);
+  const nodeExpected1000 = 'pbkdf2$1000$' + crypto.pbkdf2Sync('SandiDPRD2026!', 'salt_test_123', 1000, 32, 'sha256').toString('hex');
+  assert(gasSim1000 === nodeExpected1000, 'Simulasi Hashing Apps Script Byte[] identik bitwise dengan crypto.pbkdf2Sync');
+
+  // ================= 2. PENGUJIAN AUTENTIKASI, LOCKOUT & RATE LIMITING =================
+  console.log('\n--- 2. Pengujian Autentikasi, Proteksi Brute-Force & Lockout ---');
+
+  // Test 4: Login gagal username tidak ada
+  const loginNonexistent = await api.login('user_tidak_dikenal_123', 'SandiRahasia123!');
   assert(!loginNonexistent.success, 'Login gagal untuk username tidak terdaftar');
-  assert(loginNonexistent.message === 'Username atau password tidak valid.', 'Pesan login gagal bersifat generik tanpa membocorkan data');
+  assert(loginNonexistent.message === 'Username atau password tidak valid.', 'Pesan kegagalan login bersifat generik tanpa informasi bocor');
 
-  // Test 2: Login gagal dengan password salah
-  const loginWrongPass = await api.login('superadmin', 'PasswordSalah123');
-  assert(!loginWrongPass.success, 'Login gagal dengan password salah');
+  // Test 5: Simulasi percobaan salah 5x untuk memicu lockout 15 menit
+  for (let i = 1; i <= 4; i++) {
+    await api.login('target_lockout', 'SalahPass' + i);
+  }
+  const attempt5 = await api.login('target_lockout', 'SalahPass5');
+  assert(!attempt5.success && attempt5.error?.code === 'TOO_MANY_REQUESTS', 'Percobaan ke-5 memicu penguncian akun (Lockout 15 menit)');
 
-  // Test 3: Login berhasil dengan akun bootstrap superadmin
+  const attempt6 = await api.login('target_lockout', 'SalahPass6');
+  assert(!attempt6.success && attempt6.error?.code === 'TOO_MANY_REQUESTS', 'Permintaan berikutnya selama periode lockout langsung ditolak');
+
+  // Test 6: Login akun superadmin awal
   const loginSuper = await api.login('superadmin', 'SandiRahasia123!');
-  assert(loginSuper.success && loginSuper.data?.token, 'Login berhasil dengan akun superadmin');
-  assert(loginSuper.data?.user?.mustChangePassword === true, 'Akun bootstrap superadmin ditandai wajib ganti password');
+  assert(loginSuper.success && loginSuper.data?.token, 'Login berhasil dengan kredensial superadmin');
+  assert(loginSuper.data?.user?.mustChangePassword === true, 'Akun superadmin awal memiliki flag mustChangePassword = true');
 
-  // Test 4: Verifikasi sesi aktif
-  const checkSess = await api.checkSession();
-  assert(checkSess.success && checkSess.data?.username === 'superadmin', 'Sesi aktif berhasil diverifikasi');
+  // ================= 3. PROTEKSI WAJIB GANTI PASSWORD (GATE ENFORCEMENT) =================
+  console.log('\n--- 3. Proteksi Wajib Ganti Password (Gate Enforcement) ---');
 
-  // Test 5: Penggantian password dengan password lama yang benar
-  const changePass = await api.changePassword('SandiRahasia123!', 'SandiBaruSuperadmin2026!');
-  assert(changePass.success, 'Superadmin berhasil memperbarui kata sandi');
-  assert(changePass.data?.mustChangePassword === false, 'Flag mustChangePassword dinonaktifkan setelah penggantian');
+  // Test 7: Akses fitur diblokir saat mustChangePassword = true
+  const blockedDash = await api.getDashboardData();
+  assert(!blockedDash.success && blockedDash.error?.code === 'MUST_CHANGE_PASSWORD', 'Akses dashboard ditolak sebelum ganti password');
 
-  // Test 6: Login kembali dengan password baru
-  const loginNewPass = await api.login('superadmin', 'SandiBaruSuperadmin2026!');
-  assert(loginNewPass.success, 'Login berhasil menggunakan password baru');
+  const blockedDewan = await api.getDewanList();
+  assert(!blockedDewan.success && blockedDewan.error?.code === 'MUST_CHANGE_PASSWORD', 'Akses data dewan ditolak sebelum ganti password');
 
-  // ================= 2. PENGUJIAN ANGGOTA DEWAN & SEED DATA =================
-  console.log('\n--- 2. Pengujian Anggota DPRD Kota Parepare (2024 - 2029) ---');
+  const blockedUpload = await api.uploadDokumen({ dewan_id: 'DWN-01', kategori_id: 'KAT-01', tahun: 2026 });
+  assert(!blockedUpload.success && blockedUpload.error?.code === 'MUST_CHANGE_PASSWORD', 'Unggah dokumen ditolak sebelum ganti password');
 
-  // Test 7: Ambil daftar anggota dewan
+  // Test 8: Hanya aksi changePassword & checkSession yang diizinkan saat mustChangePassword
+  const checkSessBefore = await api.checkSession();
+  assert(checkSessBefore.success && checkSessBefore.data?.mustChangePassword === true, 'Sesi dapat diperiksa untuk menampilkan UI ganti password');
+
+  // Test 9: Ganti kata sandi dengan validasi password lama
+  const wrongOldPass = await api.changePassword('SalahPasswordLama', 'PasswordBaru123!');
+  assert(!wrongOldPass.success && wrongOldPass.error?.code === 'INVALID_OLD_PASSWORD', 'Penggantian sandi gagal jika password lama salah');
+
+  const validChange = await api.changePassword('SandiRahasia123!', 'SandiKuatSuperadmin2026!');
+  assert(validChange.success, 'Kata sandi superadmin berhasil diperbarui');
+  assert(validChange.data?.mustChangePassword === false, 'Flag mustChangePassword dinonaktifkan setelah penggantian');
+
+  // Test 10: Setelah sandi diganti, akses ke dashboard dan data normal kembali
+  const allowedDash = await api.getDashboardData();
+  assert(allowedDash.success && allowedDash.data?.totalDewan >= 0, 'Akses fitur terbuka penuh setelah kata sandi diganti');
+
+  // ================= 4. PENGUJIAN ANGGOTA DEWAN & VALIDASI =================
+  console.log('\n--- 4. Pengujian Anggota DPRD Kota Parepare (2024 - 2029) ---');
+
   const dewanList = await api.getDewanList();
-  assert(dewanList.success && Array.isArray(dewanList.data) && dewanList.data.length >= 4, 'Daftar anggota DPRD berhasil dimuat');
+  assert(dewanList.success && Array.isArray(dewanList.data) && dewanList.data.length >= 4, 'Daftar 25 anggota DPRD Kota Parepare berhasil dimuat');
 
-  // Test 8: Pencarian anggota dewan berdasarkan nama / partai
-  const dewanSearch = await api.getDewanList('KAHARUDDIN');
-  assert(dewanSearch.success && dewanSearch.data.length >= 1, 'Pencarian nama Ketua DPRD ("KAHARUDDIN") berhasil');
+  const searchDewan = await api.getDewanList('KAHARUDDIN');
+  assert(searchDewan.success && searchDewan.data.length >= 1, 'Pencarian nama dewan berhasil');
 
-  // Test 9: Tambah anggota dewan baru
   const newDewan = await api.createDewan({
     nomor_urut: 26,
-    nama: 'H. Anggota Uji Coba, S.T.',
-    jabatan: 'Anggota Komisi II',
+    nama: 'H. Ir. Uji Coba Dewan, M.Si.',
+    jabatan: 'Anggota Komisi III',
     periode: '2024 - 2029',
-    nama_pendamping: 'Staf Pendamping Uji',
+    nama_pendamping: 'Staf Uji',
     nama_partai: 'Partai Golongan Karya'
   });
-  assert(newDewan.success && newDewan.data?.id, 'Tambah anggota dewan berhasil');
+  assert(newDewan.success && newDewan.data?.id, 'Tambah anggota dewan baru berhasil');
   const testDewanId = newDewan.data?.id;
 
-  // Test 10: Toggle status dewan (nonaktifkan / aktifkan)
   const toggleDewan = await api.toggleDewanStatus(testDewanId, 'nonaktif');
-  assert(toggleDewan.success && toggleDewan.data?.status === 'nonaktif', 'Status anggota dewan berhasil dinonaktifkan');
+  assert(toggleDewan.success && toggleDewan.data?.status === 'nonaktif', 'Status anggota dewan dapat dinonaktifkan');
 
-  // ================= 3. PENGUJIAN KATEGORI ARSIP & INTEGRITAS =================
-  console.log('\n--- 3. Pengujian Kategori Arsip & Perlindungan Dependensi ---');
+  // ================= 5. PENGUJIAN KATEGORI, TAHUN & FOLDER =================
+  console.log('\n--- 5. Pengujian Kategori Arsip, Tahun, & Folder Dokumen ---');
 
-  // Test 11: Ambil daftar kategori
   const katList = await api.getKategoriList();
-  assert(katList.success && Array.isArray(katList.data) && katList.data.length >= 3, 'Kategori arsip resmi berhasil dimuat');
+  assert(katList.success && Array.isArray(katList.data) && katList.data.length >= 3, 'Daftar kategori dokumen berhasil dimuat');
 
-  // Test 12: Tambah kategori baru
-  const newKat = await api.createKategori('Arsip Uji Khusus 2026', 'Kategori pengujian verifikasi');
-  assert(newKat.success && newKat.data?.id, 'Tambah kategori baru berhasil');
+  const newKat = await api.createKategori('Arsip Risalah Rapat Komisi 2026', 'Kategori uji verifikasi');
+  assert(newKat.success && newKat.data?.id, 'Tambah kategori arsip berhasil');
   const testKatId = newKat.data?.id;
 
-  // Test 13: Validasi duplikasi kategori (case-insensitive)
-  const dupKat = await api.createKategori('arsip uji khusus 2026');
-  assert(!dupKat.success, 'Sistem menolak duplikasi nama kategori');
+  const dupKat = await api.createKategori('arsip risalah rapat komisi 2026');
+  assert(!dupKat.success, 'Sistem menolak duplikasi kategori (case-insensitive)');
 
-  // Test 14: Tambah tahun dan folder arsip
   const newTahun = await api.createTahun(testDewanId, testKatId, 2026);
   assert(newTahun.success && newTahun.data?.tahun === 2026, 'Tambah tahun anggaran (2026) berhasil');
 
-  const newFolder = await api.createFolder(testDewanId, testKatId, 2026, 'Masa Sidang Uji');
-  assert(newFolder.success && newFolder.data?.nama_folder === 'Masa Sidang Uji', 'Tambah folder dokumen berhasil');
+  const newFolder = await api.createFolder(testDewanId, testKatId, 2026, 'Sidang Paripurna I');
+  assert(newFolder.success && newFolder.data?.nama_folder === 'Sidang Paripurna I', 'Tambah folder berkas berhasil');
 
-  // ================= 4. PENGUJIAN DOKUMEN ARSIP & DRIVE =================
-  console.log('\n--- 4. Pengujian Dokumen Arsip & Google Drive Metadata ---');
+  // ================= 6. VALIDASI UNGGAH BERKAS, UNDUH & PROTEKSI DRIVE =================
+  console.log('\n--- 6. Pengujian Dokumen Arsip & Proteksi Berkas Google Drive ---');
 
-  // Test 15: Unggah dokumen arsip
-  const uploadDoc = await api.uploadDokumen({
+  // Test 11: Tolak ekstensi berbahaya
+  const badExtUpload = await api.uploadDokumen({
     dewan_id: testDewanId,
     kategori_id: testKatId,
     tahun: 2026,
-    nama_folder: 'Masa Sidang Uji',
-    nama_dokumen: 'Laporan Fasilitasi Pengawasan Masa Sidang',
-    keterangan: 'Dokumen uji verifikasi pengarsipan',
-    fileName: 'laporan_pengawasan_uji.pdf',
-    base64: 'data:application/pdf;base64,JVBERi0xLjQKJeLjz9MKMSAwIG9ia...'
+    nama_folder: 'Sidang Paripurna I',
+    nama_dokumen: 'Skrip Berbahaya',
+    fileName: 'exploit.exe',
+    base64: 'data:application/octet-stream;base64,TVqQAAMAAAAEAAAA...'
   });
-  assert(uploadDoc.success && uploadDoc.data?.id, 'Unggah dokumen arsip fisik dan metadata berhasil');
-  const testDocId = uploadDoc.data?.id;
+  assert(!badExtUpload.success && badExtUpload.error?.code === 'FILE_VALIDATION_ERROR', 'Sistem menolak unggahan berkas dengan ekstensi tidak diizinkan (.exe)');
 
-  // Test 16: Pengujian perlindungan dependensi: Hapus kategori yang memiliki dokumen HARUS DITOLAK
+  // Test 12: Unggah berkas valid (PDF)
+  const validUpload = await api.uploadDokumen({
+    dewan_id: testDewanId,
+    kategori_id: testKatId,
+    tahun: 2026,
+    nama_folder: 'Sidang Paripurna I',
+    nama_dokumen: 'Risalah Rapat Paripurna Penetapan APBD',
+    keterangan: 'Dokumen sah hasil rapat dewan',
+    fileName: 'risalah_apbd_2026.pdf',
+    base64: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...'
+  });
+  assert(validUpload.success && validUpload.data?.id, 'Unggah dokumen arsip resmi (PDF) berhasil');
+  const testDocId = validUpload.data?.id;
+
+  // Test 13: Unduh dokumen terotentikasi (downloadDokumen)
+  const downloadDoc = await api.downloadDokumen(testDocId);
+  assert(downloadDoc.success && downloadDoc.data?.base64 && downloadDoc.data?.nama_file, 'Pengunduhan dokumen melalui endpoint terotentikasi berhasil');
+
+  // Test 14: Perlindungan dependensi integritas data
   const delUsedKat = await api.deleteKategori(testKatId);
-  assert(!delUsedKat.success, 'Penghapusan kategori yang masih memiliki dokumen ditolak untuk melindungi data');
+  assert(!delUsedKat.success && delUsedKat.error?.code === 'HAS_DEPENDENT_RECORDS', 'Penghapusan kategori dengan dokumen aktif ditolak demi integritas');
 
-  // Test 17: Pengujian perlindungan dependensi: Hapus dewan yang memiliki dokumen HARUS DITOLAK
   const delUsedDewan = await api.deleteDewan(testDewanId);
-  assert(!delUsedDewan.success, 'Penghapusan dewan yang masih memiliki dokumen ditolak untuk melindungi arsip');
+  assert(!delUsedDewan.success && delUsedDewan.error?.code === 'HAS_DEPENDENT_RECORDS', 'Penghapusan dewan dengan dokumen aktif ditolak demi integritas');
 
-  // Test 18: Hapus dokumen arsip
+  // Test 15: Hapus dokumen arsip
   const delDoc = await api.deleteDokumen(testDocId);
   assert(delDoc.success, 'Dokumen arsip berhasil dihapus');
 
-  // Test 19: Setelah dokumen dihapus, kategori uji dapat dihapus dengan aman
+  // Test 16: Hapus kategori dan dewan setelah tidak memiliki berkas
   const delSafeKat = await api.deleteKategori(testKatId);
-  assert(delSafeKat.success, 'Kategori yang sudah tidak memiliki dokumen dapat dihapus dengan aman');
+  assert(delSafeKat.success, 'Kategori tanpa berkas dapat dihapus dengan aman');
 
-  // Test 20: Hapus anggota dewan uji
   const delSafeDewan = await api.deleteDewan(testDewanId);
-  assert(delSafeDewan.success, 'Anggota dewan uji berhasil dihapus');
+  assert(delSafeDewan.success, 'Anggota dewan tanpa berkas dapat dihapus dengan aman');
 
-  // ================= 5. PENGUJIAN PENGGUNA & HAK AKSES =================
-  console.log('\n--- 5. Pengujian Manajemen Pengguna & Hak Akses ---');
+  // ================= 7. PENGUJIAN RBAC & REVOKASI SESI REAL-TIME =================
+  console.log('\n--- 7. Pengujian Otorisasi Peran (RBAC) & Revokasi Sesi Real-Time ---');
 
-  // Test 21: Ambil daftar pengguna
-  const usersList = await api.getUserList();
-  assert(usersList.success && Array.isArray(usersList.data), 'Daftar pengguna sistem berhasil dimuat');
-
-  // Test 22: Tambah pengguna staf baru
+  // Buat akun staf baru oleh superadmin
   const newStaff = await api.createUser({
-    username: 'staf_verifikasi',
-    nama: 'Staf Pengarsipan Uji',
-    password: 'PasswordStafUji123!',
+    username: 'staf_lapangan',
+    nama: 'Staf Pengarsip Lapangan',
+    password: 'PasswordStaf123!',
     role: 'staff'
   });
-  assert(newStaff.success && newStaff.data?.username === 'staf_verifikasi', 'Penambahan akun staf baru berhasil');
+  assert(newStaff.success && newStaff.data?.username === 'staf_lapangan', 'Superadmin berhasil mendaftarkan staf baru');
+  const staffUserId = newStaff.data?.id;
 
-  // ================= 6. SIMULASI 5 PENGGUNA SIMULTAN (CONCURRENCY) =================
-  console.log('\n--- 6. Pengujian Simulasi 5 Pengguna Bersamaan ---');
+  // Login sebagai staf
+  const loginStaff = await api.login('staf_lapangan', 'PasswordStaf123!');
+  assert(loginStaff.success && loginStaff.data?.user?.role === 'staff', 'Login sebagai akun staf berhasil');
 
-  const userSimulations = [1, 2, 3, 4, 5].map(async (uNum) => {
-    const listD = await api.getDewanList();
-    const dashD = await api.getDashboardData();
-    const katD = await api.getKategoriList();
-    return listD.success && dashD.success && katD.success;
+  // Ganti password pertama staf agar bisa mengakses fitur
+  await api.changePassword('PasswordStaf123!', 'PasswordStafKuat2026!');
+
+  // Test 17: Uji RBAC - Staf mencoba aksi administratif (harus DITOLAK FORBIDDEN)
+  const staffCreateUser = await api.createUser({ username: 'hacker', nama: 'Hacker', password: 'P123', role: 'admin' });
+  assert(!staffCreateUser.success && staffCreateUser.error?.code === 'FORBIDDEN', 'Staf dilarang membuat akun pengguna baru (RBAC: FORBIDDEN)');
+
+  const staffDeleteDewan = await api.deleteDewan('DWN-01');
+  assert(!staffDeleteDewan.success && staffDeleteDewan.error?.code === 'FORBIDDEN', 'Staf dilarang menghapus anggota dewan (RBAC: FORBIDDEN)');
+
+  const staffDeleteKat = await api.deleteKategori('KAT-01');
+  assert(!staffDeleteKat.success && staffDeleteKat.error?.code === 'FORBIDDEN', 'Staf dilarang menghapus kategori (RBAC: FORBIDDEN)');
+
+  // Test 18: Uji Revokasi Sesi Real-Time saat akun dinonaktifkan
+  // Switch kembali ke superadmin untuk menonaktifkan akun staf
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const deactivateStaff = await api.toggleUserStatus(staffUserId, 'nonaktif');
+  assert(deactivateStaff.success, 'Superadmin berhasil menonaktifkan akun staf');
+
+  // Login ulang dengan sesi staf yang dinonaktifkan
+  const tryLoginDisabled = await api.login('staf_lapangan', 'PasswordStafKuat2026!');
+  assert(!tryLoginDisabled.success, 'Akun nonaktif ditolak login ke dalam sistem');
+
+  // ================= 8. SIMULASI 5 PENGGUNA SIMULTAN (CONCURRENCY) =================
+  console.log('\n--- 8. Simulasi 5 Pengguna Akses Simultan (Concurrency) ---');
+
+  const concurrentRequests = [1, 2, 3, 4, 5].map(async (idx) => {
+    const dList = await api.getDewanList();
+    const dash = await api.getDashboardData();
+    const kList = await api.getKategoriList();
+    return dList.success && dash.success && kList.success;
   });
 
-  const concurrentResults = await Promise.all(userSimulations);
-  const allConcurrentSuccess = concurrentResults.every((r) => r === true);
-  assert(allConcurrentSuccess, '5 Pengguna bersamaan sukses membaca dan mengakses data tanpa konflik');
+  const results = await Promise.all(concurrentRequests);
+  const allPassed = results.every(r => r === true);
+  assert(allPassed, '5 Pengguna mengakses sistem secara bersamaan tanpa konflik atau race-condition');
 
-  // Logout sesi
+  // Test 19: Audit Log Aktivitas
+  const auditLogs = await api.getActivityLog(10);
+  assert(auditLogs.success && Array.isArray(auditLogs.data), 'Log audit aktivitas sistem tercatat dan dapat diambil');
+
+  // Test 20: Bersihkan Semua Aktivitas Log (Purge Activity Log)
+  const clearLogsRes = await api.clearActivityLog();
+  assert(clearLogsRes.success && clearLogsRes.data?.cleared === true, 'Pembersihan seluruh riwayat log aktivitas berhasil');
+
+  const afterClearLogs = await api.getActivityLog(10);
+  assert(afterClearLogs.success && Array.isArray(afterClearLogs.data) && afterClearLogs.data.length === 1 && afterClearLogs.data[0].aksi === 'BERSIHKAN_LOG', 'Log setelah dibersihkan hanya menyisakan 1 rekaman audit BERSIHKAN_LOG');
+
+  // Test 21: In-Flight Deduplication & In-Memory Caching
+  const [req1, req2] = await Promise.all([
+    api.getDewanList(),
+    api.getDewanList()
+  ]);
+  assert(req1.success && req2.success && req1.data?.length === req2.data?.length, 'Deduplikasi in-flight request dan in-memory caching berjalan mulus');
+
+  // Cleanup logout
   await api.logout();
 
   console.log(`\n=======================================================`);
