@@ -4,9 +4,21 @@
  */
 import { api } from './api.js';
 
+// Safe Storage Fallback untuk Browser & Lingkungan Node.js Test Runner
+const memoryStorage = {};
+const isBrowser = typeof window !== 'undefined';
+const safeLocalStorage = isBrowser && window.localStorage ? window.localStorage : {
+  getItem: (k) => memoryStorage[k] || null,
+  setItem: (k, v) => { memoryStorage[k] = String(v); },
+  removeItem: (k) => { delete memoryStorage[k]; }
+};
+const safeSessionStorage = isBrowser && window.sessionStorage ? window.sessionStorage : safeLocalStorage;
+
+export const SESSION_EXPIRY_MS = 6 * 60 * 60 * 1000; // 6 Jam (Sesuai batas CacheService Google Apps Script)
+
 export function getStoredUser() {
   try {
-    const raw = sessionStorage.getItem('dprd_user') || localStorage.getItem('dprd_user');
+    const raw = safeSessionStorage.getItem('dprd_user') || safeLocalStorage.getItem('dprd_user');
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
@@ -14,19 +26,97 @@ export function getStoredUser() {
 }
 
 export function getStoredToken() {
-  return sessionStorage.getItem('dprd_token') || localStorage.getItem('dprd_token') || '';
+  try {
+    return safeSessionStorage.getItem('dprd_token') || safeLocalStorage.getItem('dprd_token') || '';
+  } catch (e) {
+    return '';
+  }
 }
 
 export function saveSession(token, user) {
-  sessionStorage.setItem('dprd_token', token);
-  sessionStorage.setItem('dprd_user', JSON.stringify(user));
+  const now = Date.now();
+  const expiresAt = (user && user.expiresAt) ? Number(user.expiresAt) : (now + SESSION_EXPIRY_MS);
+
+  try {
+    safeSessionStorage.setItem('dprd_token', token);
+    safeSessionStorage.setItem('dprd_user', JSON.stringify(user));
+    safeSessionStorage.setItem('dprd_session_saved_at', String(now));
+    safeSessionStorage.setItem('dprd_session_expires_at', String(expiresAt));
+
+    safeLocalStorage.setItem('dprd_token', token);
+    safeLocalStorage.setItem('dprd_user', JSON.stringify(user));
+    safeLocalStorage.setItem('dprd_session_saved_at', String(now));
+    safeLocalStorage.setItem('dprd_session_expires_at', String(expiresAt));
+  } catch (e) {}
 }
 
 export function clearSession() {
-  sessionStorage.removeItem('dprd_token');
-  sessionStorage.removeItem('dprd_user');
-  localStorage.removeItem('dprd_token');
-  localStorage.removeItem('dprd_user');
+  try {
+    safeSessionStorage.removeItem('dprd_token');
+    safeSessionStorage.removeItem('dprd_user');
+    safeSessionStorage.removeItem('dprd_session_saved_at');
+    safeSessionStorage.removeItem('dprd_session_expires_at');
+
+    safeLocalStorage.removeItem('dprd_token');
+    safeLocalStorage.removeItem('dprd_user');
+    safeLocalStorage.removeItem('dprd_session_saved_at');
+    safeLocalStorage.removeItem('dprd_session_expires_at');
+  } catch (e) {}
+}
+
+/**
+ * Validasi apakah sesi telah kedaluwarsa secara lokal di browser
+ */
+export function isSessionExpiredClientSide() {
+  try {
+    const expiresAtStr = safeSessionStorage.getItem('dprd_session_expires_at') || safeLocalStorage.getItem('dprd_session_expires_at');
+    if (expiresAtStr) {
+      const expiresAt = Number(expiresAtStr);
+      if (!isNaN(expiresAt) && expiresAt > 0) {
+        return Date.now() > expiresAt;
+      }
+    }
+
+    const savedAtStr = safeSessionStorage.getItem('dprd_session_saved_at') || safeLocalStorage.getItem('dprd_session_saved_at');
+    if (savedAtStr) {
+      const savedAt = Number(savedAtStr);
+      if (!isNaN(savedAt) && savedAt > 0) {
+        return (Date.now() - savedAt) > SESSION_EXPIRY_MS;
+      }
+    }
+  } catch (e) {}
+
+  return false;
+}
+
+/**
+ * Arahkan pengguna ke halaman login dengan pengawetan URL target
+ */
+export function redirectToLogin(isExpired = false) {
+  if (typeof window === 'undefined' || !window.location) return;
+
+  const currentPath = window.location.pathname || '';
+  const currentSearch = window.location.search || '';
+  let target = currentPath;
+  if (currentSearch) target += currentSearch;
+
+  // Hindari looping redirect jika sudah berada di halaman login
+  if (target.includes('login.html') || target.endsWith('/login')) {
+    return;
+  }
+
+  const queryParts = [];
+  if (isExpired) {
+    queryParts.push('expired=1');
+  }
+
+  const cleanTarget = target.replace(/^\//, '');
+  if (cleanTarget && cleanTarget !== 'index.html' && cleanTarget !== 'login.html') {
+    queryParts.push(`redirect=${encodeURIComponent(target)}`);
+  }
+
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  window.location.replace(`login.html${qs}`);
 }
 
 /**
@@ -36,24 +126,33 @@ export function requireAuth(allowedRoles = null) {
   const user = getStoredUser();
   const token = getStoredToken();
 
+  // 1. Cek keberadaan token & data user
   if (!user || !token) {
     clearSession();
-    window.location.replace('login.html');
+    redirectToLogin(false);
     return null;
   }
 
-  // Jika akun diwajibkan ganti password pertama kali, kunci akses halaman lain
-  const currentPath = window.location.pathname.toLowerCase();
+  // 2. Cek apakah sesi telah kedaluwarsa secara lokal (misal: tab ditinggal semalaman)
+  if (isSessionExpiredClientSide()) {
+    clearSession();
+    redirectToLogin(true);
+    return null;
+  }
+
+  // 3. Jika akun diwajibkan ganti password pertama kali, kunci akses halaman lain
+  const currentPath = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
   const isProfilePage = currentPath.includes('profil.html') || currentPath.endsWith('/profil');
   if (user.mustChangePassword && !isProfilePage) {
-    window.location.replace('profil.html?wajib_ganti_password=1');
+    if (typeof window !== 'undefined' && window.location) {
+      window.location.replace('profil.html?wajib_ganti_password=1');
+    }
     return null;
   }
 
-  // Validasi peran (Role-Based Access Control)
+  // 4. Validasi peran (Role-Based Access Control)
   if (allowedRoles && Array.isArray(allowedRoles)) {
     const userRole = (user.role || 'superadmin').toLowerCase();
-    // Pada arsitektur satu aktor, superadmin memiliki akses penuh ke seluruh fitur
     if (userRole === 'superadmin') {
       return user;
     }
@@ -61,7 +160,9 @@ export function requireAuth(allowedRoles = null) {
     if (!hasAccess) {
       showToast('Akses Ditolak: Anda tidak memiliki izin untuk halaman ini.', 'error');
       setTimeout(() => {
-        window.location.replace('dashboard.html');
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.replace('dashboard.html');
+        }
       }, 1200);
       return null;
     }
@@ -225,5 +326,83 @@ export function formatDateIndonesia(isoString) {
     }) + ' WITA';
   } catch (e) {
     return isoString;
+  }
+}
+
+/**
+ * Pemantau Status Koneksi Jaringan & Manajemen Siklus Tab Aktif
+ * Menjaga header-badge tetap akurat saat online/offline dan mendeteksi sesi kedaluwarsa saat tab dibuka kembali
+ */
+export function initConnectionMonitor() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  function updateBadgeStatus(status) {
+    const badges = document.querySelectorAll('.header-badge');
+    badges.forEach((badge) => {
+      if (badge.id && badge.id.startsWith('badgeTotal')) return;
+
+      const dot = badge.querySelector('.header-badge-dot');
+      if (status === 'offline') {
+        badge.classList.add('offline');
+        badge.classList.remove('reconnecting');
+        if (dot) {
+          dot.classList.add('offline');
+          dot.classList.remove('reconnecting');
+        }
+        badge.lastChild.textContent = ' Koneksi Terputus';
+      } else if (status === 'reconnecting') {
+        badge.classList.add('reconnecting');
+        badge.classList.remove('offline');
+        if (dot) {
+          dot.classList.add('reconnecting');
+          dot.classList.remove('offline');
+        }
+        badge.lastChild.textContent = ' Menghubungkan...';
+      } else {
+        badge.classList.remove('offline', 'reconnecting');
+        if (dot) {
+          dot.classList.remove('offline', 'reconnecting');
+        }
+        badge.lastChild.textContent = ' Server Terhubung';
+      }
+    });
+  }
+
+  // Listener event jaringan browser
+  window.addEventListener('offline', () => {
+    updateBadgeStatus('offline');
+    showToast('Koneksi internet terputus. Menunggu jaringan kembali...', 'warning', 4000);
+  });
+
+  window.addEventListener('online', () => {
+    updateBadgeStatus('reconnecting');
+    setTimeout(() => {
+      updateBadgeStatus('online');
+      showToast('Koneksi internet terhubung kembali.', 'success', 2500);
+    }, 1200);
+  });
+
+  // Listener visibilitas tab (ketika pengguna kembali membuka tab setelah laptop/HP sleep)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // 1. Cek langsung apakah sesi sudah kedaluwarsa secara lokal
+      if (isSessionExpiredClientSide()) {
+        clearSession();
+        redirectToLogin(true);
+        return;
+      }
+
+      // 2. Perbarui indikator koneksi
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        updateBadgeStatus('offline');
+      } else {
+        updateBadgeStatus('online');
+      }
+    }
+  });
+
+  // Jalankan cek awal
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    updateBadgeStatus('offline');
   }
 }

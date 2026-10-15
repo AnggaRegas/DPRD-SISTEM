@@ -5,6 +5,7 @@
  */
 import crypto from 'crypto';
 import { api } from '../assets/js/api.js';
+import { saveSession, clearSession, isSessionExpiredClientSide, getStoredToken, getStoredUser } from '../assets/js/auth.js';
 
 console.log('=== MEMULAI TEST VERIFIKASI LENGKAP SISTEM ARSIP DPRD KOTA PAREPARE ===\n');
 
@@ -337,6 +338,40 @@ async function runAllTests() {
     api.getDewanList()
   ]);
   assert(req1.success && req2.success && req1.data?.length === req2.data?.length, 'Deduplikasi in-flight request dan in-memory caching berjalan mulus');
+
+  // ================= 9. PENGUJIAN SESI TAB RESUME, EXPIRATION & DEDUPLIKASI =================
+  console.log('\n--- 9. Pengujian Sesi Tab Resume, Expiration & Deduplikasi Permintaan ---');
+
+  // Test 22: Penyimpanan Sesi Lengkap dengan Timestamp
+  const dummyUser = { id: 'u_test_99', username: 'superadmin', nama: 'Super Admin', role: 'superadmin' };
+  saveSession('DPRD_SES_test_token_1234567890', dummyUser);
+  const tokenSaved = getStoredToken();
+  const userSaved = getStoredUser();
+  assert(tokenSaved === 'DPRD_SES_test_token_1234567890' && userSaved?.username === 'superadmin', 'Sesi baru tersimpan lengkap dengan token dan metadata pengguna');
+
+  // Test 23: Sesi Baru Tidak Kedaluwarsa Client-Side
+  const isExpFresh = isSessionExpiredClientSide();
+  assert(isExpFresh === false, 'Sesi aktif yang baru dibuat terdeteksi valid (tidak kedaluwarsa)');
+
+  // Test 24: Simulasi Overnight Resume (Sesi Kedaluwarsa Client-Side)
+  const expiredUser = { ...dummyUser, expiresAt: Date.now() - 3600000 };
+  saveSession('DPRD_SES_test_token_expired', expiredUser);
+  const isExpSimulated = isSessionExpiredClientSide();
+  assert(isExpSimulated === true, 'Sesi yang melewati batas waktu terdeteksi kedaluwarsa secara instan (0ms client-side check)');
+
+  // Test 25: Pembersihan Sesi (clearSession)
+  clearSession();
+  assert(!getStoredToken() && !getStoredUser(), 'clearSession berhasil menghapus seluruh token, data pengguna, dan timestamp');
+
+  // Test 26: Login ulang untuk validasi checkSession & Deduplikasi Sesi
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const [sessPromise1, sessPromise2] = [api.checkSession(), api.checkSession()];
+  const [sessRes1, sessRes2] = await Promise.all([sessPromise1, sessPromise2]);
+  assert(sessRes1.success && sessRes2.success && sessRes1.data?.username === 'superadmin', 'checkSession berhasil divalidasi dengan in-flight deduplication');
+
+  // Test 27: Force Refresh checkSession
+  const refreshedSess = await api.checkSession(true);
+  assert(refreshedSess.success && refreshedSess.data?.username === 'superadmin', 'checkSession dengan forceRefresh berhasil mengambil status terkini');
 
   // Cleanup logout
   await api.logout();

@@ -38,7 +38,8 @@ const CACHEABLE_ACTIONS = [
   "getKategoriList", "getKategoriWithDocCount",
   "getTahunList", "getFolderList",
   "getDokumenList", "getDokumenById",
-  "getDashboardData", "getActivityLog"
+  "getDashboardData", "getActivityLog",
+  "getCurrentUser", "checkSession", "getProfile"
 ];
 
 function invalidateCacheForAction(action) {
@@ -66,7 +67,7 @@ function invalidateCacheForAction(action) {
   } else if (action.includes("Activity") || action.includes("Log")) {
     clearApiCache("getActivityLog");
     clearApiCache("getDashboardData");
-  } else if (action.includes("Login") || action.includes("Logout") || action.includes("Password")) {
+  } else if (action.includes("Login") || action.includes("Logout") || action.includes("Password") || action.includes("User")) {
     clearApiCache();
   }
 }
@@ -206,6 +207,34 @@ async function callAppsScript(action, payload = {}, options = {}) {
           });
         } else {
           invalidateCacheForAction(action);
+        }
+      } else if (result && !result.success) {
+        // Cek apakah error merupakan penolakan otorisasi atau sesi kedaluwarsa
+        const isAuthError = result.error?.code === 'UNAUTHORIZED' ||
+          (result.message && (
+            result.message.toLowerCase().includes('kedaluwarsa') ||
+            result.message.toLowerCase().includes('sesi tidak ditemukan') ||
+            result.message.toLowerCase().includes('format token')
+          ));
+
+        // Jangan picu redirect jika aksi yang dijalankan adalah upaya login itu sendiri
+        if (isAuthError && action !== 'login' && action !== 'adminLogin') {
+          safeSessionStorage.removeItem('dprd_token');
+          safeSessionStorage.removeItem('dprd_user');
+          safeSessionStorage.removeItem('dprd_session_saved_at');
+          safeSessionStorage.removeItem('dprd_session_expires_at');
+          safeLocalStorage.removeItem('dprd_token');
+          safeLocalStorage.removeItem('dprd_user');
+          safeLocalStorage.removeItem('dprd_session_saved_at');
+          safeLocalStorage.removeItem('dprd_session_expires_at');
+
+          if (typeof window !== 'undefined' && window.location) {
+            const currentPath = window.location.pathname || '';
+            if (!currentPath.includes('login.html')) {
+              const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+              window.location.replace(`login.html?expired=1&redirect=${redirectUrl}`);
+            }
+          }
         }
       }
 
@@ -869,7 +898,7 @@ export const api = {
   // Auth & Profil
   login: (username, password) => callAppsScript('adminLogin', { username, password }),
   logout: () => callAppsScript('adminLogout'),
-  checkSession: () => callAppsScript('getCurrentUser'),
+  checkSession: (forceRefresh = false) => callAppsScript('getCurrentUser', {}, { forceRefresh }),
   getProfile: () => callAppsScript('getProfile'),
   changePassword: (oldPassword, newPassword) => callAppsScript('changePassword', { oldPassword, newPassword }),
 

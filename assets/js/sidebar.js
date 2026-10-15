@@ -3,7 +3,7 @@
  * Sistem Pengarsipan Dokumen DPRD Kota Parepare
  * Palet: Deep Navy (#0B192C), Crisp White, Aksen Emas Elegan (#C5A059)
  */
-import { getStoredUser, doLogout, showConfirmDialog } from './auth.js';
+import { getStoredUser, doLogout, showConfirmDialog, initConnectionMonitor } from './auth.js';
 
 export function renderSidebar(activeMenu = '') {
   const container = document.getElementById('sidebarContainer');
@@ -37,9 +37,15 @@ export function renderSidebar(activeMenu = '') {
             <p>DPRD Kota Parepare</p>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Buka/tutup navigasi" title="Ciutkan navigasi">
+        <button type="button" class="sidebar-toggle-btn desktop-only" id="sidebarToggle" aria-label="Ciutkan navigasi" title="Ciutkan navigasi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <button type="button" class="sidebar-close-btn mobile-only" id="sidebarMobileClose" aria-label="Tutup navigasi" title="Tutup navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
         </button>
       </div>
@@ -152,8 +158,28 @@ export function renderSidebar(activeMenu = '') {
   // Pasang Handler Interaktif
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('sidebarToggle');
+  const mobileCloseBtn = document.getElementById('sidebarMobileClose');
   const backdrop = document.getElementById('sidebarBackdrop');
   const logoutBtn = document.getElementById('btnLogoutTrigger');
+  const mobileBtn = document.getElementById('mobileMenuBtn');
+
+  function openMobileSidebar() {
+    sidebar.classList.add('mobile-open');
+    backdrop.classList.add('active');
+    document.body.classList.add('mobile-nav-open');
+    if (mobileBtn) mobileBtn.setAttribute('aria-expanded', 'true');
+    if (mobileCloseBtn) mobileCloseBtn.focus();
+  }
+
+  function closeMobileSidebar() {
+    sidebar.classList.remove('mobile-open');
+    backdrop.classList.remove('active');
+    document.body.classList.remove('mobile-nav-open');
+    if (mobileBtn) {
+      mobileBtn.setAttribute('aria-expanded', 'false');
+      mobileBtn.focus();
+    }
+  }
 
   // Pulihkan status collapse desktop
   const isCollapsed = localStorage.getItem('dprd_sidebar_collapsed') === 'true';
@@ -162,12 +188,35 @@ export function renderSidebar(activeMenu = '') {
     document.body.classList.add('sidebar-collapsed');
   }
 
+  if (mobileBtn) {
+    mobileBtn.setAttribute('aria-expanded', 'false');
+    mobileBtn.setAttribute('aria-controls', 'sidebar');
+    mobileBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (sidebar.classList.contains('mobile-open')) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
+    };
+  }
+
+  if (mobileCloseBtn) {
+    mobileCloseBtn.onclick = (e) => {
+      e.stopPropagation();
+      closeMobileSidebar();
+    };
+  }
+
   if (toggleBtn) {
     toggleBtn.addEventListener('click', () => {
       if (window.innerWidth < 992) {
         // Mode mobile: buka/tutup drawer
-        sidebar.classList.toggle('mobile-open');
-        backdrop.classList.toggle('active');
+        if (sidebar.classList.contains('mobile-open')) {
+          closeMobileSidebar();
+        } else {
+          openMobileSidebar();
+        }
       } else {
         // Mode desktop: ciutkan/lebarkan
         sidebar.classList.toggle('collapsed');
@@ -179,11 +228,32 @@ export function renderSidebar(activeMenu = '') {
   }
 
   if (backdrop) {
-    backdrop.addEventListener('click', () => {
-      sidebar.classList.remove('mobile-open');
-      backdrop.classList.remove('active');
-    });
+    backdrop.onclick = (e) => {
+      e.stopPropagation();
+      closeMobileSidebar();
+    };
   }
+
+  // Tutup dengan tombol Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
+      closeMobileSidebar();
+    }
+  });
+
+  // Otomatis tutup drawer di mobile ketika link menu diklik
+  sidebar.querySelectorAll('.sidebar-nav .nav-item').forEach((item) => {
+    if (item.id !== 'btnLogoutTrigger') {
+      item.addEventListener('click', () => {
+        if (window.innerWidth < 992) {
+          closeMobileSidebar();
+        }
+      });
+    }
+  });
+
+  // Pasang pemantau status koneksi otomatis pada badge header
+  initConnectionMonitor();
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', (e) => {
