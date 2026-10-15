@@ -219,6 +219,7 @@ async function callAppsScript(action, payload = {}, options = {}) {
 
         // Jangan picu redirect jika aksi yang dijalankan adalah upaya login itu sendiri
         if (isAuthError && action !== 'login' && action !== 'adminLogin') {
+          clearApiCache();
           safeSessionStorage.removeItem('dprd_token');
           safeSessionStorage.removeItem('dprd_user');
           safeSessionStorage.removeItem('dprd_session_saved_at');

@@ -46,7 +46,7 @@
 
   <script type="module">
     import { api } from './assets/js/api.js';
-    import { saveSession, getStoredToken, clearSession, isSessionExpiredClientSide } from './assets/js/auth.js';
+    import { saveSession, getStoredToken, clearSession, isSessionExpiredClientSide, getSafeRedirectUrl } from './assets/js/auth.js';
 
     const params = new URLSearchParams(window.location.search);
     const alertBox = document.getElementById('alertBox');
@@ -94,14 +94,8 @@
             return;
           }
 
-          // Arahkan ke redirectUrl jika ada dan aman
-          let destination = 'dashboard.html';
-          if (redirectUrl) {
-            const decoded = decodeURIComponent(redirectUrl).trim();
-            if (!decoded.startsWith('http://') && !decoded.startsWith('https://') && !decoded.startsWith('//') && !decoded.includes('login.html')) {
-              destination = decoded;
-            }
-          }
+          // Arahkan ke redirectUrl jika ada dan valid internal
+          const destination = getSafeRedirectUrl(redirectUrl, 'dashboard.html');
           window.location.replace(destination);
         } else {
           const msg = res && res.message ? res.message : 'Username atau password tidak valid.';

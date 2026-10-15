@@ -5,7 +5,7 @@
  */
 import crypto from 'crypto';
 import { api } from '../assets/js/api.js';
-import { saveSession, clearSession, isSessionExpiredClientSide, getStoredToken, getStoredUser } from '../assets/js/auth.js';
+import { saveSession, clearSession, isSessionExpiredClientSide, getStoredToken, getStoredUser, getSafeRedirectUrl } from '../assets/js/auth.js';
 
 console.log('=== MEMULAI TEST VERIFIKASI LENGKAP SISTEM ARSIP DPRD KOTA PAREPARE ===\n');
 
@@ -372,6 +372,14 @@ async function runAllTests() {
   // Test 27: Force Refresh checkSession
   const refreshedSess = await api.checkSession(true);
   assert(refreshedSess.success && refreshedSess.data?.username === 'superadmin', 'checkSession dengan forceRefresh berhasil mengambil status terkini');
+
+  // Test 28: Sanitasi Ketat URL Redirect (Proteksi Open Redirect & XSS)
+  assert(getSafeRedirectUrl('arsip_dewan.html?dewan_id=5') === 'arsip_dewan.html?dewan_id=5', 'URL internal valid diterima dengan parameter query');
+  assert(getSafeRedirectUrl('/dewan.html') === 'dewan.html', 'Path relatif diawali slash dinormalisasi ke halaman lokal');
+  assert(getSafeRedirectUrl('javascript:alert(1)') === 'dashboard.html', 'Skema berbahaya javascript: berhasil dinetralisir ke dashboard');
+  assert(getSafeRedirectUrl('https://attacker.com') === 'dashboard.html', 'Domain eksternal https://attacker.com berhasil diblokir');
+  assert(getSafeRedirectUrl('//malicious.org/phish') === 'dashboard.html', 'Protocol-relative URL //malicious.org berhasil diblokir');
+  assert(getSafeRedirectUrl('login.html') === 'dashboard.html', 'Pengalihan balik ke login.html dicegah untuk menghindari redirect loop');
 
   // Cleanup logout
   await api.logout();

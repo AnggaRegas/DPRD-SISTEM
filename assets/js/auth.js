@@ -90,6 +90,29 @@ export function isSessionExpiredClientSide() {
 }
 
 /**
+ * Sanitasi ketat URL redirect: Hanya izinkan path halaman internal aplikasi,
+ * tolak keras skema javascript:, protocol-relative (//), data:, dan domain luar.
+ */
+export function getSafeRedirectUrl(rawUrl, defaultUrl = 'dashboard.html') {
+  if (!rawUrl || typeof rawUrl !== 'string') return defaultUrl;
+  try {
+    const decoded = decodeURIComponent(rawUrl).trim();
+    // Tolak skema berbahaya atau protokol eksternal
+    if (decoded.includes(':') || decoded.startsWith('//') || decoded.startsWith('\\\\') || decoded.startsWith('/\\') || decoded.includes('login.html')) {
+      return defaultUrl;
+    }
+    const clean = decoded.replace(/^\/+/, '');
+    // Hanya izinkan format nama_halaman.html atau dengan parameter query yang valid
+    if (/^[a-zA-Z0-9_-]+\.html(\?[a-zA-Z0-9_=&%.-]*)?$/.test(clean)) {
+      return clean;
+    }
+    return defaultUrl;
+  } catch (e) {
+    return defaultUrl;
+  }
+}
+
+/**
  * Arahkan pengguna ke halaman login dengan pengawetan URL target
  */
 export function redirectToLogin(isExpired = false) {
