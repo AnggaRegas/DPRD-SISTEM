@@ -38,6 +38,7 @@ const CACHEABLE_ACTIONS = [
   "getKategoriList", "getKategoriWithDocCount",
   "getTahunList", "getFolderList",
   "getDokumenList", "getDokumenById",
+  "getKomisiList", "getRdpDokumenList",
   "getDashboardData", "getActivityLog",
   "getCurrentUser", "checkSession", "getProfile"
 ];
@@ -48,6 +49,10 @@ function invalidateCacheForAction(action) {
     clearApiCache("getDashboardData");
   } else if (action.includes("Kategori")) {
     clearApiCache("getKategori");
+    clearApiCache("getDashboardData");
+  } else if (action.includes("Komisi") || action.includes("Rdp")) {
+    clearApiCache("getKomisi");
+    clearApiCache("getRdpDokumen");
     clearApiCache("getDashboardData");
   } else if (action.includes("Tahun")) {
     clearApiCache("getTahun");
@@ -292,6 +297,11 @@ function getMockDb() {
       { id: 'KAT-02', nama_kategori: 'Laporan Hasil Reses', deskripsi: 'Laporan penjaringan aspirasi konstituen', status: 'aktif' },
       { id: 'KAT-03', nama_kategori: 'Fasilitasi Penganggaran (RKA/DPA)', deskripsi: 'Dokumen pembahasan anggaran', status: 'aktif' }
     ],
+    komisi: [
+      { id: 'KOM-1', kode: 'komisi_1', nama: 'Komisi 1', bidang: 'Bidang Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Membidangi urusan pemerintahan umum, hukum, perizinan, aparatur, dan ketertiban masyarakat.', kategori_folder: 'RDP', status: 'aktif' },
+      { id: 'KOM-2', kode: 'komisi_2', nama: 'Komisi 2', bidang: 'Bidang Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Membidangi urusan keuangan daerah, perpajakan, perindustrian, perdagangan, dan pembangunan infrastruktur.', kategori_folder: 'RDP', status: 'aktif' },
+      { id: 'KOM-3', kode: 'komisi_3', nama: 'Komisi 3', bidang: 'Bidang Kesejahteraan Rakyat dan Pendidikan', deskripsi: 'Membidangi urusan pendidikan, kesehatan, sosial, ketenagakerjaan, kepemudaan, dan kesejahteraan rakyat.', kategori_folder: 'RDP', status: 'aktif' }
+    ],
     tahun: [
       { id: 'THN-1', dewan_id: 'DWN-01', kategori_id: 'KAT-01', tahun: 2024, status: 'aktif' }
     ],
@@ -370,6 +380,8 @@ const MOCK_ACTION_PERMISSIONS = {
   'deleteFolder': ['superadmin'],
   'deleteDokumen': ['staff', 'admin', 'superadmin'],
   'getKomisiList': ['staff', 'admin', 'superadmin'],
+  'createKomisi': ['superadmin'],
+  'deleteKomisi': ['superadmin'],
   'getRdpDokumenList': ['staff', 'admin', 'superadmin'],
   'uploadRdpDokumen': ['staff', 'admin', 'superadmin'],
   'updateRdpDokumen': ['staff', 'admin', 'superadmin'],
@@ -989,20 +1001,114 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'getKomisiList': {
-      const komisi = [
-        { id: 'KOM-1', kode: 'KOMISI_1', nama: 'Komisi 1', bidang: 'Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Bidang Pemerintahan, Ketertiban, Kependudukan, dan Hukum' },
-        { id: 'KOM-2', kode: 'KOMISI_2', nama: 'Komisi 2', bidang: 'Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Bidang Anggaran, Keuangan Daerah, Pendapatan, dan Pembangunan' },
-        { id: 'KOM-3', kode: 'KOMISI_3', nama: 'Komisi 3', bidang: 'Pendidikan, Kesehatan, dan Kesejahteraan Sosial', deskripsi: 'Bidang Pendidikan, Kesehatan, Ketenagakerjaan, dan Kesra' }
-      ];
-      return { success: true, data: komisi, message: 'Daftar komisi berhasil dimuat.' };
+      if (!Array.isArray(db.komisi) || db.komisi.length === 0) {
+        db.komisi = [
+          { id: 'KOM-1', kode: 'komisi_1', nama: 'Komisi 1', bidang: 'Bidang Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Membidangi urusan pemerintahan umum, hukum, perizinan, aparatur, dan ketertiban masyarakat.', kategori_folder: 'RDP', status: 'aktif' },
+          { id: 'KOM-2', kode: 'komisi_2', nama: 'Komisi 2', bidang: 'Bidang Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Membidangi urusan keuangan daerah, perpajakan, perindustrian, perdagangan, dan pembangunan infrastruktur.', kategori_folder: 'RDP', status: 'aktif' },
+          { id: 'KOM-3', kode: 'komisi_3', nama: 'Komisi 3', bidang: 'Bidang Kesejahteraan Rakyat dan Pendidikan', deskripsi: 'Membidangi urusan pendidikan, kesehatan, sosial, ketenagakerjaan, kepemudaan, dan kesejahteraan rakyat.', kategori_folder: 'RDP', status: 'aktif' }
+        ];
+        saveMockDb(db);
+      }
+      const activeKomisi = db.komisi.filter((k) => (k.status || 'aktif') === 'aktif');
+      return { success: true, data: activeKomisi, message: 'Daftar komisi berhasil dimuat.' };
+    }
+
+    case 'createKomisi': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang dapat menambah komisi.', error: { code: 'FORBIDDEN' } };
+      }
+
+      const data = payload.data || payload;
+      const nama = String(data.nama || data.nama_komisi || '').trim();
+      const bidang = String(data.bidang || '').trim();
+      const deskripsi = String(data.deskripsi || '').trim();
+      const kategoriFolder = String(data.kategori_folder || 'RDP').trim().toUpperCase();
+
+      if (!nama || !bidang) {
+        return { success: false, message: 'Nama komisi dan bidang komisi wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      if (!Array.isArray(db.komisi) || db.komisi.length === 0) {
+        db.komisi = [
+          { id: 'KOM-1', kode: 'komisi_1', nama: 'Komisi 1', bidang: 'Bidang Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Membidangi urusan pemerintahan umum, hukum, perizinan, aparatur, dan ketertiban masyarakat.', kategori_folder: 'RDP', status: 'aktif' },
+          { id: 'KOM-2', kode: 'komisi_2', nama: 'Komisi 2', bidang: 'Bidang Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Membidangi urusan keuangan daerah, perpajakan, perindustrian, perdagangan, dan pembangunan infrastruktur.', kategori_folder: 'RDP', status: 'aktif' },
+          { id: 'KOM-3', kode: 'komisi_3', nama: 'Komisi 3', bidang: 'Bidang Kesejahteraan Rakyat dan Pendidikan', deskripsi: 'Membidangi urusan pendidikan, kesehatan, sosial, ketenagakerjaan, kepemudaan, dan kesejahteraan rakyat.', kategori_folder: 'RDP', status: 'aktif' }
+        ];
+      }
+
+      const isDup = db.komisi.some((k) => (k.status || 'aktif') === 'aktif' && k.nama.toLowerCase() === nama.toLowerCase());
+      if (isDup) {
+        return { success: false, message: `Komisi dengan nama "${nama}" sudah terdaftar.`, error: { code: 'DUPLICATE_ENTRY' } };
+      }
+
+      let newId = 'KOM-' + Date.now();
+      const numMatch = nama.match(/komisi\s*(\d+)/i);
+      if (numMatch && numMatch[1]) {
+        const candidateId = 'KOM-' + numMatch[1];
+        if (!db.komisi.some((k) => k.id === candidateId)) {
+          newId = candidateId;
+        }
+      }
+
+      const newKomisi = {
+        id: newId,
+        kode: nama.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        nama,
+        bidang,
+        deskripsi,
+        kategori_folder: kategoriFolder,
+        status: 'aktif',
+        created_at: new Date().toISOString()
+      };
+
+      db.komisi.push(newKomisi);
+      saveMockDb(db);
+      return { success: true, data: newKomisi, message: 'Komisi berhasil ditambahkan.' };
+    }
+
+    case 'deleteKomisi': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang dapat menghapus komisi.', error: { code: 'FORBIDDEN' } };
+      }
+
+      const id = String(payload.id || '').trim();
+      if (!id) {
+        return { success: false, message: 'ID Komisi wajib disertakan.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      if (!Array.isArray(db.komisi) || db.komisi.length === 0) {
+        db.komisi = [
+          { id: 'KOM-1', kode: 'komisi_1', nama: 'Komisi 1', bidang: 'Bidang Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Membidangi urusan pemerintahan umum, hukum, perizinan, aparatur, dan ketertiban masyarakat.', kategori_folder: 'RDP', status: 'aktif' },
+          { id: 'KOM-2', kode: 'komisi_2', nama: 'Komisi 2', bidang: 'Bidang Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Membidangi urusan keuangan daerah, perpajakan, perindustrian, perdagangan, dan pembangunan infrastruktur.', kategori_folder: 'RDP', status: 'aktif' },
+          { id: 'KOM-3', kode: 'komisi_3', nama: 'Komisi 3', bidang: 'Bidang Kesejahteraan Rakyat dan Pendidikan', deskripsi: 'Membidangi urusan pendidikan, kesehatan, sosial, ketenagakerjaan, kepemudaan, dan kesejahteraan rakyat.', kategori_folder: 'RDP', status: 'aktif' }
+        ];
+      }
+
+      const target = db.komisi.find((k) => String(k.id) === id);
+      if (!target || target.status === 'dihapus') {
+        return { success: false, message: 'Komisi tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+
+      const activeDocs = (db.dokumen || []).filter((d) => String(d.dewan_id) === id && d.status === 'aktif');
+      if (activeDocs.length > 0) {
+        return {
+          success: false,
+          message: `Gagal menghapus: Komisi masih memiliki ${activeDocs.length} dokumen arsip RDP aktif. Dokumen terlindungi dari penghapusan.`,
+          error: { code: 'HAS_DEPENDENT_RECORDS' }
+        };
+      }
+
+      db.komisi = db.komisi.filter((k) => String(k.id) !== id);
+      saveMockDb(db);
+      return { success: true, message: 'Komisi berhasil dihapus.' };
     }
 
     case 'getRdpDokumenList': {
       const komisiId = String(payload.komisi_id || payload.komisiId || '').trim();
       const tahunFilter = payload.tahun ? String(payload.tahun).trim() : '';
 
-      const validKomisi = ['KOM-1', 'KOM-2', 'KOM-3'];
-      if (!validKomisi.includes(komisiId)) {
+      const validKomisi = (db.komisi || []).filter(k => (k.status || 'aktif') === 'aktif').map(k => String(k.id));
+      if (!validKomisi.includes(komisiId) && !['KOM-1', 'KOM-2', 'KOM-3'].includes(komisiId)) {
         return { success: false, message: 'ID Komisi tidak valid.', error: { code: 'VALIDATION_ERROR' } };
       }
 
@@ -1040,8 +1146,8 @@ async function handleMockRequest(action, payload) {
     case 'uploadRdpDokumen': {
       const data = payload.data || payload;
       const komisiId = String(data.komisi_id || '').trim();
-      const validKomisi = ['KOM-1', 'KOM-2', 'KOM-3'];
-      if (!validKomisi.includes(komisiId)) {
+      const validKomisi = (db.komisi || []).filter(k => (k.status || 'aktif') === 'aktif').map(k => String(k.id));
+      if (!validKomisi.includes(komisiId) && !['KOM-1', 'KOM-2', 'KOM-3'].includes(komisiId)) {
         return { success: false, message: 'ID Komisi tidak valid.', error: { code: 'VALIDATION_ERROR' } };
       }
 
@@ -1480,6 +1586,8 @@ export const api = {
 
   // Komisi & RDP
   getKomisiList: () => callAppsScript('getKomisiList'),
+  createKomisi: (data) => callAppsScript('createKomisi', { data }),
+  deleteKomisi: (id) => callAppsScript('deleteKomisi', { id }),
   getRdpDokumenList: (komisi_id, tahun = '') => callAppsScript('getRdpDokumenList', { komisi_id, tahun }),
   uploadRdpDokumen: (data) => callAppsScript('uploadRdpDokumen', data, { timeout: 40000 }),
   updateRdpDokumen: (data) => callAppsScript('updateRdpDokumen', data),

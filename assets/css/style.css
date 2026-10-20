@@ -1264,8 +1264,17 @@ body.sidebar-collapsed .main-wrapper {
 .archive-card-header {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
+}
+
+.archive-card-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
 }
 
 .archive-card-icon {
@@ -1296,6 +1305,34 @@ body.sidebar-collapsed .main-wrapper {
   font-size: 12.5px;
   color: var(--text-muted);
   margin-top: 3px;
+}
+
+.btn-card-delete {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--border-radius-md, 8px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.btn-card-delete:hover {
+  color: var(--status-danger, #dc2626);
+  background-color: var(--status-danger-bg, #fef2f2);
+  border-color: var(--status-danger-border, #fecaca);
+  transform: scale(1.06);
+}
+
+.btn-card-delete:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
 }
 
 .archive-card-footer {

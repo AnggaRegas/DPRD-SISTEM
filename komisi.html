@@ -43,6 +43,15 @@
             <h1>Arsip Komisi & Rapat Dengar Pendapat (RDP)</h1>
             <p>Pilih Komisi untuk membuka arsip risalah, notula, dan dokumen Rapat Dengar Pendapat.</p>
           </div>
+          <div class="page-actions" id="containerBtnTambahKomisi" style="display: none;">
+            <button type="button" id="btnBukaModalTambahKomisi" class="btn btn-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              + Tambah Komisi
+            </button>
+          </div>
         </div>
 
         <div class="archive-grid" id="komisiCardsContainer" style="margin-top: 10px;">
@@ -132,6 +141,54 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- MODAL TAMBAH KOMISI -->
+  <div class="modal-backdrop" id="modalTambahKomisiBackdrop" style="display: none;">
+    <div class="modal-content" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 class="modal-title">+ Tambah Komisi Baru</h3>
+        <button type="button" class="modal-close" id="btnCloseModalTambahKomisi">&times;</button>
+      </div>
+      <form id="formTambahKomisi">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="inputNamaKomisi" class="form-label">Nama Komisi <span class="required">*</span></label>
+            <input type="text" id="inputNamaKomisi" class="form-input" placeholder="Contoh: Komisi 4" required autofocus>
+            <small class="form-hint" style="color: var(--text-muted); font-size: 11.5px; display: block; margin-top: 4px;">
+              Gunakan penamaan resmi, misalnya: Komisi 1, Komisi 2, atau nama komisi khusus.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="inputBidangKomisi" class="form-label">Bidang / Keterangan Urusan <span class="required">*</span></label>
+            <input type="text" id="inputBidangKomisi" class="form-input" placeholder="Contoh: Bidang Pembangunan, Tata Ruang, & Lingkungan Hidup" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputDeskripsiKomisi" class="form-label">Deskripsi / Tugas Pokok Komisi</label>
+            <textarea id="inputDeskripsiKomisi" class="form-textarea" rows="3" placeholder="Uraian ringkas kewenangan atau ruang lingkup bidang tugas komisi"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Kategori Folder Pengarsipan</label>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg-body, #f8fafc); border: 1px solid var(--border-light); border-radius: var(--border-radius-md);">
+              <span class="status-pill aktif" style="font-size: 11.5px;">
+                <span class="status-pill-dot"></span>
+                RDP (Rapat Dengar Pendapat)
+              </span>
+              <span style="font-size: 12px; color: var(--text-muted);">
+                Folder RDP otomatis didukung sesuai arsitektur pengarsipan komisi.
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnBatalTambahKomisi">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSubmitTambahKomisi">Simpan Komisi</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- MODAL UNGGAH DOKUMEN RDP -->
@@ -230,9 +287,14 @@
       const komisiId = params.get('komisi_id') || params.get('id');
 
       if (!komisiId) {
-        // Tampilkan 3 kartu Komisi
+        // Tampilkan kartu Komisi
         document.getElementById('viewPilihKomisi').style.display = 'block';
         document.getElementById('viewRdpList').style.display = 'none';
+        if (currentUser.role === 'superadmin') {
+          const btnTambah = document.getElementById('containerBtnTambahKomisi');
+          if (btnTambah) btnTambah.style.display = 'block';
+          setupTambahKomisiModal();
+        }
         renderKomisiSelection();
       } else {
         // Tampilkan daftar RDP Komisi
@@ -243,37 +305,60 @@
 
       async function renderKomisiSelection() {
         const container = document.getElementById('komisiCardsContainer');
+        const isSuper = currentUser.role === 'superadmin';
         try {
           const res = await api.getKomisiList();
           const list = (res && res.success && res.data) ? res.data : [
-            { id: 'KOM-1', kode: 'KOMISI_1', nama: 'Komisi 1', bidang: 'Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Bidang Pemerintahan, Ketertiban, Kependudukan, dan Hukum' },
-            { id: 'KOM-2', kode: 'KOMISI_2', nama: 'Komisi 2', bidang: 'Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Bidang Anggaran, Keuangan Daerah, Pendapatan, dan Pembangunan' },
-            { id: 'KOM-3', kode: 'KOMISI_3', nama: 'Komisi 3', bidang: 'Pendidikan, Kesehatan, dan Kesejahteraan Sosial', deskripsi: 'Bidang Pendidikan, Kesehatan, Ketenagakerjaan, dan Kesra' }
+            { id: 'KOM-1', kode: 'komisi_1', nama: 'Komisi 1', bidang: 'Bidang Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Membidangi urusan pemerintahan umum, hukum, perizinan, aparatur, dan ketertiban masyarakat.', kategori_folder: 'RDP' },
+            { id: 'KOM-2', kode: 'komisi_2', nama: 'Komisi 2', bidang: 'Bidang Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Membidangi urusan keuangan daerah, perpajakan, perindustrian, perdagangan, dan pembangunan infrastruktur.', kategori_folder: 'RDP' },
+            { id: 'KOM-3', kode: 'komisi_3', nama: 'Komisi 3', bidang: 'Bidang Kesejahteraan Rakyat dan Pendidikan', deskripsi: 'Membidangi urusan pendidikan, kesehatan, sosial, ketenagakerjaan, kepemudaan, dan kesejahteraan rakyat.', kategori_folder: 'RDP' }
           ];
 
-          container.innerHTML = list.map((k, idx) => `
+          if (!list.length) {
+            container.innerHTML = `
+              <div style="grid-column: 1/-1; text-align: center; padding: 40px 20px;" class="card">
+                <h3 style="margin-top: 12px; font-size: 16px; color: var(--navy-900);">Belum Ada Komisi</h3>
+                <p style="color: var(--text-muted); font-size: 13px;">Silakan tambahkan komisi baru melalui tombol di atas.</p>
+              </div>
+            `;
+            return;
+          }
+
+          container.innerHTML = list.map((k) => `
             <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
               <div class="archive-card-header">
-                <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
+                <div class="archive-card-header-main">
+                  <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="archive-card-title" style="font-size: 16px;">${k.nama}</div>
+                    <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">${k.bidang}</div>
+                  </div>
                 </div>
-                <div>
-                  <div class="archive-card-title" style="font-size: 16px;">${k.nama}</div>
-                  <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">${k.bidang}</div>
-                </div>
+                ${isSuper ? `
+                  <button type="button" class="btn-card-delete" data-id="${k.id}" data-nama="${k.nama}" data-bidang="${k.bidang}" aria-label="Hapus komisi ${k.nama}" title="Hapus komisi">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 17px; height: 17px;">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </button>
+                ` : ''}
               </div>
               <div style="font-size: 13px; color: var(--text-muted); margin: 12px 0 20px 0; line-height: 1.5;">
-                ${k.deskripsi}
+                ${k.deskripsi || '-'}
               </div>
               <div class="archive-card-footer">
                 <span class="status-pill aktif" style="font-size: 11.5px;">
                   <span class="status-pill-dot"></span>
-                  Kategori: RDP
+                  Kategori: ${k.kategori_folder || 'RDP'}
                 </span>
                 <a href="komisi.html?komisi_id=${k.id}" class="btn btn-gold btn-sm">
                   Buka Folder RDP &rarr;
@@ -281,9 +366,112 @@
               </div>
             </div>
           `).join('');
+
+          // Event listener tombol hapus komisi
+          container.querySelectorAll('.btn-card-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const id = btn.dataset.id;
+              const nama = btn.dataset.nama;
+              const bidang = btn.dataset.bidang;
+
+              showConfirmDialog({
+                title: 'Hapus Komisi?',
+                message: `Apakah Anda yakin ingin menghapus "${nama}" (${bidang})?\n\nPerhatian: Sistem arsip melindungi seluruh dokumen. Jika komisi ini masih memiliki dokumen arsip RDP aktif, komisi tidak dapat dihapus demi keamanan dokumen.`,
+                confirmText: 'Ya, Hapus Komisi',
+                cancelText: 'Batal',
+                isDanger: true,
+                onConfirm: async () => {
+                  btn.disabled = true;
+                  try {
+                    const resDel = await api.deleteKomisi(id);
+                    if (resDel && resDel.success) {
+                      showToast(`Komisi ${nama} berhasil dihapus.`, 'success');
+                      await renderKomisiSelection();
+                    } else {
+                      showToast(resDel.message || 'Gagal menghapus komisi.', 'error');
+                      btn.disabled = false;
+                    }
+                  } catch (err) {
+                    showToast(err.message || 'Terjadi kesalahan sistem saat menghapus.', 'error');
+                    btn.disabled = false;
+                  }
+                }
+              });
+            });
+          });
         } catch (e) {
           container.innerHTML = '<div style="grid-column: 1/-1; color: var(--status-danger); text-align: center;">Gagal memuat komisi.</div>';
         }
+      }
+
+      function setupTambahKomisiModal() {
+        const modal = document.getElementById('modalTambahKomisiBackdrop');
+        const btnOpen = document.getElementById('btnBukaModalTambahKomisi');
+        const btnClose = document.getElementById('btnCloseModalTambahKomisi');
+        const btnBatal = document.getElementById('btnBatalTambahKomisi');
+        const form = document.getElementById('formTambahKomisi');
+        const btnSubmit = document.getElementById('btnSubmitTambahKomisi');
+
+        if (!btnOpen || !modal || !form) return;
+
+        btnOpen.addEventListener('click', () => {
+          form.reset();
+          modal.style.display = 'flex';
+          const inputNama = document.getElementById('inputNamaKomisi');
+          if (inputNama) inputNama.focus();
+        });
+
+        const closeModal = () => {
+          modal.style.display = 'none';
+        };
+
+        if (btnClose) btnClose.addEventListener('click', closeModal);
+        if (btnBatal) btnBatal.addEventListener('click', closeModal);
+
+        let isSubmitting = false;
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (isSubmitting) return;
+
+          const nama = document.getElementById('inputNamaKomisi').value.trim();
+          const bidang = document.getElementById('inputBidangKomisi').value.trim();
+          const deskripsi = document.getElementById('inputDeskripsiKomisi').value.trim();
+
+          if (!nama || !bidang) {
+            showToast('Nama komisi dan bidang komisi wajib diisi.', 'warning');
+            return;
+          }
+
+          isSubmitting = true;
+          btnSubmit.disabled = true;
+          btnSubmit.textContent = 'Menyimpan Komisi...';
+
+          try {
+            const res = await api.createKomisi({
+              nama,
+              bidang,
+              deskripsi,
+              kategori_folder: 'RDP'
+            });
+
+            if (res && res.success) {
+              showToast(`Komisi "${nama}" berhasil ditambahkan!`, 'success');
+              closeModal();
+              form.reset();
+              await renderKomisiSelection();
+            } else {
+              showToast(res.message || 'Gagal menambahkan komisi.', 'error');
+            }
+          } catch (err) {
+            showToast(err.message || 'Terjadi kesalahan sistem saat menyimpan.', 'error');
+          } finally {
+            isSubmitting = false;
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Simpan Komisi';
+          }
+        });
       }
 
       // Inisialisasi Tampilan RDP Komisi
@@ -291,12 +479,14 @@
       let availableYearsStore = [];
 
       async function initRdpView(id) {
-        const komisiMap = {
-          'KOM-1': { nama: 'Komisi 1', bidang: 'Pemerintahan, Hukum, dan Ketertiban' },
-          'KOM-2': { nama: 'Komisi 2', bidang: 'Ekonomi, Keuangan, dan Pembangunan' },
-          'KOM-3': { nama: 'Komisi 3', bidang: 'Pendidikan, Kesehatan, dan Kesejahteraan Sosial' }
-        };
-        const komisiInfo = komisiMap[id] || { nama: 'Komisi ' + id, bidang: 'Rapat Dengar Pendapat' };
+        let komisiInfo = { nama: 'Komisi ' + id, bidang: 'Rapat Dengar Pendapat' };
+        try {
+          const res = await api.getKomisiList();
+          if (res && res.success && Array.isArray(res.data)) {
+            const found = res.data.find(k => String(k.id) === String(id));
+            if (found) komisiInfo = found;
+          }
+        } catch (e) {}
 
         document.getElementById('komisiTitleName').textContent = `${komisiInfo.nama} DPRD Kota Parepare`;
         document.getElementById('komisiBidangText').textContent = `Bidang: ${komisiInfo.bidang} — Folder Dokumen Rapat Dengar Pendapat (RDP)`;

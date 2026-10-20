@@ -767,6 +767,63 @@ async function runAllTests() {
   const readKom3AfterDel = await api.getRdpDokumenList('KOM-3', 'semua');
   assert(!readKom3AfterDel.data?.dokumen?.some(d => d.id === newRdpKom3.data.id), 'CRUD Delete: Dokumen terhapus tidak muncul lagi di daftar');
 
+  // ================= 17. PENGUJIAN CRUD KOMISI & PERLINDUNGAN ARSIP =================
+  console.log('\n--- 17. Pengujian CRUD Komisi & Perlindungan Dokumen Arsip ---');
+
+  // Test 71: Staf dilarang menambah komisi baru (RBAC)
+  await api.login('staff', 'PasswordStaff2026!');
+  const staffTryCreateKomisi = await api.createKomisi({
+    nama: 'Komisi Staf Ilegal',
+    bidang: 'Bidang Tak Berizin'
+  });
+  assert(!staffTryCreateKomisi.success && staffTryCreateKomisi.error?.code === 'FORBIDDEN', 'Staf dilarang menambah komisi baru (RBAC: FORBIDDEN)');
+
+  // Test 72: Staf dilarang menghapus komisi (RBAC)
+  const staffTryDeleteKomisi = await api.deleteKomisi('KOM-1');
+  assert(!staffTryDeleteKomisi.success && staffTryDeleteKomisi.error?.code === 'FORBIDDEN', 'Staf dilarang menghapus komisi (RBAC: FORBIDDEN)');
+
+  // Superadmin login
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+
+  // Test 73: Validasi input tambah komisi (nama & bidang wajib)
+  const emptyKomisiRes = await api.createKomisi({ nama: '', bidang: '' });
+  assert(!emptyKomisiRes.success && emptyKomisiRes.error?.code === 'VALIDATION_ERROR', 'Sistem menolak penambahan komisi tanpa nama dan bidang (VALIDATION_ERROR)');
+
+  // Test 74: Pencegahan nama komisi duplikat
+  const dupKomisiRes = await api.createKomisi({ nama: 'Komisi 1', bidang: 'Bidang Duplikat' });
+  assert(!dupKomisiRes.success && dupKomisiRes.error?.code === 'DUPLICATE_ENTRY', 'Sistem menolak penambahan komisi dengan nama duplikat (DUPLICATE_ENTRY)');
+
+  // Test 75: Superadmin berhasil menambahkan Komisi 4
+  const createKom4Res = await api.createKomisi({
+    nama: 'Komisi 4',
+    bidang: 'Bidang Pembangunan, Tata Ruang, & Lingkungan Hidup',
+    deskripsi: 'Membidangi urusan pekerjaan umum, tata ruang kota, dan kebersihan lingkungan hidup.',
+    kategori_folder: 'RDP'
+  });
+  assert(createKom4Res.success && createKom4Res.data?.id, 'CRUD Create: Superadmin berhasil menambahkan Komisi 4 baru');
+  const kom4Id = createKom4Res.data.id;
+
+  // Test 76: Daftar komisi memuat 4 komisi setelah penambahan
+  const listAfterAdd = await api.getKomisiList();
+  assert(listAfterAdd.success && listAfterAdd.data?.length === 4, 'CRUD Read: Daftar komisi bertambah menjadi 4 komisi');
+  assert(listAfterAdd.data?.some(k => k.id === kom4Id && k.nama === 'Komisi 4'), 'Komisi 4 terdaftar dalam daftar komisi aktif');
+
+  // Test 77: Proteksi Arsip - Mencoba menghapus Komisi 1 yang memiliki dokumen aktif
+  // Komisi 1 masih memiliki dokumen RDP (Test 30)
+  const delKom1Res = await api.deleteKomisi('KOM-1');
+  assert(!delKom1Res.success && delKom1Res.error?.code === 'HAS_DEPENDENT_RECORDS', 'Proteksi Arsip: Komisi 1 ditolak dihapus karena masih memiliki dokumen RDP aktif (HAS_DEPENDENT_RECORDS)');
+  const listAfterBlockedDel = await api.getKomisiList();
+  assert(listAfterBlockedDel.data?.some(k => k.id === 'KOM-1'), 'Komisi 1 tetap utuh dan terlindungi di sistem');
+
+  // Test 78: Hapus Komisi 4 yang kosong (tanpa berkas dokumen)
+  const delKom4Res = await api.deleteKomisi(kom4Id);
+  assert(delKom4Res.success, 'CRUD Delete: Komisi 4 kosong berhasil dihapus oleh Superadmin');
+
+  // Test 79: Daftar komisi kembali menjadi 3 komisi
+  const listAfterCleanDel = await api.getKomisiList();
+  assert(listAfterCleanDel.success && listAfterCleanDel.data?.length === 3, 'CRUD Delete: Daftar komisi kembali menjadi 3 komisi');
+  assert(!listAfterCleanDel.data?.some(k => k.id === kom4Id), 'Komisi 4 terhapus tidak muncul lagi di daftar');
+
   // Cleanup logout
   await api.logout();
 
