@@ -6,251 +6,529 @@
   <title>Portal Aspirasi & Informasi Publik — DPRD Kota Parepare</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    /* Styling Khusus Portal Publik */
+    /* ==========================================================================
+       PORTAL PUBLIK ASPIRASI & INFORMASI — DPRD KOTA PAREPARE
+       Inspirasi Visual: contohui/contoh.jpg (Editorial Dark Luxury, Gold Accents, Clean Structure)
+       ========================================================================== */
+
+    /* Floating Pill Navbar */
     .public-navbar {
-      background: var(--navy-900);
-      color: #fff;
-      padding: 16px 24px;
+      background: rgba(6, 14, 24, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+      padding: 16px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
-      z-index: 100;
-      box-shadow: var(--shadow-md);
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      transition: all 0.25s ease;
     }
+
     .public-brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       text-decoration: none;
       color: #fff;
     }
+
     .public-brand-logo {
-      width: 42px;
-      height: 42px;
-      background: var(--gold-primary);
-      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #f1dfa8 0%, #d4af37 50%, #9e7d38 100%);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--navy-900);
+      color: #060e18;
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      flex-shrink: 0;
     }
+
     .public-brand-title {
-      font-size: 16px;
-      font-weight: 700;
+      font-size: 16.5px;
+      font-weight: 800;
       line-height: 1.2;
-      color: #fff;
+      color: #ffffff;
+      letter-spacing: -0.01em;
     }
+
     .public-brand-sub {
-      font-size: 11.5px;
-      color: var(--gold-light);
-      letter-spacing: 0.5px;
+      font-size: 11px;
+      color: var(--gold-300);
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      text-transform: uppercase;
     }
+
     .public-nav-links {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 28px;
     }
+
     .public-nav-link {
       color: #cbd5e1;
       text-decoration: none;
       font-size: 13.5px;
       font-weight: 500;
-      transition: color 0.2s;
+      transition: color 0.2s, transform 0.15s;
+      position: relative;
     }
+
     .public-nav-link:hover {
-      color: var(--gold-primary);
+      color: var(--gold-300);
     }
+
+    .btn-login-nav {
+      background: rgba(255, 255, 255, 0.06);
+      color: #f1dfa8 !important;
+      border: 1px solid rgba(212, 175, 55, 0.4) !important;
+      border-radius: var(--border-radius-full);
+      padding: 7px 18px !important;
+      font-weight: 600;
+      font-size: 13px !important;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-login-nav:hover {
+      background: var(--gold-400);
+      color: #060e18 !important;
+      border-color: var(--gold-400) !important;
+      box-shadow: 0 4px 16px rgba(212, 175, 55, 0.45);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section (Inspirasi Editorial Dark Pinterest) */
     .hero-section {
-      background: linear-gradient(135deg, var(--navy-950) 0%, var(--navy-900) 60%, var(--navy-800) 100%);
+      background: 
+        radial-gradient(ellipse at 50% 10%, rgba(30, 62, 98, 0.4) 0%, transparent 60%),
+        radial-gradient(circle at 10% 80%, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+        linear-gradient(180deg, #060e18 0%, #0b192c 60%, #081320 100%);
       color: #fff;
-      padding: 80px 24px;
+      padding: 100px 24px 80px 24px;
       text-align: center;
       position: relative;
       overflow: hidden;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.15);
     }
+
     .hero-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 16px;
-      background: rgba(184, 134, 11, 0.2);
-      border: 1px solid var(--gold-primary);
-      border-radius: 20px;
-      color: var(--gold-light);
+      gap: 10px;
+      padding: 7px 20px;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      border-radius: var(--border-radius-full);
+      color: #f1dfa8;
       font-size: 12.5px;
-      font-weight: 600;
-      margin-bottom: 24px;
+      font-weight: 700;
+      margin-bottom: 28px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     }
+
+    .hero-badge-star {
+      color: var(--gold-400);
+      font-size: 14px;
+    }
+
     .hero-title {
-      font-size: 38px;
-      font-weight: 800;
-      line-height: 1.25;
-      margin-bottom: 20px;
-      max-width: 820px;
+      font-size: 44px;
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 22px;
+      max-width: 880px;
       margin-left: auto;
       margin-right: auto;
-      color: #fff;
+      color: #ffffff;
+      letter-spacing: -0.025em;
     }
+
+    .hero-title-highlight {
+      background: linear-gradient(135deg, #fbf7ee 0%, #f1dfa8 40%, #d4af37 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
     .hero-subtitle {
-      font-size: 16px;
+      font-size: 16.5px;
       color: #94a3b8;
-      max-width: 680px;
-      margin: 0 auto 36px auto;
-      line-height: 1.6;
+      max-width: 720px;
+      margin: 0 auto 40px auto;
+      line-height: 1.7;
+      font-weight: 400;
     }
+
     .hero-cta-group {
       display: flex;
       justify-content: center;
-      gap: 16px;
+      gap: 18px;
       flex-wrap: wrap;
     }
-    .stats-bar {
-      background: #fff;
-      border-bottom: 1px solid var(--border-light);
-      padding: 24px;
+
+    .btn-hero-primary {
+      padding: 14px 32px !important;
+      font-size: 15px !important;
+      font-weight: 700 !important;
+      border-radius: var(--border-radius-full) !important;
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
     }
+
+    .btn-hero-secondary {
+      padding: 14px 28px !important;
+      font-size: 15px !important;
+      border-radius: var(--border-radius-full) !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.25) !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .btn-hero-secondary:hover {
+      background: rgba(255, 255, 255, 0.12) !important;
+      border-color: rgba(212, 175, 55, 0.5) !important;
+      color: var(--gold-300) !important;
+    }
+
+    /* Stats Section (Inspirasi Floating Outline Cards) */
+    .stats-bar {
+      background: transparent;
+      padding: 0 24px;
+      margin-top: -36px;
+      position: relative;
+      z-index: 20;
+    }
+
     .stats-container {
-      max-width: 1100px;
+      max-width: 1140px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .stat-card-pub {
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 24px 20px;
       text-align: center;
+      box-shadow: 0 8px 24px rgba(11, 25, 44, 0.08);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
     }
-    .stat-item h3 {
-      font-size: 32px;
-      font-weight: 800;
+
+    .stat-card-pub:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 32px rgba(11, 25, 44, 0.12);
+      border-color: rgba(212, 175, 55, 0.4);
+    }
+
+    .stat-card-pub::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold-300), var(--gold-500));
+    }
+
+    .stat-card-pub h3 {
+      font-size: 34px;
+      font-weight: 900;
       color: var(--navy-900);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
     }
-    .stat-item p {
-      font-size: 13px;
+
+    .stat-card-pub p {
+      font-size: 13.5px;
       color: var(--text-muted);
       font-weight: 500;
     }
+
+    /* Section Styling & Divider Lines (Inspirasi Pinterest Editorial Heading) */
     .section-container {
       max-width: 1140px;
       margin: 0 auto;
-      padding: 60px 24px;
+      padding: 80px 24px;
     }
+
     .section-header {
       text-align: center;
-      margin-bottom: 48px;
-    }
-    .section-tag {
-      color: var(--gold-primary);
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-      display: block;
-    }
-    .section-title {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--navy-900);
-      margin-bottom: 12px;
-    }
-    .section-desc {
-      font-size: 15px;
-      color: var(--text-muted);
-      max-width: 600px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-    .dewan-card {
-      background: #fff;
-      border: 1px solid var(--border-light);
-      border-radius: var(--border-radius-md);
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .dewan-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-md);
-    }
-    .public-form-container {
-      background: #fff;
-      border: 1px solid var(--border-light);
-      border-radius: var(--border-radius-lg);
-      padding: 36px;
-      box-shadow: var(--shadow-md);
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .alur-step-card {
-      background: #fff;
-      border: 1px solid var(--border-light);
-      border-radius: var(--border-radius-md);
-      padding: 24px;
-      text-align: center;
+      margin-bottom: 54px;
       position: relative;
     }
+
+    .section-tag-divider {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .section-tag-divider::before,
+    .section-tag-divider::after {
+      content: "";
+      width: 48px;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, var(--gold-400));
+    }
+
+    .section-tag-divider::after {
+      background: linear-gradient(90deg, var(--gold-400), transparent);
+    }
+
+    .section-tag {
+      color: var(--gold-600);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .section-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--navy-900);
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    .section-desc {
+      font-size: 15.5px;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* Alur Step Card (Inspirasi Garis Simpul Timeline Pinterest: Days 1-3, 4-6, 7-10) */
+    .alur-step-card {
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 18px;
+      padding: 30px 24px;
+      text-align: center;
+      position: relative;
+      box-shadow: var(--shadow-card);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .alur-step-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(212, 175, 55, 0.4);
+    }
+
     .step-number {
-      width: 40px;
-      height: 40px;
-      background: var(--navy-900);
-      color: var(--gold-light);
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, var(--navy-950) 0%, var(--navy-850) 100%);
+      color: var(--gold-300);
+      border: 2px solid var(--gold-400);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-weight: 800;
+      font-size: 17px;
+      margin: 0 auto 18px auto;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
+    }
+
+    /* Komisi Cards (Inspirasi Card WHAT'S INCLUDED Pinterest) */
+    .komisi-feature-card {
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: var(--shadow-card);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .komisi-feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(11, 25, 44, 0.1);
+      border-color: rgba(212, 175, 55, 0.45);
+    }
+
+    .komisi-feature-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--gold-300), var(--gold-500));
+    }
+
+    .komisi-icon-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      color: var(--gold-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .komisi-icon-circle svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .komisi-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--navy-900);
+      margin-bottom: 4px;
+    }
+
+    .komisi-bidang {
+      font-size: 13.5px;
       font-weight: 700;
+      color: var(--gold-600);
+      margin-bottom: 14px;
+    }
+
+    .komisi-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* Dewan Card */
+    .dewan-card {
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .dewan-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(212, 175, 55, 0.35);
+    }
+
+    .dewan-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--navy-900), var(--navy-800));
+      color: var(--gold-300);
+      border: 1.5px solid var(--gold-400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
       font-size: 16px;
-      margin: 0 auto 16px auto;
+      flex-shrink: 0;
+      box-shadow: 0 3px 8px rgba(11, 25, 44, 0.12);
     }
+
+    /* Floating Card Formulir Aspirasi (Inspirasi Floating Card Pinterest: Want to join us?) */
+    .public-form-container {
+      background: #ffffff;
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 24px;
+      padding: 44px;
+      box-shadow: 0 20px 48px rgba(11, 25, 44, 0.08);
+      max-width: 820px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* Footer */
     .public-footer {
-      background: var(--navy-950);
+      background-color: var(--navy-950);
+      background-image: linear-gradient(180deg, #091322 0%, #040810 100%);
       color: #94a3b8;
-      padding: 50px 24px 30px 24px;
-      border-top: 3px solid var(--gold-primary);
+      padding: 70px 24px 36px 24px;
+      border-top: 3px solid var(--gold-400);
     }
+
     .footer-container {
       max-width: 1140px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 36px;
-      margin-bottom: 40px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 40px;
+      margin-bottom: 48px;
     }
+
     .footer-col h4 {
-      color: #fff;
-      font-size: 16px;
+      color: #ffffff;
+      font-size: 16.5px;
       font-weight: 700;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
+      letter-spacing: -0.01em;
     }
+
     .footer-col p, .footer-col li {
       font-size: 13.5px;
-      line-height: 1.7;
+      line-height: 1.75;
     }
+
     .footer-col ul {
       list-style: none;
       padding: 0;
     }
+
+    .footer-col ul li {
+      margin-bottom: 8px;
+    }
+
     .footer-col ul li a {
       color: #94a3b8;
       text-decoration: none;
       transition: color 0.2s;
     }
+
     .footer-col ul li a:hover {
-      color: var(--gold-primary);
+      color: var(--gold-300);
     }
+
     .footer-bottom {
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 28px;
       text-align: center;
       font-size: 12.5px;
       color: #64748b;
+      line-height: 1.6;
     }
 
+    /* Mobile Responsive Pass */
     @media (max-width: 768px) {
-      .hero-title { font-size: 28px; }
+      .public-navbar { padding: 14px 18px; }
+      .hero-title { font-size: 30px; }
       .public-nav-links { display: none; }
-      .public-form-container { padding: 24px 16px; }
+      .public-form-container { padding: 26px 18px; }
+      .section-container { padding: 60px 18px; }
+      .stats-bar { margin-top: -24px; }
     }
   </style>
 </head>
@@ -260,7 +538,7 @@
   <header class="public-navbar">
     <a href="index.html" class="public-brand">
       <div class="public-brand-logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width: 24px; height: 24px;">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
       </div>
@@ -272,150 +550,147 @@
 
     <nav class="public-nav-links">
       <a href="#tentang" class="public-nav-link">Tentang</a>
-      <a href="#dewan" class="public-nav-link">Anggota Dewan</a>
-      <a href="#komisi" class="public-nav-link">Komisi</a>
       <a href="#alur" class="public-nav-link">Alur Aspirasi</a>
+      <a href="#komisi" class="public-nav-link">Komisi DPRD</a>
+      <a href="#dewan" class="public-nav-link">Anggota Dewan</a>
       <a href="#aspirasi" class="public-nav-link">Sampaikan Aspirasi</a>
-      <a href="login.html" class="btn btn-secondary btn-sm" style="color: var(--navy-900);">
+      <a href="login.html" class="btn btn-login-nav">
         Login Petugas &rarr;
       </a>
     </nav>
   </header>
 
   <!-- HERO SECTION -->
-  <section class="hero-section">
+  <section class="hero-section" id="tentang">
     <div class="hero-badge">
-      <span>&#9733;</span> Portal Resmi Sekretariat DPRD Kota Parepare
+      <span class="hero-badge-star">&#9733;</span> Portal Resmi Sekretariat DPRD Kota Parepare
     </div>
-    <h1 class="hero-title">Sampaikan Aspirasi & Pengaduan Anda Langsung ke DPRD Kota Parepare</h1>
+    <h1 class="hero-title">
+      Sampaikan Aspirasi & Pengaduan Anda <span class="hero-title-highlight">Langsung ke Wakil Rakyat</span>
+    </h1>
     <p class="hero-subtitle">
-      Wadah resmi bagi seluruh masyarakat Kota Parepare untuk menyampaikan suara, saran, dan pengaduan pembangunan secara transparan, mudah, dan langsung ditindaklanjuti oleh wakil rakyat.
+      Wadah digital resmi bagi seluruh masyarakat Kota Parepare untuk menyampaikan saran, aspirasi pembangunan, dan pengaduan layanan secara transparan, akuntabel, dan langsung ditindaklanjuti secara berjenjang oleh DPRD Kota Parepare.
     </p>
     <div class="hero-cta-group">
-      <a href="#aspirasi" class="btn btn-gold" style="padding: 14px 28px; font-size: 15px; font-weight: 700;">
+      <a href="#aspirasi" class="btn btn-gold btn-hero-primary">
         Sampaikan Aspirasi Sekarang &darr;
       </a>
-      <a href="#dewan" class="btn btn-secondary" style="padding: 14px 24px; font-size: 15px; background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">
-        Lihat Anggota DPRD
+      <a href="#dewan" class="btn btn-hero-secondary">
+        Lihat Anggota DPRD Parepare
       </a>
     </div>
   </section>
 
-  <!-- STATS BAR -->
+  <!-- STATS BAR (INSPIRASI FLOATING CARDS PINTEREST) -->
   <section class="stats-bar">
     <div class="stats-container">
-      <div class="stat-item">
+      <div class="stat-card-pub">
         <h3>25</h3>
         <p>Anggota Legislatif Resmi</p>
       </div>
-      <div class="stat-item">
+      <div class="stat-card-pub">
         <h3>3</h3>
         <p>Komisi Bidang Kerja</p>
       </div>
-      <div class="stat-item">
+      <div class="stat-card-pub">
         <h3>4</h3>
         <p>Wilayah Kecamatan</p>
       </div>
-      <div class="stat-item">
+      <div class="stat-card-pub">
         <h3>100%</h3>
         <p>Layanan Aspirasi Terbuka</p>
       </div>
     </div>
   </section>
 
-  <!-- SECTION: ALUR PENYAMPAIAN ASPIRASI -->
+  <!-- SECTION: ALUR PENYAMPAIAN ASPIRASI (INSPIRASI TIMELINE PINTEREST) -->
   <section class="section-container" id="alur">
     <div class="section-header">
-      <span class="section-tag">Transparan & Terarah</span>
+      <div class="section-tag-divider">
+        <span class="section-tag">Transparan & Terarah</span>
+      </div>
       <h2 class="section-title">Alur Pengelolaan Aspirasi Masyarakat</h2>
-      <p class="section-desc">Setiap laporan yang masuk akan tercatat dengan nomor tiket unik dan diproses secara berjenjang oleh Sekretariat DPRD.</p>
+      <p class="section-desc">Setiap laporan yang masuk akan tercatat dengan nomor tiket unik dan diproses secara berjenjang oleh Sekretariat dan Komisi DPRD terkait.</p>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
       <div class="alur-step-card">
         <div class="step-number">1</div>
-        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Pengisian Laporan</h4>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Masyarakat mengisi formulir aspirasi online dengan data yang jelas dan memilih wilayah kecamatan terkait.</p>
+        <h4 style="font-size: 17px; font-weight: 700; color: var(--navy-900); margin-bottom: 10px;">Pengisian Laporan</h4>
+        <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">Masyarakat mengisi formulir aspirasi online secara lengkap dengan data yang valid dan memilih kecamatan terkait.</p>
       </div>
 
       <div class="alur-step-card">
         <div class="step-number">2</div>
-        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Pemberian Tiket Resmi</h4>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Sistem secara otomatis menerbitkan Nomor Tiket Aspirasi unik sebagai tanda bukti penerimaan laporan.</p>
+        <h4 style="font-size: 17px; font-weight: 700; color: var(--navy-900); margin-bottom: 10px;">Penerbitan Tiket Resmi</h4>
+        <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">Sistem menerbitkan Nomor Tiket Aspirasi unik (format: LAP-YYYYMMDD-XXXX) sebagai bukti resmi laporan diterima.</p>
       </div>
 
       <div class="alur-step-card">
         <div class="step-number">3</div>
-        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Verifikasi & Penugasan</h4>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Sekretariat DPRD memverifikasi laporan dan menetapkan kepada staf pendamping / komisi yang berwenang.</p>
+        <h4 style="font-size: 17px; font-weight: 700; color: var(--navy-900); margin-bottom: 10px;">Verifikasi & Penugasan</h4>
+        <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">Sekretariat DPRD memverifikasi kelayakan materi dan menugaskannya kepada staf pendamping komisi yang relevan.</p>
       </div>
 
       <div class="alur-step-card">
         <div class="step-number">4</div>
-        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Tindak Lanjut Dewan</h4>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Aspirasi dibahas dalam Rapat Dengar Pendapat (RDP) atau rapat kerja komisi bersama dinas terkait.</p>
+        <h4 style="font-size: 17px; font-weight: 700; color: var(--navy-900); margin-bottom: 10px;">Tindak Lanjut & RDP</h4>
+        <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">Materi aspirasi dibahas dalam Rapat Dengar Pendapat (RDP) komisi bersama dinas terkait guna perumusan kebijakan.</p>
       </div>
     </div>
   </section>
 
-  <!-- SECTION: KOMISI DPRD -->
-  <section class="section-container" id="komisi" style="background: var(--gray-50); border-radius: var(--border-radius-lg); margin-bottom: 40px;">
+  <!-- SECTION: KOMISI DPRD (INSPIRASI "WHAT'S INCLUDED" PINTEREST) -->
+  <section class="section-container" id="komisi" style="background: var(--bg-subtle); border-radius: 24px; margin-bottom: 40px; border: 1px solid var(--border-light);">
     <div class="section-header">
-      <span class="section-tag">Struktur Kerja</span>
+      <div class="section-tag-divider">
+        <span class="section-tag">Struktur Kerja Dewan</span>
+      </div>
       <h2 class="section-title">Komisi DPRD Kota Parepare</h2>
-      <p class="section-desc">Tiga komisi utama yang menjalankan fungsi legislasi, penganggaran, dan pengawasan di Kota Parepare.</p>
+      <p class="section-desc">Tiga komisi utama yang menjalankan fungsi legislasi, penganggaran, dan pengawasan pembangunan di Kota Parepare.</p>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
-      <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
-        <div class="archive-card-header">
-          <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            </svg>
-          </div>
-          <div>
-            <div class="archive-card-title">Komisi 1</div>
-            <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">Pemerintahan & Hukum</div>
-          </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 26px;">
+      <!-- Komisi 1 -->
+      <div class="komisi-feature-card">
+        <div class="komisi-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
         </div>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 12px 0;">
-          Membidangi urusan Pemerintahan, Hukum, Ketertiban Umum, Kependudukan, Pertanahan, dan Aparatur Sipil Daerah.
+        <div class="komisi-name">Komisi 1</div>
+        <div class="komisi-bidang">Bidang Pemerintahan & Hukum</div>
+        <p class="komisi-desc">
+          Membidangi urusan Pemerintahan Umum, Ketertiban & Keamanan, Kependudukan, Catatan Sipil, Pertanahan, Komunikasi, dan Aparatur Sipil Negara di lingkungan Pemkot Parepare.
         </p>
       </div>
 
-      <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
-        <div class="archive-card-header">
-          <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="1" x2="12" y2="23"></line>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
-          </div>
-          <div>
-            <div class="archive-card-title">Komisi 2</div>
-            <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">Ekonomi & Pembangunan</div>
-          </div>
+      <!-- Komisi 2 -->
+      <div class="komisi-feature-card">
+        <div class="komisi-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
         </div>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 12px 0;">
-          Membidangi Keuangan Daerah, Pendapatan, Pekerjaan Umum, Perdagangan, UMKM, dan Pembangunan Infrastruktur.
+        <div class="komisi-name">Komisi 2</div>
+        <div class="komisi-bidang">Bidang Ekonomi & Pembangunan</div>
+        <p class="komisi-desc">
+          Membidangi Keuangan Daerah, Pajak & Retribusi, Pekerjaan Umum, Tata Ruang Wilayah, Perhubungan, Perdagangan, UMKM, Pariwisata, dan Pembangunan Infrastruktur Kota.
         </p>
       </div>
 
-      <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
-        <div class="archive-card-header">
-          <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-            </svg>
-          </div>
-          <div>
-            <div class="archive-card-title">Komisi 3</div>
-            <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">Pendidikan & Kesra</div>
-          </div>
+      <!-- Komisi 3 -->
+      <div class="komisi-feature-card">
+        <div class="komisi-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
         </div>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 12px 0;">
-          Membidangi urusan Pendidikan, Layanan Kesehatan, Ketenagakerjaan, Sosial, Kepemudaan, dan Kesejahteraan Rakyat.
+        <div class="komisi-name">Komisi 3</div>
+        <div class="komisi-bidang">Bidang Pendidikan & Kesra</div>
+        <p class="komisi-desc">
+          Membidangi Layanan Pendidikan, Kesehatan Masyarakat, Ketenagakerjaan, Sosial, Kepemudaan & Olahraga, Pemberdayaan Perempuan, serta Perlindungan Anak.
         </p>
       </div>
     </div>
@@ -424,13 +699,15 @@
   <!-- SECTION: ANGGOTA DEWAN -->
   <section class="section-container" id="dewan">
     <div class="section-header">
-      <span class="section-tag">Wakil Rakyat Parepare</span>
+      <div class="section-tag-divider">
+        <span class="section-tag">Wakil Rakyat Parepare</span>
+      </div>
       <h2 class="section-title">Anggota DPRD Kota Parepare (2024–2029)</h2>
-      <p class="section-desc">Daftar resmi wakil rakyat yang bertugas mewakili suara masyarakat dari 4 wilayah kecamatan.</p>
+      <p class="section-desc">Daftar resmi 25 wakil rakyat yang bertugas mewakili suara dan aspirasi masyarakat dari 4 wilayah kecamatan.</p>
     </div>
 
     <!-- Filter Kecamatan Anggota Dewan -->
-    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap;" id="dewanFilterBar">
+    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 34px; flex-wrap: wrap;" id="dewanFilterBar">
       <button type="button" class="btn btn-gold btn-sm filter-kec-btn active" data-kec="all">Semua Wilayah</button>
       <button type="button" class="btn btn-secondary btn-sm filter-kec-btn" data-kec="Bacukiki">Kecamatan Bacukiki</button>
       <button type="button" class="btn btn-secondary btn-sm filter-kec-btn" data-kec="Bacukiki Barat">Kecamatan Bacukiki Barat</button>
@@ -438,7 +715,7 @@
       <button type="button" class="btn btn-secondary btn-sm filter-kec-btn" data-kec="Ujung">Kecamatan Ujung</button>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;" id="publicDewanGrid">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px;" id="publicDewanGrid">
       <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
         Memuat daftar anggota dewan...
       </div>
@@ -448,9 +725,11 @@
   <!-- SECTION: FORMULIR ASPIRASI MASYARAKAT -->
   <section class="section-container" id="aspirasi">
     <div class="section-header">
-      <span class="section-tag">Pelayanan Aspirasi Publik</span>
+      <div class="section-tag-divider">
+        <span class="section-tag">Pelayanan Aspirasi Publik</span>
+      </div>
       <h2 class="section-title">Formulir Penyampaian Aspirasi & Pengaduan</h2>
-      <p class="section-desc">Sampaikan aspirasi Anda secara lengkap. Sekretariat DPRD Kota Parepare menjamin kerahasiaan data pribadi pelapor.</p>
+      <p class="section-desc">Sampaikan aspirasi atau pengaduan pembangunan Anda secara jelas. Sekretariat DPRD Kota Parepare menjamin kerahasiaan data pribadi pelapor.</p>
     </div>
 
     <div class="public-form-container">
@@ -630,18 +909,18 @@
       grid.innerHTML = list.map(d => `
         <div class="dewan-card">
           <div style="display: flex; gap: 14px; align-items: flex-start;">
-            <div style="width: 44px; height: 44px; border-radius: 8px; background: var(--navy-50); color: var(--navy-900); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0;">
+            <div class="dewan-avatar">
               ${d.nomor_urut || '#'}
             </div>
-            <div>
-              <h4 style="font-size: 14px; font-weight: 700; color: var(--navy-900); line-height: 1.3; margin-bottom: 4px;">${d.nama}</h4>
-              <div style="font-size: 12px; color: var(--gold-primary); font-weight: 600; margin-bottom: 2px;">${d.jabatan || 'Anggota DPRD'}</div>
+            <div style="flex: 1; min-width: 0;">
+              <h4 style="font-size: 15px; font-weight: 700; color: var(--navy-900); line-height: 1.3; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${d.nama}">${d.nama}</h4>
+              <div style="font-size: 12px; color: var(--gold-600); font-weight: 700; margin-bottom: 2px;">${d.jabatan || 'Anggota DPRD'}</div>
               <div style="font-size: 12px; color: var(--text-muted);">${d.nama_partai || '-'}</div>
             </div>
           </div>
-          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11.5px; color: var(--text-muted);">Wilayah:</span>
-            <span class="badge" style="background: var(--navy-50); color: var(--navy-900); font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">Wilayah Asal:</span>
+            <span class="badge" style="background: var(--gold-50); color: var(--gold-600); border: 1px solid var(--gold-border); font-size: 11.5px; padding: 3px 10px; border-radius: var(--border-radius-full); font-weight: 700;">
               ${d.kecamatan || 'Kota Parepare'}
             </span>
           </div>
