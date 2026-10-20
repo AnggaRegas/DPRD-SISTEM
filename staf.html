@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kelola Akun Staf — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Kelola Akun Staf</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge" style="background: rgba(184, 134, 11, 0.12); color: var(--gold-primary);">
+          <span class="header-badge-dot" style="background: var(--gold-primary);"></span>
+          Akses Khusus Superadmin
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Kelola Akun Staf Pendamping</h1>
+          <p>Manajemen akun pengguna, hak akses, status keaktifan, dan penugasan pendampingan dewan.</p>
+        </div>
+        <div class="page-actions">
+          <button type="button" id="btnBukaModalTambah" class="btn btn-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Tambah Akun Staf
+          </button>
+        </div>
+      </div>
+
+      <!-- RINGKASAN METRIK -->
+      <div class="stats-grid" style="margin-bottom: 24px;">
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Staf Aktif</span>
+            <div class="stat-icon icon-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="stat-value" id="statStafAktif">0</div>
+          <div class="stat-desc">Staf pendamping berstatus aktif</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Dewan Terdampingi</span>
+            <div class="stat-icon icon-navy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+          </div>
+          <div class="stat-value" id="statDewanAssigned">0</div>
+          <div class="stat-desc">Anggota dewan dengan staf pendamping</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Superadmin Sistem</span>
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--status-success);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="stat-value" id="statSuperadminCount">1</div>
+          <div class="stat-desc">Pengelola utama sistem terlindungi</div>
+        </div>
+      </div>
+
+      <!-- FILTER & PENCARIAN -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-body" style="padding: 16px 20px;">
+          <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <label for="filterStatusSelect" style="font-size: 13px; font-weight: 600; color: var(--navy-900);">Status Akun:</label>
+              <select id="filterStatusSelect" class="form-select" style="width: auto; min-width: 150px;">
+                <option value="semua">Semua Status</option>
+                <option value="aktif">Aktif Saja</option>
+                <option value="nonaktif">Nonaktif Saja</option>
+              </select>
+            </div>
+            <div class="search-box" style="margin: 0; min-width: 280px;">
+              <span class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <input type="text" class="search-input" id="searchUserInput" placeholder="Cari nama atau username staf...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL DAFTAR PENGGUNA -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Daftar Akun Pengguna</h2>
+            <p class="card-subtitle">Daftar seluruh akun internal dan wewenang pengarsipan.</p>
+          </div>
+          <div class="header-badge" id="badgeTotalUsers">
+            Memuat...
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px; text-align: center;">No</th>
+                  <th>Akun Staf</th>
+                  <th style="width: 130px; text-align: center;">Peran</th>
+                  <th style="width: 110px; text-align: center;">Status</th>
+                  <th>Penugasan Dewan</th>
+                  <th style="width: 140px;">Terdaftar</th>
+                  <th style="text-align: center; width: 160px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 30px;">
+                    Memuat data akun pengguna...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL TAMBAH AKUN STAF -->
+  <div class="modal-backdrop" id="modalTambahStafBackdrop">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Tambah Akun Staf Pendamping</h3>
+        <button type="button" class="modal-close" id="btnCloseTambahStaf">&times;</button>
+      </div>
+      <form id="formTambahStaf">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="inputUsername" class="form-label">Username <span class="required">*</span></label>
+            <input type="text" id="inputUsername" class="form-input" placeholder="Contoh: staf_keuangan" required pattern="^[a-zA-Z0-9_.-]{3,30}$" title="Minimal 3 karakter alfanumerik tanpa spasi" autofocus>
+            <small class="form-hint" style="color: var(--text-muted); font-size: 11.5px; display: block; margin-top: 3px;">
+              Digunakan saat masuk ke sistem (huruf kecil, angka, titik, atau garis bawah).
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="inputNama" class="form-label">Nama Lengkap & Gelar <span class="required">*</span></label>
+            <input type="text" id="inputNama" class="form-input" placeholder="Contoh: Ahmad Pratama, S.IP" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputPassword" class="form-label">Kata Sandi Awal <span class="required">*</span></label>
+            <input type="password" id="inputPassword" class="form-input" placeholder="Minimal 8 karakter kombinasi huruf & angka" required minlength="8">
+            <small class="form-hint" style="color: var(--text-muted); font-size: 11.5px; display: block; margin-top: 3px;">
+              Staf akan diminta memperbarui kata sandi saat pertama kali masuk sistem.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Penugasan Anggota DPRD (Opsional)</label>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+              Pilih anggota dewan yang akan didampingi oleh staf ini:
+            </p>
+            <div id="dewanCheckboxContainer" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: var(--border-radius-sm); padding: 10px; background: var(--bg-subtle);">
+              <span style="font-size: 12px; color: var(--text-muted);">Memuat daftar dewan...</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnBatalTambah">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSubmitTambahStaf">Daftarkan Akun</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT AKUN STAF -->
+  <div class="modal-backdrop" id="modalEditStafBackdrop">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Profil & Penugasan Staf</h3>
+        <button type="button" class="modal-close" id="btnCloseEditStaf">&times;</button>
+      </div>
+      <form id="formEditStaf">
+        <input type="hidden" id="editUserId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" id="editUsername" class="form-input" readonly style="background: var(--bg-subtle); color: var(--text-muted);">
+          </div>
+
+          <div class="form-group">
+            <label for="editNama" class="form-label">Nama Lengkap & Gelar <span class="required">*</span></label>
+            <input type="text" id="editNama" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editStatus" class="form-label">Status Keaktifan Akun</label>
+            <select id="editStatus" class="form-select">
+              <option value="aktif">Aktif (Dapat Mengakses Sistem)</option>
+              <option value="nonaktif">Nonaktif (Akses Dinonaktifkan)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Penugasan Anggota DPRD</label>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+              Centang anggota dewan yang menjadi wewenang staf ini:
+            </p>
+            <div id="editDewanCheckboxContainer" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: var(--border-radius-sm); padding: 10px; background: var(--bg-subtle);">
+              <span style="font-size: 12px; color: var(--text-muted);">Memuat daftar dewan...</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnBatalEdit">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSubmitEditStaf">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL RESET SANDI -->
+  <div class="modal-backdrop" id="modalResetSandiBackdrop">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Reset Kata Sandi Staf</h3>
+        <button type="button" class="modal-close" id="btnCloseResetSandi">&times;</button>
+      </div>
+      <form id="formResetSandi">
+        <input type="hidden" id="resetUserId">
+        <div class="modal-body">
+          <p id="resetUserInfoText" style="font-size: 13.5px; color: var(--text-normal); margin-bottom: 16px;">
+            Mereset kata sandi untuk akun staf...
+          </p>
+          <div class="form-group">
+            <label for="inputNewPassword" class="form-label">Kata Sandi Baru <span class="required">*</span></label>
+            <input type="password" id="inputNewPassword" class="form-input" placeholder="Minimal 8 karakter kombinasi huruf & angka" required minlength="8" autofocus>
+            <small class="form-hint" style="color: var(--text-muted); font-size: 11.5px; display: block; margin-top: 3px;">
+              Sesi aktif akun ini akan otomatis dicabut demi keamanan.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnBatalReset">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSubmitResetSandi">Konfirmasi Reset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api } from './assets/js/api.js';
+    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+
+    // Proteksi: Hanya Superadmin yang berhak mengakses halaman ini
+    const currentUser = requireAuth();
+    if (currentUser) {
+      if (currentUser.role !== 'superadmin') {
+        showToast('Akses ditolak: Hanya Superadmin yang berhak mengakses halaman kelola staf.', 'error');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1200);
+      } else {
+        renderSidebar('staf');
+
+        const mobileBtn = document.getElementById('mobileMenuBtn');
+        if (mobileBtn) {
+          mobileBtn.addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar) sidebar.classList.add('mobile-open');
+            if (backdrop) backdrop.classList.add('active');
+          });
+        }
+
+        initKelolaStafPage();
+      }
+    }
+
+    let allUsersData = [];
+    let masterDewanList = [];
+
+    async function initKelolaStafPage() {
+      await loadMasterDewan();
+      await loadUsersData();
+
+      // Search & Filter Listeners
+      const searchInput = document.getElementById('searchUserInput');
+      searchInput.addEventListener('input', applyUserFilterAndSearch);
+
+      const statusSelect = document.getElementById('filterStatusSelect');
+      statusSelect.addEventListener('change', applyUserFilterAndSearch);
+
+      // Setup Modals
+      setupTambahStafModal();
+      setupEditStafModal();
+      setupResetSandiModal();
+    }
+
+    async function loadMasterDewan() {
+      try {
+        const res = await api.getDewanList();
+        if (res && res.success && Array.isArray(res.data)) {
+          masterDewanList = res.data;
+          renderDewanCheckboxes('dewanCheckboxContainer', []);
+        }
+      } catch (err) {
+        console.warn('Gagal memuat dewan master:', err);
+      }
+    }
+
+    function renderDewanCheckboxes(containerId, selectedIds = []) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      if (!masterDewanList.length) {
+        container.innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">Belum ada data anggota dewan aktif.</span>';
+        return;
+      }
+
+      container.innerHTML = masterDewanList.map(d => {
+        const checked = selectedIds.includes(d.id) ? 'checked' : '';
+        const currentPendamping = d.nama_pendamping ? ` (Saat ini: ${d.nama_pendamping})` : '';
+        return `
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; cursor: pointer; color: var(--navy-900);">
+            <input type="checkbox" name="assigned_dewan" value="${d.id}" ${checked}>
+            <span><strong>${d.nama}</strong> <small style="color: var(--text-muted);">${d.partai || ''}${currentPendamping}</small></span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    async function loadUsersData() {
+      const tbody = document.getElementById('userTableBody');
+      const badgeTotal = document.getElementById('badgeTotalUsers');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Memuat data akun pengguna...</td></tr>';
+
+      try {
+        const res = await api.getUserList();
+        if (res && res.success && Array.isArray(res.data)) {
+          allUsersData = res.data;
+          badgeTotal.textContent = `${allUsersData.length} Akun`;
+
+          updateMetrics(allUsersData);
+          applyUserFilterAndSearch();
+        } else {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">${res.message || 'Gagal memuat pengguna.'}</td></tr>`;
+        }
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${err.message}</td></tr>`;
+      }
+    }
+
+    function updateMetrics(users) {
+      const stafAktif = users.filter(u => u.role === 'staff' && String(u.status || '').toLowerCase() === 'aktif').length;
+      const superadmins = users.filter(u => u.role === 'superadmin' && String(u.status || '').toLowerCase() === 'aktif').length;
+
+      let dewanCount = 0;
+      users.forEach(u => {
+        if (Array.isArray(u.assigned_dewan)) {
+          dewanCount += u.assigned_dewan.length;
+        }
+      });
+
+      document.getElementById('statStafAktif').textContent = stafAktif;
+      document.getElementById('statDewanAssigned').textContent = dewanCount;
+      document.getElementById('statSuperadminCount').textContent = superadmins;
+    }
+
+    function applyUserFilterAndSearch() {
+      const q = document.getElementById('searchUserInput').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('filterStatusSelect').value;
+
+      let filtered = allUsersData.slice();
+
+      if (statusFilter && statusFilter !== 'semua') {
+        filtered = filtered.filter(u => String(u.status || '').toLowerCase() === statusFilter);
+      }
+
+      if (q) {
+        filtered = filtered.filter(u =>
+          (u.nama && u.nama.toLowerCase().includes(q)) ||
+          (u.username && u.username.toLowerCase().includes(q))
+        );
+      }
+
+      renderUserTable(filtered);
+    }
+
+    function renderUserTable(list) {
+      const tbody = document.getElementById('userTableBody');
+      if (!list.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="empty-state" style="padding: 40px 20px;">
+                <div class="empty-state-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <h3 class="empty-state-title">Tidak Ada Akun Ditemukan</h3>
+                <p class="empty-state-desc">Belum ada akun yang cocok dengan kata kunci pencarian atau filter.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map((u, idx) => {
+        const isAktif = String(u.status || '').toLowerCase() === 'aktif';
+        const isSuper = u.role === 'superadmin';
+        const inisial = (u.nama || u.username || 'P').charAt(0).toUpperCase();
+
+        const tglDaftar = u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+
+        // Format tag penugasan
+        let penugasanHtml = '<span style="color: var(--text-muted); font-size: 12px;">Tidak ada penugasan dewan</span>';
+        if (isSuper) {
+          penugasanHtml = '<span class="badge" style="background: rgba(184, 134, 11, 0.12); color: var(--gold-primary); font-size: 11.5px; font-weight: 600;">Seluruh Komisi & Dewan</span>';
+        } else if (Array.isArray(u.assigned_dewan) && u.assigned_dewan.length > 0) {
+          penugasanHtml = u.assigned_dewan.map(d => `
+            <span class="badge" style="background: var(--navy-50); color: var(--navy-800); font-size: 11px; margin: 2px 3px 2px 0; display: inline-block;">
+              ${d.nama}
+            </span>
+          `).join('');
+        }
+
+        return `
+          <tr>
+            <td style="text-align: center; color: var(--text-light); font-size: 12px;">${idx + 1}</td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px; font-weight: 700; background: ${isSuper ? 'var(--gold-primary)' : 'var(--navy-800)'}; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  ${inisial}
+                </div>
+                <div>
+                  <strong style="color: var(--navy-900); font-size: 13.5px; display: block;">${u.nama || u.username}</strong>
+                  <span style="font-size: 12px; color: var(--text-muted);">@${u.username}</span>
+                </div>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <span class="badge" style="background: ${isSuper ? 'rgba(184, 134, 11, 0.15)' : 'var(--bg-subtle)'}; color: ${isSuper ? 'var(--gold-primary)' : 'var(--navy-800)'}; font-size: 11.5px; font-weight: 600;">
+                ${isSuper ? 'Superadmin' : 'Staf Pendamping'}
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <span class="status-pill ${isAktif ? 'aktif' : 'nonaktif'}" style="font-size: 11.5px;">
+                <span class="status-pill-dot"></span>
+                ${isAktif ? 'Aktif' : 'Nonaktif'}
+              </span>
+            </td>
+            <td>
+              <div style="max-width: 280px; line-height: 1.4;">
+                ${penugasanHtml}
+              </div>
+            </td>
+            <td>
+              <span style="font-size: 12px; color: var(--text-muted);">${tglDaftar}</span>
+            </td>
+            <td style="text-align: center;">
+              <div class="action-buttons" style="justify-content: center;">
+                <button type="button" class="btn-icon-action" data-action="edit" data-id="${u.id}" title="Edit Profil & Penugasan">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+                <button type="button" class="btn-icon-action" data-action="reset-pass" data-id="${u.id}" data-nama="${u.nama}" data-username="${u.username}" title="Reset Sandi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </button>
+                <button type="button" class="btn-icon-action" data-action="toggle-status" data-id="${u.id}" data-status="${u.status}" title="${isAktif ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                    <line x1="12" y1="2" x2="12" y2="12"></line>
+                  </svg>
+                </button>
+                ${!isSuper ? `
+                  <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${u.id}" data-nama="${u.nama}" title="Hapus Akun Staf">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      bindActionButtons(tbody);
+    }
+
+    function bindActionButtons(tbody) {
+      // 1. Edit User
+      tbody.querySelectorAll('button[data-action="edit"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const u = allUsersData.find(x => x.id === btn.dataset.id);
+          if (!u) return;
+
+          document.getElementById('editUserId').value = u.id;
+          document.getElementById('editUsername').value = '@' + u.username;
+          document.getElementById('editNama').value = u.nama;
+          document.getElementById('editStatus').value = String(u.status || 'aktif').toLowerCase();
+
+          const selectedIds = Array.isArray(u.assigned_dewan) ? u.assigned_dewan.map(d => d.id) : [];
+          renderDewanCheckboxes('editDewanCheckboxContainer', selectedIds);
+
+          document.getElementById('modalEditStafBackdrop').style.display = 'flex';
+        });
+      });
+
+      // 2. Reset Password
+      tbody.querySelectorAll('button[data-action="reset-pass"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('resetUserId').value = btn.dataset.id;
+          document.getElementById('resetUserInfoText').innerHTML = `Reset kata sandi untuk akun <strong>${btn.dataset.nama}</strong> (@${btn.dataset.username}).`;
+          document.getElementById('inputNewPassword').value = '';
+          document.getElementById('modalResetSandiBackdrop').style.display = 'flex';
+        });
+      });
+
+      // 3. Toggle Status (Aktif / Nonaktif)
+      tbody.querySelectorAll('button[data-action="toggle-status"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const u = allUsersData.find(x => x.id === btn.dataset.id);
+          if (!u) return;
+
+          const currentSt = String(u.status || 'aktif').toLowerCase();
+          const targetSt = currentSt === 'aktif' ? 'nonaktif' : 'aktif';
+          const aksiText = targetSt === 'aktif' ? 'mengaktifkan' : 'menonaktifkan';
+
+          showConfirmDialog({
+            title: `${targetSt === 'aktif' ? 'Aktifkan' : 'Nonaktifkan'} Akun?`,
+            message: `Apakah Anda yakin ingin ${aksiText} akun staf "${u.nama}" (@${u.username})?`,
+            confirmText: `Ya, ${targetSt === 'aktif' ? 'Aktifkan' : 'Nonaktifkan'}`,
+            isDanger: targetSt === 'nonaktif',
+            onConfirm: async () => {
+              try {
+                const res = await api.toggleUserStatus(u.id, targetSt);
+                if (res && res.success) {
+                  showToast(`Akun berhasil diubah menjadi ${targetSt}.`, 'success');
+                  await loadUsersData();
+                } else {
+                  showToast(res.message || 'Gagal mengubah status akun.', 'error');
+                }
+              } catch (err) {
+                showToast(err.message, 'error');
+              }
+            }
+          });
+        });
+      });
+
+      // 4. Hapus User
+      tbody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const u = allUsersData.find(x => x.id === btn.dataset.id);
+          if (!u) return;
+
+          showConfirmDialog({
+            title: 'Hapus Akun Staf?',
+            message: `Apakah Anda yakin ingin menghapus akun staf "${u.nama}" (@${u.username})? Tindakan ini tidak dapat dibatalkan.`,
+            confirmText: 'Ya, Hapus Akun',
+            isDanger: true,
+            onConfirm: async () => {
+              try {
+                const res = await api.deleteUser(u.id);
+                if (res && res.success) {
+                  showToast('Akun staf berhasil dihapus.', 'success');
+                  await loadUsersData();
+                  await loadMasterDewan();
+                } else {
+                  showToast(res.message || 'Gagal menghapus akun pengguna.', 'error');
+                }
+              } catch (err) {
+                showToast(err.message, 'error');
+              }
+            }
+          });
+        });
+      });
+    }
+
+    function setupTambahStafModal() {
+      const modal = document.getElementById('modalTambahStafBackdrop');
+      const btnOpen = document.getElementById('btnBukaModalTambah');
+      const btnClose = document.getElementById('btnCloseTambahStaf');
+      const btnBatal = document.getElementById('btnBatalTambah');
+      const form = document.getElementById('formTambahStaf');
+      const btnSubmit = document.getElementById('btnSubmitTambahStaf');
+
+      btnOpen.addEventListener('click', () => {
+        form.reset();
+        renderDewanCheckboxes('dewanCheckboxContainer', []);
+        modal.style.display = 'flex';
+      });
+
+      const closeModal = () => { modal.style.display = 'none'; };
+      btnClose.addEventListener('click', closeModal);
+      btnBatal.addEventListener('click', closeModal);
+
+      let isSubmitting = false;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        const username = document.getElementById('inputUsername').value.trim();
+        const nama = document.getElementById('inputNama').value.trim();
+        const password = document.getElementById('inputPassword').value.trim();
+
+        const checkedDewan = Array.from(document.querySelectorAll('#dewanCheckboxContainer input[type="checkbox"]:checked')).map(cb => cb.value);
+
+        if (!username || !nama || !password) {
+          showToast('Harap lengkapi username, nama, dan kata sandi.', 'warning');
+          return;
+        }
+
+        isSubmitting = true;
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Mendaftarkan...';
+
+        try {
+          const res = await api.createUser({
+            username,
+            nama,
+            password,
+            role: 'staff',
+            assigned_dewan: checkedDewan
+          });
+
+          if (res && res.success) {
+            showToast('Akun staf pendamping berhasil didaftarkan!', 'success');
+            closeModal();
+            await loadUsersData();
+            await loadMasterDewan();
+          } else {
+            showToast(res.message || 'Gagal mendaftarkan akun staf.', 'error');
+          }
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          isSubmitting = false;
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Daftarkan Akun';
+        }
+      });
+    }
+
+    function setupEditStafModal() {
+      const modal = document.getElementById('modalEditStafBackdrop');
+      const btnClose = document.getElementById('btnCloseEditStaf');
+      const btnBatal = document.getElementById('btnBatalEdit');
+      const form = document.getElementById('formEditStaf');
+      const btnSubmit = document.getElementById('btnSubmitEditStaf');
+
+      const closeModal = () => { modal.style.display = 'none'; };
+      btnClose.addEventListener('click', closeModal);
+      btnBatal.addEventListener('click', closeModal);
+
+      let isSubmitting = false;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        const id = document.getElementById('editUserId').value;
+        const nama = document.getElementById('editNama').value.trim();
+        const status = document.getElementById('editStatus').value;
+        const checkedDewan = Array.from(document.querySelectorAll('#editDewanCheckboxContainer input[type="checkbox"]:checked')).map(cb => cb.value);
+
+        if (!nama) {
+          showToast('Nama lengkap wajib diisi.', 'warning');
+          return;
+        }
+
+        isSubmitting = true;
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Menyimpan...';
+
+        try {
+          const res = await api.updateUser(id, {
+            nama,
+            status,
+            assigned_dewan: checkedDewan
+          });
+
+          if (res && res.success) {
+            showToast('Profil dan penugasan staf berhasil diperbarui!', 'success');
+            closeModal();
+            await loadUsersData();
+            await loadMasterDewan();
+          } else {
+            showToast(res.message || 'Gagal memperbarui staf.', 'error');
+          }
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          isSubmitting = false;
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Simpan Perubahan';
+        }
+      });
+    }
+
+    function setupResetSandiModal() {
+      const modal = document.getElementById('modalResetSandiBackdrop');
+      const btnClose = document.getElementById('btnCloseResetSandi');
+      const btnBatal = document.getElementById('btnBatalReset');
+      const form = document.getElementById('formResetSandi');
+      const btnSubmit = document.getElementById('btnSubmitResetSandi');
+
+      const closeModal = () => { modal.style.display = 'none'; };
+      btnClose.addEventListener('click', closeModal);
+      btnBatal.addEventListener('click', closeModal);
+
+      let isSubmitting = false;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        const id = document.getElementById('resetUserId').value;
+        const newPass = document.getElementById('inputNewPassword').value.trim();
+
+        if (newPass.length < 8) {
+          showToast('Kata sandi baru minimal 8 karakter.', 'warning');
+          return;
+        }
+
+        isSubmitting = true;
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Mereset Sandi...';
+
+        try {
+          const res = await api.resetUserPassword(id, newPass);
+          if (res && res.success) {
+            showToast('Kata sandi berhasil direset!', 'success');
+            closeModal();
+          } else {
+            showToast(res.message || 'Gagal mereset kata sandi.', 'error');
+          }
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          isSubmitting = false;
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Konfirmasi Reset';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

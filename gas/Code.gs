@@ -813,8 +813,9 @@ function doPost(e) {
       'createTahun', 'updateTahun', 'deleteTahun',
       'createFolder', 'updateFolder', 'deleteFolder',
       'uploadDokumen', 'updateDokumen', 'deleteDokumen',
-      'uploadRdpDokumen', 'deleteRdpDokumen',
+      'uploadRdpDokumen', 'updateRdpDokumen', 'deleteRdpDokumen',
       'assignLaporan', 'updateLaporanStatus',
+      'createUser', 'updateUser', 'toggleUserStatus', 'deleteUser', 'resetUserPassword',
       'changePassword', 'clearActivityLog'
     ];
 
@@ -1825,6 +1826,41 @@ function doPost(e) {
       }
     }
 
+    if (action === 'updateRdpDokumen') {
+      const data = payload.data || payload;
+      const id = String(data.id || '').trim();
+      const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
+      const tahun = parseInt(data.tahun, 10);
+      const keterangan = String(data.keterangan || '').trim();
+
+      if (!id || !namaDokumen || !tahun) {
+        return jsonResponse(false, null, 'ID dokumen, judul dokumen, dan tahun wajib diisi.', 'VALIDATION_ERROR');
+      }
+
+      const docSheet = ss.getSheetByName('dokumen');
+      const allDocs = getSheetData(ss, 'dokumen');
+      const target = allDocs.find(function(d) { return String(d.id || '').trim() === id; });
+
+      if (!target) return jsonResponse(false, null, 'Dokumen RDP tidak ditemukan.', 'NOT_FOUND');
+
+      if (session.role === 'staff' && String(target.uploaded_by || '').toLowerCase() !== session.username.toLowerCase()) {
+        return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang mengubah metadata dokumen RDP ini.', 'FORBIDDEN');
+      }
+
+      // Update kolom tahun (kolom 4), nama_dokumen (kolom 6), keterangan (kolom 7)
+      docSheet.getRange(target._rowIndex, 4).setValue(tahun);
+      docSheet.getRange(target._rowIndex, 6).setValue(sanitizeSheetValue(namaDokumen));
+      docSheet.getRange(target._rowIndex, 7).setValue(sanitizeSheetValue(keterangan));
+
+      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_RDP', 'Memperbarui metadata dokumen RDP: ' + namaDokumen);
+      return jsonResponse(true, {
+        id: id,
+        nama_dokumen: namaDokumen,
+        tahun: tahun,
+        keterangan: keterangan
+      }, 'Metadata dokumen RDP berhasil diperbarui.');
+    }
+
     if (action === 'deleteRdpDokumen') {
       const id = String(payload.id || '').trim();
       const docSheet = ss.getSheetByName('dokumen');
@@ -1955,19 +1991,277 @@ function doPost(e) {
         return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengelola data pengguna.', 'FORBIDDEN');
       }
       const users = getSheetData(ss, 'users');
+      const allDewan = getSheetData(ss, 'dewan');
+
       const safeList = users.map(function(u) {
+        const uName = String(u.nama || '').trim().toLowerCase();
+        const uUser = String(u.username || '').trim().toLowerCase();
+
+        const assigned = allDewan.filter(function(d) {
+          const pend = String(d.nama_pendamping || '').trim().toLowerCase();
+          return pend && (pend === uUser || pend === uName || (uName && pend.indexOf(uName) !== -1));
+        }).map(function(d) {
+          return { id: d.id, nama: d.nama, jabatan: d.jabatan, partai: d.partai };
+        });
+
         return {
           id: u.id,
           username: u.username,
           nama: u.nama,
           role: u.role || 'staff',
           status: u.status,
+          assigned_dewan: assigned,
           must_change_password: false,
           created_at: u.created_at,
           last_login: u.last_login
         };
       });
       return jsonResponse(true, safeList, 'Data akun berhasil dimuat.');
+    }
+
+    if (action === 'createUser') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat membuat akun pengguna baru.', 'FORBIDDEN');
+      }
+
+      const data = payload.data || payload;
+      const username = String(data.username || '').trim().toLowerCase();
+      const nama = String(data.nama || '').trim();
+      const password = String(data.password || '').trim();
+      const role = String(data.role || 'staff').toLowerCase();
+      const assignedDewan = data.assigned_dewan || []; // array of dewan IDs
+
+      if (!username || !nama || !password) {
+        return jsonResponse(false, null, 'Username, nama lengkap, dan kata sandi awal wajib diisi.', 'VALIDATION_ERROR');
+      }
+
+      if (username.length < 3 || !/^[a-zA-Z0-9_.-]+$/.test(username)) {
+        return jsonResponse(false, null, 'Username hanya boleh mengandung huruf, angka, titik, atau garis bawah (minimal 3 karakter).', 'VALIDATION_ERROR');
+      }
+
+      if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+        return jsonResponse(false, null, 'Kata sandi minimal 8 karakter kombinasi huruf dan angka.', 'VALIDATION_ERROR');
+      }
+
+      const usersSheet = ss.getSheetByName('users');
+      const allUsers = getSheetData(ss, 'users');
+      const exists = allUsers.some(function(u) { return String(u.username || '').trim().toLowerCase() === username; });
+      if (exists) {
+        return jsonResponse(false, null, 'Username sudah digunakan oleh akun lain.', 'DUPLICATE_USERNAME');
+      }
+
+      const salt = generateCryptographicSalt();
+      const hash = hashPasswordPBKDF2(password, salt, PBKDF2_STANDARD_ITERATIONS);
+      const newUserId = 'USR-' + Date.now();
+      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+      usersSheet.appendRow([
+        newUserId,
+        username,
+        hash,
+        salt,
+        sanitizeSheetValue(nama),
+        role,
+        'aktif',
+        'true',
+        nowIso,
+        ''
+      ]);
+
+      // Jika ada penugasan dewan yang dipilih
+      if (Array.isArray(assignedDewan) && assignedDewan.length > 0) {
+        const dewanSheet = ss.getSheetByName('dewan');
+        const allDewan = getSheetData(ss, 'dewan');
+        allDewan.forEach(function(d) {
+          if (assignedDewan.includes(d.id)) {
+            dewanSheet.getRange(d._rowIndex, 6).setValue(sanitizeSheetValue(nama));
+          }
+        });
+      }
+
+      recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_USER', 'Membuat akun staf baru: ' + username + ' (' + nama + ')');
+      return jsonResponse(true, {
+        id: newUserId,
+        username: username,
+        nama: nama,
+        role: role,
+        status: 'aktif'
+      }, 'Akun pengguna berhasil didaftarkan.');
+    }
+
+    if (action === 'updateUser') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat memperbarui akun pengguna.', 'FORBIDDEN');
+      }
+
+      const data = payload.data || payload;
+      const id = String(data.id || payload.id || '').trim();
+      const nama = String(data.nama || '').trim();
+      const status = String(data.status || 'aktif').toLowerCase() === 'nonaktif' ? 'nonaktif' : 'aktif';
+      const assignedDewan = data.assigned_dewan; // array of dewan IDs if provided
+
+      const usersSheet = ss.getSheetByName('users');
+      const allUsers = getSheetData(ss, 'users');
+      const target = allUsers.find(function(u) { return String(u.id || '').trim() === id; });
+
+      if (!target) return jsonResponse(false, null, 'Pengguna tidak ditemukan.', 'NOT_FOUND');
+
+      // Proteksi superadmin terakhir jika status diubah ke nonaktif
+      if (target.role === 'superadmin' && status === 'nonaktif') {
+        const activeSuperadmins = allUsers.filter(function(u) {
+          return u.role === 'superadmin' && String(u.status || '').toLowerCase() === 'aktif';
+        });
+        if (activeSuperadmins.length <= 1) {
+          return jsonResponse(false, null, 'Gagal: Tidak dapat menonaktifkan satu-satunya Superadmin aktif pada sistem.', 'PROTECTED_USER');
+        }
+      }
+
+      if (nama) {
+        usersSheet.getRange(target._rowIndex, 5).setValue(sanitizeSheetValue(nama));
+      }
+      usersSheet.getRange(target._rowIndex, 7).setValue(status);
+
+      // Jika akun dinonaktifkan, cabut seluruh sesi aktifnya
+      if (status === 'nonaktif') {
+        revokeUserSessions(target.id);
+      }
+
+      // Update penugasan dewan jika parameter assigned_dewan dikirimkan
+      if (Array.isArray(assignedDewan)) {
+        const dewanSheet = ss.getSheetByName('dewan');
+        const allDewan = getSheetData(ss, 'dewan');
+        const oldStaffName = String(target.nama || '').toLowerCase();
+        const newStaffName = nama || target.nama;
+
+        allDewan.forEach(function(d) {
+          const currentPendamping = String(d.nama_pendamping || '').toLowerCase();
+          const isAssigned = assignedDewan.includes(d.id);
+
+          if (isAssigned) {
+            dewanSheet.getRange(d._rowIndex, 6).setValue(sanitizeSheetValue(newStaffName));
+          } else if (currentPendamping && (currentPendamping === oldStaffName || currentPendamping === String(target.username).toLowerCase())) {
+            dewanSheet.getRange(d._rowIndex, 6).setValue('');
+          }
+        });
+      }
+
+      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_USER', 'Memperbarui profil akun: ' + target.username);
+      return jsonResponse(true, { id: id, nama: nama || target.nama, status: status }, 'Data akun pengguna berhasil diperbarui.');
+    }
+
+    if (action === 'toggleUserStatus') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengubah status akun.', 'FORBIDDEN');
+      }
+
+      const id = String(payload.id || '').trim();
+      const newStatus = String(payload.status || 'aktif').toLowerCase() === 'aktif' ? 'aktif' : 'nonaktif';
+      const usersSheet = ss.getSheetByName('users');
+      const allUsers = getSheetData(ss, 'users');
+      const target = allUsers.find(function(u) { return String(u.id || '').trim() === id; });
+
+      if (!target) return jsonResponse(false, null, 'Pengguna tidak ditemukan.', 'NOT_FOUND');
+
+      if (target.role === 'superadmin' && newStatus === 'nonaktif') {
+        const activeSuperadmins = allUsers.filter(function(u) {
+          return u.role === 'superadmin' && String(u.status || '').toLowerCase() === 'aktif';
+        });
+        if (activeSuperadmins.length <= 1) {
+          return jsonResponse(false, null, 'Gagal: Tidak dapat menonaktifkan satu-satunya Superadmin aktif pada sistem.', 'PROTECTED_USER');
+        }
+      }
+
+      usersSheet.getRange(target._rowIndex, 7).setValue(newStatus);
+      if (newStatus === 'nonaktif') {
+        revokeUserSessions(target.id);
+      }
+
+      recordActivity(ss, session.userId, session.username, session.role, 'TOGGLE_USER_STATUS', 'Mengubah status akun ' + target.username + ' menjadi ' + newStatus);
+      return jsonResponse(true, { id: id, status: newStatus }, 'Status pengguna berhasil diperbarui.');
+    }
+
+    if (action === 'resetUserPassword') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mereset kata sandi pengguna.', 'FORBIDDEN');
+      }
+
+      const id = String(payload.id || '').trim();
+      const newPass = String(payload.newPassword || '').trim();
+
+      if (!id || !newPass) {
+        return jsonResponse(false, null, 'ID pengguna dan kata sandi baru wajib diisi.', 'VALIDATION_ERROR');
+      }
+
+      if (newPass.length < 8 || !/[a-zA-Z]/.test(newPass) || !/[0-9]/.test(newPass)) {
+        return jsonResponse(false, null, 'Kata sandi baru minimal 8 karakter kombinasi huruf dan angka.', 'VALIDATION_ERROR');
+      }
+
+      const usersSheet = ss.getSheetByName('users');
+      const allUsers = getSheetData(ss, 'users');
+      const target = allUsers.find(function(u) { return String(u.id || '').trim() === id; });
+
+      if (!target) return jsonResponse(false, null, 'Pengguna tidak ditemukan.', 'NOT_FOUND');
+
+      const salt = generateCryptographicSalt();
+      const hash = hashPasswordPBKDF2(newPass, salt, PBKDF2_STANDARD_ITERATIONS);
+
+      usersSheet.getRange(target._rowIndex, 3).setValue(hash);
+      usersSheet.getRange(target._rowIndex, 4).setValue(salt);
+      usersSheet.getRange(target._rowIndex, 8).setValue('true');
+
+      revokeUserSessions(target.id);
+      recordActivity(ss, session.userId, session.username, session.role, 'RESET_PASSWORD_USER', 'Mereset kata sandi akun: ' + target.username);
+      return jsonResponse(true, { id: id }, 'Kata sandi pengguna berhasil direset.');
+    }
+
+    if (action === 'deleteUser') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menghapus akun pengguna.', 'FORBIDDEN');
+      }
+
+      const id = String(payload.id || '').trim();
+      const usersSheet = ss.getSheetByName('users');
+      const allUsers = getSheetData(ss, 'users');
+      const target = allUsers.find(function(u) { return String(u.id || '').trim() === id; });
+
+      if (!target) return jsonResponse(false, null, 'Pengguna tidak ditemukan.', 'NOT_FOUND');
+
+      // Proteksi superadmin
+      if (target.role === 'superadmin') {
+        const activeSuperadmins = allUsers.filter(function(u) {
+          return u.role === 'superadmin' && String(u.status || '').toLowerCase() === 'aktif';
+        });
+        if (activeSuperadmins.length <= 1) {
+          return jsonResponse(false, null, 'Gagal: Tidak dapat menghapus satu-satunya Superadmin aktif pada sistem.', 'PROTECTED_USER');
+        }
+      }
+
+      // Proteksi integritas data arsip yang pernah diunggah
+      const allDocs = getSheetData(ss, 'dokumen');
+      const hasDocs = allDocs.some(function(d) {
+        return String(d.uploaded_by || '').toLowerCase() === String(target.username || '').toLowerCase();
+      });
+      if (hasDocs) {
+        return jsonResponse(false, null, 'Pengguna tidak dapat dihapus karena memiliki riwayat arsip dokumen. Anda disarankan menonaktifkan akun pengguna demi audit keaslian berkas.', 'HAS_DEPENDENT_RECORDS');
+      }
+
+      revokeUserSessions(target.id);
+
+      // Bersihkan nama pendamping di dewan jika ditugaskan
+      const dewanSheet = ss.getSheetByName('dewan');
+      const allDewan = getSheetData(ss, 'dewan');
+      const staffName = String(target.nama || '').toLowerCase();
+      const staffUser = String(target.username || '').toLowerCase();
+      allDewan.forEach(function(d) {
+        const pend = String(d.nama_pendamping || '').toLowerCase();
+        if (pend && (pend === staffName || pend === staffUser)) {
+          dewanSheet.getRange(d._rowIndex, 6).setValue('');
+        }
+      });
+
+      usersSheet.deleteRow(target._rowIndex);
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_USER', 'Menghapus akun staf: ' + target.username);
+      return jsonResponse(true, { id: id }, 'Akun pengguna berhasil dihapus.');
     }
 
     return jsonResponse(false, null, 'Aksi API tidak dikenali: ' + action, 'NOT_FOUND');

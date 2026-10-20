@@ -561,6 +561,212 @@ async function runAllTests() {
   const staffUpdateReport = await api.updateLaporanStatus(reportValid.data.nomor_tiket, 'selesai', 'Telah dikoordinasikan dengan Dinas PUPR Kota Parepare');
   assert(staffUpdateReport.success && staffUpdateReport.data?.status === 'selesai', 'Staf berhasil menindaklanjuti dan menyelesaikan laporan masyarakat');
 
+  // ================= 14. PENGUJIAN KELOLA AKUN STAF (SUPERADMIN ONLY) =================
+  console.log('\n--- 14. Pengujian Kelola Akun Staf (Superadmin Only) ---');
+
+  // Login kembali sebagai Superadmin
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+
+  // Test 51: Superadmin memuat daftar akun lengkap dengan penugasan dewan
+  const userListRes = await api.getUserList();
+  assert(userListRes.success && Array.isArray(userListRes.data) && userListRes.data.length > 0, 'Superadmin berhasil memuat daftar akun pengguna');
+  assert(userListRes.data[0].assigned_dewan !== undefined, 'Daftar pengguna memuat informasi assigned_dewan');
+
+  // Test 52: Superadmin mendaftarkan akun staf baru dengan penugasan dewan
+  const createStafRes = await api.createUser({
+    username: 'staf_keuangan',
+    nama: 'Staf Keuangan Parepare',
+    password: 'PasswordStafKuat2026!',
+    role: 'staff',
+    assigned_dewan: ['DWN-03']
+  });
+  assert(createStafRes.success && createStafRes.data?.username === 'staf_keuangan', 'Superadmin berhasil mendaftarkan staf baru staf_keuangan');
+  const stafKeuanganId = createStafRes.data.id;
+
+  // Verifikasi penugasan dewan DWN-03
+  const dewan3Check = await api.getDewanById('DWN-03');
+  assert(dewan3Check.success && dewan3Check.data?.nama_pendamping === 'Staf Keuangan Parepare', 'Penugasan dewan DWN-03 otomatis terikat pada staf baru');
+
+  // Test 53: Superadmin mengedit profil dan memindahkan penugasan dewan ke DWN-04
+  const updateStafRes = await api.updateUser(stafKeuanganId, {
+    nama: 'Ahmad Pratama, S.IP',
+    status: 'aktif',
+    assigned_dewan: ['DWN-04']
+  });
+  assert(updateStafRes.success && updateStafRes.data?.nama === 'Ahmad Pratama, S.IP', 'Superadmin berhasil memperbarui nama dan penugasan staf');
+
+  const dewan3AfterUpdate = await api.getDewanById('DWN-03');
+  const dewan4AfterUpdate = await api.getDewanById('DWN-04');
+  assert(!dewan3AfterUpdate.data?.nama_pendamping || dewan3AfterUpdate.data?.nama_pendamping === '', 'Penugasan lama pada DWN-03 otomatis dilepaskan');
+  assert(dewan4AfterUpdate.data?.nama_pendamping === 'Ahmad Pratama, S.IP', 'Penugasan baru pada DWN-04 berhasil diterapkan');
+
+  // Test 54: Toggle status staf (nonaktifkan & aktifkan kembali)
+  const deactRes = await api.toggleUserStatus(stafKeuanganId, 'nonaktif');
+  assert(deactRes.success, 'Superadmin berhasil menonaktifkan akun staf');
+  const reactRes = await api.toggleUserStatus(stafKeuanganId, 'aktif');
+  assert(reactRes.success, 'Superadmin berhasil mengaktifkan kembali akun staf');
+
+  // Test 55: Reset kata sandi staf oleh Superadmin
+  const resetPassRes = await api.resetUserPassword(stafKeuanganId, 'PasswordBaruStaf2026!');
+  assert(resetPassRes.success, 'Superadmin berhasil mereset kata sandi akun staf');
+
+  // Test 56: Proteksi Superadmin Terakhir (Ditolak jika menonaktifkan/menghapus satu-satunya superadmin aktif)
+  const currentAdmin = userListRes.data.find(u => u.role === 'superadmin');
+  const protectToggle = await api.toggleUserStatus(currentAdmin.id, 'nonaktif');
+  assert(!protectToggle.success && protectToggle.error?.code === 'PROTECTED_USER', 'Sistem mencegah menonaktifkan satu-satunya superadmin aktif (PROTECTED_USER)');
+
+  const protectDelete = await api.deleteUser(currentAdmin.id);
+  assert(!protectDelete.success && protectDelete.error?.code === 'PROTECTED_USER', 'Sistem mencegah menghapus satu-satunya superadmin aktif (PROTECTED_USER)');
+
+  // Test 57: Proteksi Hapus User yang Memiliki Riwayat Arsip Dokumen
+  // Akun 'staff' sebelumnya telah mengunggah arsip usulan_soreang.pdf
+  const staffAccount = userListRes.data.find(u => u.username === 'staff');
+  const delStaffWithDocs = await api.deleteUser(staffAccount.id);
+  assert(!delStaffWithDocs.success && delStaffWithDocs.error?.code === 'HAS_DEPENDENT_RECORDS', 'Sistem mencegah menghapus staf yang memiliki riwayat arsip dokumen (HAS_DEPENDENT_RECORDS)');
+
+  // Test 58: Hapus Akun Staf Tanpa Riwayat Dokumen
+  const createTempStaf = await api.createUser({
+    username: 'staf_sementara',
+    nama: 'Staf Sementara Magang',
+    password: 'PasswordMagang123!',
+    role: 'staff'
+  });
+  assert(createTempStaf.success, 'Akun staf sementara berhasil dibuat');
+  const delTempStaf = await api.deleteUser(createTempStaf.data.id);
+  assert(delTempStaf.success, 'Akun staf tanpa riwayat dokumen berhasil dihapus dengan aman');
+
+  // ================= 15. PENGUJIAN PENEGASAN TIGA ROLE & ISOLASI ANTAR STAF =================
+  console.log('\n--- 15. Pengujian Penegasan Tiga Role & Isolasi Antar Staf ---');
+
+  // Login sebagai Staf A ('staff')
+  await api.logout();
+  await api.login('staff', 'PasswordStaff2026!');
+
+  // Test 59: Staf dilarang memanggil seluruh endpoint administrasi akun (RBAC: FORBIDDEN)
+  const staffTryUserList = await api.getUserList();
+  assert(!staffTryUserList.success && staffTryUserList.error?.code === 'FORBIDDEN', 'Staf dilarang membuka daftar user (RBAC: FORBIDDEN)');
+
+  const staffTryCreateUser = await api.createUser({ username: 'staf_ilegal', nama: 'Ilegal', password: 'Password123!', role: 'staff' });
+  assert(!staffTryCreateUser.success && staffTryCreateUser.error?.code === 'FORBIDDEN', 'Staf dilarang mendaftarkan user baru (RBAC: FORBIDDEN)');
+
+  const staffTryUpdateUser = await api.updateUser('USR-1', { nama: 'Hacked' });
+  assert(!staffTryUpdateUser.success && staffTryUpdateUser.error?.code === 'FORBIDDEN', 'Staf dilarang mengubah akun user (RBAC: FORBIDDEN)');
+
+  const staffTryToggleUser = await api.toggleUserStatus('USR-1', 'nonaktif');
+  assert(!staffTryToggleUser.success && staffTryToggleUser.error?.code === 'FORBIDDEN', 'Staf dilarang mengubah status user (RBAC: FORBIDDEN)');
+
+  const staffTryDeleteUser = await api.deleteUser('USR-1');
+  assert(!staffTryDeleteUser.success && staffTryDeleteUser.error?.code === 'FORBIDDEN', 'Staf dilarang menghapus akun user (RBAC: FORBIDDEN)');
+
+  const staffTryResetPass = await api.resetUserPassword('USR-1', 'NewPass123!');
+  assert(!staffTryResetPass.success && staffTryResetPass.error?.code === 'FORBIDDEN', 'Staf dilarang mereset kata sandi user (RBAC: FORBIDDEN)');
+
+  // Test 60: Isolasi Dokumen Antar Staf (Staf A vs Staf B)
+  // Staf A ('staff') mengunggah dokumen RDP ke Komisi 1
+  const docStafA = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: 2026,
+    nama_dokumen: 'RDP Tata Ruang Wilayah - Staf A',
+    keterangan: 'Agenda tata ruang dari staf A',
+    fileName: 'rdp_tataruang_staf_a.pdf'
+  });
+  assert(docStafA.success && docStafA.data?.id, 'Staf A berhasil mengunggah dokumen RDP miliknya');
+
+  // Login sebagai Staf B ('staf_keuangan' dengan password baru)
+  await api.logout();
+  const loginStafB = await api.login('staf_keuangan', 'PasswordBaruStaf2026!');
+  assert(loginStafB.success && loginStafB.data?.user?.username === 'staf_keuangan', 'Login sebagai Staf B (staf_keuangan) berhasil');
+
+  // Staf B menyelesaikan kewajiban ganti password agar sesi aktif secara penuh
+  const changePassRes = await api.changePassword('PasswordBaruStaf2026!', 'PasswordStafBValid123!');
+  assert(changePassRes.success, 'Staf B berhasil menyelesaikan kewajiban ganti sandi');
+
+  // Staf B mencoba mengubah metadata dokumen milik Staf A (harus DITOLAK FORBIDDEN)
+  const stafBTryUpdate = await api.updateRdpDokumen({
+    id: docStafA.data.id,
+    nama_dokumen: 'RDP Telah Diretas Staf B',
+    tahun: 2026,
+    keterangan: 'Perubahan tanpa wewenang'
+  });
+  assert(!stafBTryUpdate.success && stafBTryUpdate.error?.code === 'FORBIDDEN', 'Staf B dilarang mengubah metadata dokumen RDP milik Staf A (RBAC: FORBIDDEN)');
+
+  // Staf B mencoba menghapus dokumen milik Staf A (harus DITOLAK FORBIDDEN)
+  const stafBTryDelete = await api.deleteRdpDokumen(docStafA.data.id);
+  assert(!stafBTryDelete.success && stafBTryDelete.error?.code === 'FORBIDDEN', 'Staf B dilarang menghapus dokumen RDP milik Staf A (RBAC: FORBIDDEN)');
+
+  // Login kembali sebagai Staf A untuk memodifikasi dan menghapus dokumennya sendiri
+  await api.logout();
+  await api.login('staff', 'PasswordStaff2026!');
+
+  const stafAUpdateOwn = await api.updateRdpDokumen({
+    id: docStafA.data.id,
+    nama_dokumen: 'RDP Tata Ruang Wilayah - Revisi Final Staf A',
+    tahun: 2026,
+    keterangan: 'Revisi agenda tata ruang'
+  });
+  assert(stafAUpdateOwn.success && stafAUpdateOwn.data?.nama_dokumen.includes('Revisi Final'), 'Staf A berhasil memperbarui metadata dokumen RDP miliknya sendiri');
+
+  const stafADeleteOwn = await api.deleteRdpDokumen(docStafA.data.id);
+  assert(stafADeleteOwn.success, 'Staf A berhasil menghapus dokumen RDP miliknya sendiri');
+
+  // Test 61: Tamu / Masyarakat Tanpa Login (Ditolak dari seluruh akses internal)
+  await api.logout();
+  const guestTryDocList = await api.getDokumenList();
+  assert(!guestTryDocList.success && guestTryDocList.error?.code === 'UNAUTHORIZED', 'Tamu tanpa login ditolak mengakses getDokumenList (UNAUTHORIZED)');
+
+  const guestTryRdpList = await api.getRdpDokumenList('KOM-1');
+  assert(!guestTryRdpList.success && guestTryRdpList.error?.code === 'UNAUTHORIZED', 'Tamu tanpa login ditolak mengakses getRdpDokumenList (UNAUTHORIZED)');
+
+  const guestTryUserList = await api.getUserList();
+  assert(!guestTryUserList.success && guestTryUserList.error?.code === 'UNAUTHORIZED', 'Tamu tanpa login ditolak mengakses getUserList (UNAUTHORIZED)');
+
+  const guestTryAuditLog = await api.getActivityLog();
+  assert(!guestTryAuditLog.success && guestTryAuditLog.error?.code === 'UNAUTHORIZED', 'Tamu tanpa login ditolak mengakses getActivityLog (UNAUTHORIZED)');
+
+  const guestTryUploadRdp = await api.uploadRdpDokumen({ komisi_id: 'KOM-1', tahun: 2026, nama_dokumen: 'Guest Hack', fileName: 'hack.pdf' });
+  assert(!guestTryUploadRdp.success && guestTryUploadRdp.error?.code === 'UNAUTHORIZED', 'Tamu tanpa login ditolak mengunggah dokumen RDP (UNAUTHORIZED)');
+
+  // ================= 16. PENGUJIAN LENGKAP CRUD DOKUMEN RDP & FILTER KOMISI =================
+  console.log('\n--- 16. Pengujian Lengkap CRUD Dokumen RDP & Filter Komisi ---');
+
+  // Superadmin login
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+
+  // Create: Tambah Dokumen RDP di Komisi 3
+  const newRdpKom3 = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-3',
+    tahun: 2026,
+    nama_dokumen: 'RDP Peningkatan Layanan Puskesmas 2026',
+    keterangan: 'Agenda bersama Dinas Kesehatan Kota Parepare',
+    fileName: 'rdp_puskesmas_2026.pdf'
+  });
+  assert(newRdpKom3.success && newRdpKom3.data?.id, 'CRUD Create: Dokumen RDP Komisi 3 berhasil ditambahkan');
+
+  // Read: Tampilkan daftar Komisi 3
+  const readKom3 = await api.getRdpDokumenList('KOM-3', 'semua');
+  assert(readKom3.success && readKom3.data?.dokumen?.some(d => d.id === newRdpKom3.data.id), 'CRUD Read: Dokumen RDP Komisi 3 berhasil dimuat pada tabel');
+  assert(readKom3.data?.available_years?.includes(2026), 'CRUD Read: Tahun 2026 otomatis terdaftar pada filter tahun');
+
+  // Update: Edit Metadata Dokumen RDP
+  const updateRdpKom3 = await api.updateRdpDokumen({
+    id: newRdpKom3.data.id,
+    nama_dokumen: 'RDP Peningkatan Mutu RSUD & Puskesmas 2026',
+    tahun: 2026,
+    keterangan: 'Agenda diperluas mencakup RSUD Andi Makkasau'
+  });
+  assert(updateRdpKom3.success && updateRdpKom3.data?.nama_dokumen.includes('RSUD & Puskesmas'), 'CRUD Update: Metadata dokumen RDP berhasil diperbarui');
+
+  // Download: Verifikasi fungsi unduh dokumen
+  const dlRes = await api.downloadDokumen(newRdpKom3.data.id);
+  assert(dlRes.success && dlRes.data?.nama_file, 'CRUD Download: Berkas dokumen RDP dapat diunduh');
+
+  // Delete: Hapus dokumen RDP dengan otorisasi Superadmin
+  const delRdpKom3 = await api.deleteRdpDokumen(newRdpKom3.data.id);
+  assert(delRdpKom3.success, 'CRUD Delete: Dokumen RDP berhasil dihapus oleh Superadmin');
+
+  const readKom3AfterDel = await api.getRdpDokumenList('KOM-3', 'semua');
+  assert(!readKom3AfterDel.data?.dokumen?.some(d => d.id === newRdpKom3.data.id), 'CRUD Delete: Dokumen terhapus tidak muncul lagi di daftar');
+
   // Cleanup logout
   await api.logout();
 

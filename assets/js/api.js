@@ -372,6 +372,7 @@ const MOCK_ACTION_PERMISSIONS = {
   'getKomisiList': ['staff', 'admin', 'superadmin'],
   'getRdpDokumenList': ['staff', 'admin', 'superadmin'],
   'uploadRdpDokumen': ['staff', 'admin', 'superadmin'],
+  'updateRdpDokumen': ['staff', 'admin', 'superadmin'],
   'deleteRdpDokumen': ['staff', 'admin', 'superadmin'],
   'getLaporanList': ['staff', 'admin', 'superadmin'],
   'assignLaporan': ['superadmin'],
@@ -380,8 +381,10 @@ const MOCK_ACTION_PERMISSIONS = {
   'getActivityLog': ['superadmin'],
   'clearActivityLog': ['superadmin'],
   'createUser': ['superadmin'],
+  'updateUser': ['superadmin'],
   'toggleUserStatus': ['superadmin'],
-  'resetUserPassword': ['superadmin']
+  'resetUserPassword': ['superadmin'],
+  'deleteUser': ['superadmin']
 };
 
 async function handleMockRequest(action, payload) {
@@ -1082,11 +1085,42 @@ async function handleMockRequest(action, payload) {
       return { success: true, data: doc, message: 'Dokumen RDP berhasil diunggah.' };
     }
 
+    case 'updateRdpDokumen': {
+      const data = payload.data || payload;
+      const id = String(data.id || '').trim();
+      const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
+      const yr = parseInt(data.tahun, 10);
+      const keterangan = String(data.keterangan || '').trim();
+
+      if (!id || !namaDokumen || !yr) {
+        return { success: false, message: 'ID, judul, dan tahun wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      const doc = (db.dokumen || []).find((d) => String(d.id) === id && String(d.dewan_id).startsWith('KOM-'));
+      if (!doc) {
+        return { success: false, message: 'Dokumen RDP tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+
+      if (currentUser.role === 'staff' && String(doc.uploaded_by || '').toLowerCase() !== currentUser.username.toLowerCase()) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang mengubah metadata dokumen RDP ini.', error: { code: 'FORBIDDEN' } };
+      }
+
+      doc.nama_dokumen = namaDokumen;
+      doc.tahun = yr;
+      doc.keterangan = keterangan;
+      doc.updated_at = new Date().toISOString();
+      saveMockDb(db);
+      return { success: true, data: doc, message: 'Metadata dokumen RDP berhasil diperbarui.' };
+    }
+
     case 'deleteRdpDokumen': {
       const id = String(payload.id);
       const doc = (db.dokumen || []).find((d) => String(d.id) === id && String(d.dewan_id).startsWith('KOM-'));
       if (!doc) {
         return { success: false, message: 'Dokumen RDP tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+      if (currentUser.role === 'staff' && String(doc.uploaded_by || '').toLowerCase() !== currentUser.username.toLowerCase()) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang menghapus dokumen RDP ini.', error: { code: 'FORBIDDEN' } };
       }
       db.dokumen = db.dokumen.filter((d) => String(d.id) !== id);
       saveMockDb(db);
@@ -1163,29 +1197,156 @@ async function handleMockRequest(action, payload) {
       return { success: true, data: target, message: 'Status laporan berhasil diperbarui.' };
     }
 
-    case 'getUserList':
-      return { success: true, data: db.users.map((u) => ({ id: u.id, username: u.username, nama: u.nama, role: u.role, status: u.status })), message: 'Daftar pengguna dimuat.' };
+    case 'getUserList': {
+      const safeList = db.users.map((u) => {
+        const uName = String(u.nama || '').trim().toLowerCase();
+        const uUser = String(u.username || '').trim().toLowerCase();
+        const assigned = (db.dewan || []).filter((d) => {
+          const pend = String(d.nama_pendamping || '').trim().toLowerCase();
+          return pend && (pend === uUser || pend === uName || (uName && pend.includes(uName)));
+        }).map((d) => ({ id: d.id, nama: d.nama, jabatan: d.jabatan, partai: d.partai }));
+
+        return {
+          id: u.id,
+          username: u.username,
+          nama: u.nama,
+          role: u.role || 'staff',
+          status: u.status || 'aktif',
+          assigned_dewan: assigned,
+          must_change_password: !!u.must_change_password,
+          created_at: u.created_at || new Date().toISOString(),
+          last_login: u.last_login || null
+        };
+      });
+      return { success: true, data: safeList, message: 'Daftar pengguna dimuat.' };
+    }
 
     case 'createUser': {
-      const newU = { id: 'USR-' + Date.now(), ...payload.data, status: 'aktif', must_change_password: true };
+      const data = payload.data || payload;
+      const username = String(data.username || '').trim().toLowerCase();
+      const nama = String(data.nama || '').trim();
+      const password = String(data.password || '').trim();
+      const role = String(data.role || 'staff').toLowerCase();
+      const assignedDewan = data.assigned_dewan || [];
+
+      if (!username || !nama || !password) {
+        return { success: false, message: 'Semua kolom wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      const exists = db.users.some((u) => u.username.toLowerCase() === username);
+      if (exists) {
+        return { success: false, message: 'Username sudah digunakan oleh akun lain.', error: { code: 'DUPLICATE_USERNAME' } };
+      }
+
+      const newU = {
+        id: 'USR-' + Date.now(),
+        username,
+        nama,
+        password,
+        role,
+        status: 'aktif',
+        must_change_password: true,
+        created_at: new Date().toISOString()
+      };
       db.users.push(newU);
+
+      if (Array.isArray(assignedDewan) && assignedDewan.length > 0) {
+        (db.dewan || []).forEach((d) => {
+          if (assignedDewan.includes(d.id)) {
+            d.nama_pendamping = nama;
+          }
+        });
+      }
+
       saveMockDb(db);
       return { success: true, data: newU, message: 'Pengguna berhasil dibuat.' };
     }
 
+    case 'updateUser': {
+      const data = payload.data || payload;
+      const id = String(data.id || payload.id || '').trim();
+      const target = db.users.find((u) => u.id === id);
+      if (!target) return { success: false, message: 'Pengguna tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+
+      const status = data.status || target.status;
+      if (target.role === 'superadmin' && status === 'nonaktif') {
+        const activeSupers = db.users.filter((u) => u.role === 'superadmin' && u.status === 'aktif');
+        if (activeSupers.length <= 1) {
+          return { success: false, message: 'Gagal: Tidak dapat menonaktifkan satu-satunya Superadmin aktif.', error: { code: 'PROTECTED_USER' } };
+        }
+      }
+
+      const oldStaffName = String(target.nama || '').toLowerCase();
+      const newStaffName = data.nama || target.nama;
+
+      if (data.nama) target.nama = data.nama;
+      if (data.status) target.status = data.status;
+
+      if (Array.isArray(data.assigned_dewan)) {
+        (db.dewan || []).forEach((d) => {
+          const currentPend = String(d.nama_pendamping || '').toLowerCase();
+          if (data.assigned_dewan.includes(d.id)) {
+            d.nama_pendamping = newStaffName;
+          } else if (currentPend && (currentPend === oldStaffName || currentPend === target.username.toLowerCase())) {
+            d.nama_pendamping = '';
+          }
+        });
+      }
+
+      saveMockDb(db);
+      return { success: true, data: target, message: 'Data pengguna berhasil diperbarui.' };
+    }
+
     case 'toggleUserStatus': {
       const target = db.users.find((u) => u.id === payload.id);
-      if (target) {
-        target.status = payload.status;
-        saveMockDb(db);
-        // Jika akun dinonaktifkan, cabut sesi
-        if (payload.status === 'nonaktif' && currentUser.id === payload.id) {
-          safeSessionStorage.removeItem('dprd_token');
-          safeSessionStorage.removeItem('dprd_user');
+      if (!target) return { success: false, message: 'Pengguna tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+
+      if (target.role === 'superadmin' && payload.status === 'nonaktif') {
+        const activeSupers = db.users.filter((u) => u.role === 'superadmin' && u.status === 'aktif');
+        if (activeSupers.length <= 1) {
+          return { success: false, message: 'Gagal: Tidak dapat menonaktifkan satu-satunya Superadmin aktif.', error: { code: 'PROTECTED_USER' } };
         }
-        return { success: true, message: 'Status pengguna diubah.' };
       }
-      return { success: false, message: 'Pengguna tidak ditemukan.' };
+
+      target.status = payload.status;
+      saveMockDb(db);
+      // Jika akun dinonaktifkan, cabut sesi
+      if (payload.status === 'nonaktif' && currentUser.id === payload.id) {
+        safeSessionStorage.removeItem('dprd_token');
+        safeSessionStorage.removeItem('dprd_user');
+      }
+      return { success: true, message: 'Status pengguna diubah.' };
+    }
+
+    case 'deleteUser': {
+      const id = String(payload.id || '').trim();
+      const target = db.users.find((u) => u.id === id);
+      if (!target) return { success: false, message: 'Pengguna tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+
+      if (target.role === 'superadmin') {
+        const activeSupers = db.users.filter((u) => u.role === 'superadmin' && u.status === 'aktif');
+        if (activeSupers.length <= 1) {
+          return { success: false, message: 'Gagal: Tidak dapat menghapus satu-satunya Superadmin aktif.', error: { code: 'PROTECTED_USER' } };
+        }
+      }
+
+      const hasDocs = (db.dokumen || []).some((d) => String(d.uploaded_by || '').toLowerCase() === target.username.toLowerCase());
+      if (hasDocs) {
+        return { success: false, message: 'Pengguna tidak dapat dihapus karena memiliki riwayat arsip dokumen. Anda disarankan menonaktifkan akun pengguna demi audit keaslian berkas.', error: { code: 'HAS_DEPENDENT_RECORDS' } };
+      }
+
+      const staffName = String(target.nama || '').toLowerCase();
+      const staffUser = String(target.username || '').toLowerCase();
+      (db.dewan || []).forEach((d) => {
+        const pend = String(d.nama_pendamping || '').toLowerCase();
+        if (pend && (pend === staffName || pend === staffUser)) {
+          d.nama_pendamping = '';
+        }
+      });
+
+      db.users = db.users.filter((u) => u.id !== id);
+      saveMockDb(db);
+      return { success: true, message: 'Akun staf berhasil dihapus.' };
     }
 
     case 'resetUserPassword': {
@@ -1321,6 +1482,7 @@ export const api = {
   getKomisiList: () => callAppsScript('getKomisiList'),
   getRdpDokumenList: (komisi_id, tahun = '') => callAppsScript('getRdpDokumenList', { komisi_id, tahun }),
   uploadRdpDokumen: (data) => callAppsScript('uploadRdpDokumen', data, { timeout: 40000 }),
+  updateRdpDokumen: (data) => callAppsScript('updateRdpDokumen', data),
   deleteRdpDokumen: (id) => callAppsScript('deleteRdpDokumen', { id }),
 
   // Laporan Masyarakat (Publik & Terautentikasi)
@@ -1333,6 +1495,8 @@ export const api = {
   // Pengguna & Hak Akses
   getUserList: () => callAppsScript('getUserList'),
   createUser: (data) => callAppsScript('createUser', { data }),
+  updateUser: (id, data) => callAppsScript('updateUser', { id, ...data }),
+  deleteUser: (id) => callAppsScript('deleteUser', { id }),
   toggleUserStatus: (id, status) => callAppsScript('toggleUserStatus', { id, status }),
   resetUserPassword: (id, newPassword) => callAppsScript('resetUserPassword', { id, newPassword }),
 

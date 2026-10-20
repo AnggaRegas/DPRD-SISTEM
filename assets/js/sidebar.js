@@ -18,6 +18,7 @@ export function renderSidebar(activeMenu = '') {
   const isKomisiActive = activeMenu === 'komisi';
   const isDewanActive = activeMenu === 'dewan';
   const isLaporanActive = activeMenu === 'laporan';
+  const isStafActive = activeMenu === 'staf';
   const isKategoriActive = activeMenu === 'kategori';
   const isAktivitasActive = activeMenu === 'aktivitas';
   const isProfilActive = activeMenu === 'profil';
@@ -114,7 +115,20 @@ export function renderSidebar(activeMenu = '') {
         </a>
 
         ${isSuperadmin ? `
-          <!-- 6. KATEGORI ARSIP (SUPERADMIN ONLY) -->
+          <!-- 6. KELOLA AKUN STAF (SUPERADMIN ONLY) -->
+          <a href="staf.html" class="nav-item ${isStafActive ? 'active' : ''}" title="Kelola Akun Staf Pendamping">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Kelola Akun Staf</span>
+          </a>
+
+          <!-- 7. KATEGORI ARSIP (SUPERADMIN ONLY) -->
           <a href="kategori_dokumen.html" class="nav-item ${isKategoriActive ? 'active' : ''}" title="Pengelolaan Kategori Arsip">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

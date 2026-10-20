@@ -24,7 +24,8 @@ export default defineConfig({
         profil: resolve(__dirname, 'profil.html'),
         aktivitas: resolve(__dirname, 'aktivitas.html'),
         komisi: resolve(__dirname, 'komisi.html'),
-        laporan: resolve(__dirname, 'laporan.html')
+        laporan: resolve(__dirname, 'laporan.html'),
+        staf: resolve(__dirname, 'staf.html')
       }
     }
   }
