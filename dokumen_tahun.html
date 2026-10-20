@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,21 +6,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pilih Tahun Anggaran — Sistem Pengarsipan DPRD Kota Parepare</title>
   <link rel="stylesheet" href="assets/css/style.css">
+
+  <style>
+    .year-card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .year-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .year-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      background: #fff;
+      color: #64748b;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .year-action-btn:hover {
+      color: #b18a2b;
+      border-color: #cba638;
+      background: #fffcf3;
+    }
+
+    .year-action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .year-action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .year-action-btn:focus-visible {
+      outline: 2px solid #cba638;
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 420px) {
+      .year-card-heading {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
 </head>
+
 <body>
   <div id="sidebarContainer"></div>
 
   <div class="main-wrapper">
-    <!-- TOP HEADER -->
     <header class="top-header">
       <div class="header-left">
-        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"
+          aria-label="Buka menu navigasi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="3" y1="12" x2="21" y2="12"></line>
             <line x1="3" y1="6" x2="21" y2="6"></line>
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
+
         <nav class="breadcrumb-trail" aria-label="Breadcrumb">
           <a href="dashboard.html">Beranda</a>
           <span class="breadcrumb-separator">/</span>
@@ -30,6 +93,7 @@
           <span class="breadcrumb-current" id="breadcrumbKatName">Kategori</span>
         </nav>
       </div>
+
       <div class="header-right">
         <div class="header-badge">
           <span class="header-badge-dot"></span>
@@ -38,30 +102,36 @@
       </div>
     </header>
 
-    <!-- MAIN CONTENT -->
     <main class="main-content">
-      <!-- STEPPER INDIKATOR ALUR PENGARSIPAN -->
       <div class="stepper-nav">
         <div class="step-item completed">
           <span class="step-number">&check;</span>
           <span id="stepDewanName">Anggota DPRD</span>
         </div>
+
         <span class="step-divider">&rsaquo;</span>
+
         <div class="step-item completed">
           <span class="step-number">&check;</span>
           <span id="stepKategoriName">Kategori</span>
         </div>
+
         <span class="step-divider">&rsaquo;</span>
+
         <div class="step-item active">
           <span class="step-number">3</span>
           <span>Pilih Tahun</span>
         </div>
+
         <span class="step-divider">&rsaquo;</span>
+
         <div class="step-item">
           <span class="step-number">4</span>
           <span>Folder Dokumen</span>
         </div>
+
         <span class="step-divider">&rsaquo;</span>
+
         <div class="step-item">
           <span class="step-number">5</span>
           <span>Berkas Arsip</span>
@@ -71,12 +141,16 @@
       <div class="page-title-bar">
         <div class="page-title-text">
           <h1 id="pageTitleTahun">Tahun Anggaran Dokumen</h1>
-          <p id="pageSubtitleInfo">Pilih tahun anggaran berkas atau tambahkan tahun anggaran baru.</p>
+          <p id="pageSubtitleInfo">
+            Pilih tahun anggaran berkas atau tambahkan tahun anggaran baru.
+          </p>
         </div>
+
         <div class="page-actions">
           <a href="#" id="btnBackToKategori" class="btn btn-secondary">
             &larr; Kembali ke Kategori
           </a>
+
           <button type="button" class="btn btn-gold" id="btnOpenAddTahun">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -87,20 +161,21 @@
         </div>
       </div>
 
-      <!-- KARTU TAHUN ANGGARAN -->
       <div class="card">
         <div class="card-header">
           <div>
             <h2 class="card-title">Daftar Tahun Anggaran Tersedia</h2>
             <p class="card-subtitle">Klasifikasi arsip berdasarkan tahun anggaran.</p>
           </div>
+
           <div class="header-badge" id="badgeTotalTahun">
             Memuat...
           </div>
         </div>
+
         <div class="card-body">
           <div class="archive-grid" id="tahunGrid">
-            <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">
+            <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-muted);">
               Memuat daftar tahun anggaran...
             </div>
           </div>
@@ -111,18 +186,67 @@
 
   <!-- MODAL TAMBAH TAHUN -->
   <div id="modalTambahTahun" class="confirm-modal-backdrop">
-    <div class="confirm-modal-box" style="text-align: left; max-width: 400px;">
-      <h3 class="confirm-modal-title" style="margin-bottom: 4px;">Tambah Tahun Anggaran</h3>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Masukkan tahun anggaran baru untuk arsip kategori ini.</p>
-      
+    <div class="confirm-modal-box" style="text-align:left;max-width:400px;">
+      <h3 class="confirm-modal-title" style="margin-bottom:4px;">
+        Tambah Tahun Anggaran
+      </h3>
+
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">
+        Masukkan tahun anggaran baru untuk arsip kategori ini.
+      </p>
+
       <form id="formTambahTahun">
         <div class="form-group">
-          <label for="inputTahun" class="form-label">Tahun Anggaran <span class="required">*</span></label>
-          <input type="number" id="inputTahun" class="form-input" required min="2020" max="2035" value="2026">
+          <label for="inputTahun" class="form-label">
+            Tahun Anggaran <span class="required">*</span>
+          </label>
+
+          <input type="number" id="inputTahun" class="form-input"
+            required min="2020" max="2035" value="2026">
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
-          <button type="button" class="btn btn-secondary" id="btnCancelTahun">Batal</button>
-          <button type="submit" class="btn btn-gold" id="btnSaveTahun">Simpan Tahun</button>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelTahun">
+            Batal
+          </button>
+
+          <button type="submit" class="btn btn-gold" id="btnSaveTahun">
+            Simpan Tahun
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT TAHUN -->
+  <div id="modalEditTahun" class="confirm-modal-backdrop">
+    <div class="confirm-modal-box" style="text-align:left;max-width:400px;">
+      <h3 class="confirm-modal-title" style="margin-bottom:4px;">
+        Edit Tahun Anggaran
+      </h3>
+
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">
+        Ubah tahun anggaran. Data dokumen yang terkait juga akan diperbarui.
+      </p>
+
+      <form id="formEditTahun">
+        <div class="form-group">
+          <label for="inputEditTahun" class="form-label">
+            Tahun Anggaran <span class="required">*</span>
+          </label>
+
+          <input type="number" id="inputEditTahun" class="form-input"
+            required min="2020" max="2035">
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelEditTahun">
+            Batal
+          </button>
+
+          <button type="submit" class="btn btn-gold" id="btnSaveEditTahun">
+            Simpan Perubahan
+          </button>
         </div>
       </form>
     </div>
@@ -134,16 +258,16 @@
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const user = requireAuth();
+
     if (user) {
       renderSidebar('arsip');
 
       const mobileBtn = document.getElementById('mobileMenuBtn');
+
       if (mobileBtn) {
         mobileBtn.addEventListener('click', () => {
-          const sidebar = document.getElementById('sidebar');
-          const backdrop = document.getElementById('sidebarBackdrop');
-          if (sidebar) sidebar.classList.add('mobile-open');
-          if (backdrop) backdrop.classList.add('active');
+          document.getElementById('sidebar')?.classList.add('mobile-open');
+          document.getElementById('sidebarBackdrop')?.classList.add('active');
         });
       }
 
@@ -153,54 +277,100 @@
 
       if (!dewanId || !kategoriId) {
         window.location.replace('arsip_dewan.html');
-      }
+      } else {
+        const modalTahun = document.getElementById('modalTambahTahun');
+        const modalEditTahun = document.getElementById('modalEditTahun');
 
-      document.getElementById('breadcrumbDewanLink').href = `arsip_dewan.html?dewan_id=${dewanId}`;
-      document.getElementById('btnBackToKategori').href = `arsip_dewan.html?dewan_id=${dewanId}`;
+        const formTahun = document.getElementById('formTambahTahun');
+        const formEditTahun = document.getElementById('formEditTahun');
 
-      const modalTahun = document.getElementById('modalTambahTahun');
-      const btnOpenTahun = document.getElementById('btnOpenAddTahun');
-      const btnCancelTahun = document.getElementById('btnCancelTahun');
-      const formTahun = document.getElementById('formTambahTahun');
+        let tahunYangDiedit = null;
+        let isSubmittingTahun = false;
+        let isSubmittingEdit = false;
+        let isDeletingTahun = false;
 
-      btnOpenTahun.addEventListener('click', () => modalTahun.classList.add('active'));
-      btnCancelTahun.addEventListener('click', () => modalTahun.classList.remove('active'));
+        document.getElementById('breadcrumbDewanLink').href =
+          `arsip_dewan.html?dewan_id=${encodeURIComponent(dewanId)}`;
 
-      async function loadInfoAndYears() {
-        try {
-          const [resDewan, resKat, resTahun] = await Promise.all([
-            api.getDewanById(dewanId),
-            api.getKategoriList(),
-            api.getTahunList(dewanId, kategoriId)
-          ]);
+        document.getElementById('btnBackToKategori').href =
+          `arsip_dewan.html?dewan_id=${encodeURIComponent(dewanId)}`;
 
-          if (resDewan && resDewan.success && resDewan.data) {
-            const d = resDewan.data;
-            document.getElementById('breadcrumbDewanLink').textContent = d.nama;
-            document.getElementById('stepDewanName').textContent = d.nama;
-          }
+        document.getElementById('btnOpenAddTahun').addEventListener('click', () => {
+          formTahun.reset();
+          document.getElementById('inputTahun').value = new Date().getFullYear();
+          modalTahun.classList.add('active');
+        });
 
-          if (resKat && resKat.success && Array.isArray(resKat.data)) {
-            const k = resKat.data.find(x => String(x.id) === String(kategoriId));
-            if (k) {
-              document.getElementById('breadcrumbKatName').textContent = k.nama_kategori;
-              document.getElementById('stepKategoriName').textContent = k.nama_kategori;
-              document.getElementById('pageTitleTahun').textContent = `Tahun Anggaran: ${k.nama_kategori}`;
-            }
-          }
+        document.getElementById('btnCancelTahun').addEventListener('click', () => {
+          modalTahun.classList.remove('active');
+        });
 
+        document.getElementById('btnCancelEditTahun').addEventListener('click', () => {
+          modalEditTahun.classList.remove('active');
+          tahunYangDiedit = null;
+        });
+
+        // Memuat informasi anggota, kategori, dan daftar tahun
+        async function loadInfoAndYears() {
           const grid = document.getElementById('tahunGrid');
           const badge = document.getElementById('badgeTotalTahun');
 
-          if (resTahun && resTahun.success && Array.isArray(resTahun.data)) {
-            let years = resTahun.data;
+          try {
+            const [resDewan, resKat, resTahun] = await Promise.all([
+              api.getDewanById(dewanId),
+              api.getKategoriList(),
+              api.getTahunList(dewanId, kategoriId)
+            ]);
 
-            // Jika belum ada tahun sama sekali, default sediakan tahun sekarang
-            if (years.length === 0) {
-              years = [{ tahun: 2026, jumlah_dokumen: 0 }];
+            if (resDewan?.success && resDewan.data) {
+              document.getElementById('breadcrumbDewanLink').textContent =
+                resDewan.data.nama;
+
+              document.getElementById('stepDewanName').textContent =
+                resDewan.data.nama;
             }
 
+            if (resKat?.success && Array.isArray(resKat.data)) {
+              const kategori = resKat.data.find(
+                item => String(item.id) === String(kategoriId)
+              );
+
+              if (kategori) {
+                document.getElementById('breadcrumbKatName').textContent =
+                  kategori.nama_kategori;
+
+                document.getElementById('stepKategoriName').textContent =
+                  kategori.nama_kategori;
+
+                document.getElementById('pageTitleTahun').textContent =
+                  `Tahun Anggaran: ${kategori.nama_kategori}`;
+              }
+            }
+
+            if (!resTahun?.success || !Array.isArray(resTahun.data)) {
+              grid.innerHTML = `
+                <div style="grid-column:1/-1;text-align:center;padding:30px;">
+                  Gagal memuat daftar tahun anggaran.
+                </div>
+              `;
+              badge.textContent = 'Tidak tersedia';
+              return;
+            }
+
+            const years = [...resTahun.data].sort(
+              (a, b) => Number(b.tahun) - Number(a.tahun)
+            );
+
             badge.textContent = `${years.length} Tahun Terdaftar`;
+
+            if (years.length === 0) {
+              grid.innerHTML = `
+                <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-muted);">
+                  Belum ada tahun anggaran. Klik "Tambah Tahun Anggaran" untuk menambahkan.
+                </div>
+              `;
+              return;
+            }
 
             grid.innerHTML = years.map(y => `
               <div class="archive-card">
@@ -213,64 +383,263 @@
                       <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                   </div>
-                  <div>
-                    <div class="archive-card-title">Tahun ${y.tahun}</div>
+
+                  <div style="flex:1;min-width:0;">
+                    <div class="year-card-heading">
+                      <div class="archive-card-title">
+                        Tahun ${escapeHtml(y.tahun)}
+                      </div>
+
+                      <div class="year-card-actions">
+                        <button type="button" class="year-action-btn"
+                          title="Edit Tahun" aria-label="Edit tahun ${escapeHtml(y.tahun)}"
+                          data-action="edit" data-tahun="${escapeHtml(y.tahun)}">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
+                          </svg>
+                        </button>
+
+                        <button type="button" class="year-action-btn"
+                          title="Hapus Tahun" aria-label="Hapus tahun ${escapeHtml(y.tahun)}"
+                          data-action="hapus" data-tahun="${escapeHtml(y.tahun)}">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6l-1 14H6L5 6"></path>
+                            <path d="M10 11v6"></path>
+                            <path d="M14 11v6"></path>
+                            <path d="M9 6V4h6v2"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
                     <div class="archive-card-desc">Tahun anggaran pelaksanaan</div>
                   </div>
                 </div>
+
                 <div class="archive-card-footer">
-                  <span class="status-pill aktif" style="font-size: 11.5px;">
+                  <span class="status-pill aktif" style="font-size:11.5px;">
                     <span class="status-pill-dot"></span>
-                    ${y.jumlah_dokumen || 0} Dokumen
+                    ${Number(y.jumlah_dokumen) || 0} Dokumen
                   </span>
-                  <a href="dokumen_folder.html?dewan_id=${dewanId}&kategori_id=${kategoriId}&tahun=${y.tahun}" class="btn btn-gold btn-sm">
+
+                  <a href="dokumen_folder.html?dewan_id=${encodeURIComponent(dewanId)}&kategori_id=${encodeURIComponent(kategoriId)}&tahun=${encodeURIComponent(y.tahun)}"
+                    class="btn btn-gold btn-sm">
                     Pilih Folder &rarr;
                   </a>
                 </div>
               </div>
             `).join('');
+          } catch (error) {
+            console.error(error);
+            showToast('Terjadi kesalahan saat memuat tahun anggaran.', 'error');
+            badge.textContent = 'Gagal memuat';
+            grid.innerHTML = `
+              <div style="grid-column:1/-1;text-align:center;padding:30px;">
+                Terjadi kesalahan saat memuat data. Silakan muat ulang halaman.
+              </div>
+            `;
           }
-        } catch (e) {
-          console.error(e);
         }
-      }
 
-      let isSubmittingTahun = false;
-      formTahun.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (isSubmittingTahun) return;
-        const tahunVal = parseInt(document.getElementById('inputTahun').value, 10);
-        if (isNaN(tahunVal)) return;
+        // Mencegah teks dari data API dibaca sebagai HTML
+        function escapeHtml(value) {
+          return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+          })[char]);
+        }
 
-        const btnSave = document.getElementById('btnSaveTahun');
-        const originalText = btnSave ? btnSave.textContent : 'Simpan Tahun';
+        // Menangani klik tombol Edit dan Hapus
+        document.getElementById('tahunGrid').addEventListener('click', async event => {
+          const button = event.target.closest('button[data-action]');
+          if (!button) return;
 
-        try {
-          isSubmittingTahun = true;
-          if (btnSave) {
+          const tahun = Number(button.dataset.tahun);
+
+          if (!Number.isInteger(tahun)) {
+            showToast('Tahun anggaran tidak valid.', 'error');
+            return;
+          }
+
+          if (button.dataset.action === 'edit') {
+            tahunYangDiedit = tahun;
+            document.getElementById('inputEditTahun').value = tahun;
+            modalEditTahun.classList.add('active');
+            return;
+          }
+
+          if (button.dataset.action === 'hapus') {
+            const setuju = window.confirm(
+              `Yakin ingin menghapus tahun ${tahun}?\n\n` +
+              'PERHATIAN: Data dokumen yang terkait dengan tahun ini akan dihapus, ' +
+              'dan berkas Google Drive terkait akan dipindahkan ke sampah.\n\n' +
+              'Pastikan kamu sudah memeriksa arsip sebelum melanjutkan.'
+            );
+
+            if (!setuju || isDeletingTahun) return;
+
+            const teksAsli = button.innerHTML;
+
+            try {
+              isDeletingTahun = true;
+              button.disabled = true;
+              button.textContent = 'Menghapus...';
+
+              const res = await api.deleteTahun(dewanId, kategoriId, tahun);
+
+              if (res?.success) {
+                showToast(
+                  res.message || `Tahun ${tahun} berhasil dihapus.`,
+                  'success'
+                );
+                await loadInfoAndYears();
+              } else {
+                showToast(
+                  res?.message || 'Gagal menghapus tahun anggaran.',
+                  'error'
+                );
+              }
+            } catch (error) {
+              console.error(error);
+              showToast(
+                error.message || 'Terjadi kesalahan saat menghapus tahun.',
+                'error'
+              );
+            } finally {
+              isDeletingTahun = false;
+              button.disabled = false;
+              button.innerHTML = teksAsli;
+            }
+          }
+        });
+
+        // Menyimpan perubahan tahun
+        formEditTahun.addEventListener('submit', async event => {
+          event.preventDefault();
+
+          if (isSubmittingEdit) return;
+
+          if (tahunYangDiedit === null) {
+            showToast('Pilih tahun yang ingin diedit terlebih dahulu.', 'error');
+            return;
+          }
+
+          const tahunLama = tahunYangDiedit;
+          const tahunBaru = Number(
+            document.getElementById('inputEditTahun').value
+          );
+
+          if (!Number.isInteger(tahunBaru) || tahunBaru < 2020 || tahunBaru > 2035) {
+            showToast('Masukkan tahun antara 2020 sampai 2035.', 'error');
+            return;
+          }
+
+          if (tahunBaru === tahunLama) {
+            modalEditTahun.classList.remove('active');
+            tahunYangDiedit = null;
+            return;
+          }
+
+          const btnSave = document.getElementById('btnSaveEditTahun');
+          const teksAsli = btnSave.textContent;
+
+          try {
+            isSubmittingEdit = true;
             btnSave.disabled = true;
             btnSave.textContent = 'Menyimpan...';
-          }
-          const res = await api.createTahun(dewanId, kategoriId, tahunVal);
-          if (res && res.success) {
-            showToast('Tahun anggaran berhasil ditambahkan.', 'success');
-            modalTahun.classList.remove('active');
-            loadInfoAndYears();
-          } else {
-            showToast(res.message || 'Gagal menambahkan tahun.', 'error');
-          }
-        } catch (err) {
-          showToast(err.message, 'error');
-        } finally {
-          isSubmittingTahun = false;
-          if (btnSave) {
-            btnSave.disabled = false;
-            btnSave.textContent = originalText;
-          }
-        }
-      });
 
-      loadInfoAndYears();
+            const res = await api.updateTahun(
+              dewanId,
+              kategoriId,
+              tahunLama,
+              tahunBaru
+            );
+
+            if (res?.success) {
+              showToast(
+                res.message || 'Tahun anggaran berhasil diperbarui.',
+                'success'
+              );
+              modalEditTahun.classList.remove('active');
+              tahunYangDiedit = null;
+              await loadInfoAndYears();
+            } else {
+              showToast(
+                res?.message || 'Gagal memperbarui tahun anggaran.',
+                'error'
+              );
+            }
+          } catch (error) {
+            console.error(error);
+            showToast(
+              error.message || 'Terjadi kesalahan saat mengubah tahun.',
+              'error'
+            );
+          } finally {
+            isSubmittingEdit = false;
+            btnSave.disabled = false;
+            btnSave.textContent = teksAsli;
+          }
+        });
+
+        // Menambahkan tahun baru
+        formTahun.addEventListener('submit', async event => {
+          event.preventDefault();
+
+          if (isSubmittingTahun) return;
+
+          const tahunVal = Number(
+            document.getElementById('inputTahun').value
+          );
+
+          if (!Number.isInteger(tahunVal) || tahunVal < 2020 || tahunVal > 2035) {
+            showToast('Masukkan tahun antara 2020 sampai 2035.', 'error');
+            return;
+          }
+
+          const btnSave = document.getElementById('btnSaveTahun');
+          const teksAsli = btnSave.textContent;
+
+          try {
+            isSubmittingTahun = true;
+            btnSave.disabled = true;
+            btnSave.textContent = 'Menyimpan...';
+
+            const res = await api.createTahun(dewanId, kategoriId, tahunVal);
+
+            if (res?.success) {
+              showToast(
+                res.message || 'Tahun anggaran berhasil ditambahkan.',
+                'success'
+              );
+              modalTahun.classList.remove('active');
+              await loadInfoAndYears();
+            } else {
+              showToast(
+                res?.message || 'Gagal menambahkan tahun anggaran.',
+                'error'
+              );
+            }
+          } catch (error) {
+            console.error(error);
+            showToast(
+              error.message || 'Terjadi kesalahan saat menambahkan tahun.',
+              'error'
+            );
+          } finally {
+            isSubmittingTahun = false;
+            btnSave.disabled = false;
+            btnSave.textContent = teksAsli;
+          }
+        });
+
+        loadInfoAndYears();
+      }
     }
   </script>
 </body>

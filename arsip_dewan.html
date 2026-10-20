@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -64,7 +65,7 @@
         </div>
       </div>
 
-      <!-- TAMPILAN 1: KATALOG ANGGOTA DEWAN (Jika belum pilih dewan) -->
+      <!-- TAMPILAN 1: KATALOG ANGGOTA DEWAN -->
       <div id="viewPilihDewan">
         <div class="page-title-bar">
           <div class="page-title-text">
@@ -108,7 +109,7 @@
         </div>
       </div>
 
-      <!-- TAMPILAN 2: DETAIL ANGGOTA DEWAN & KATEGORI (Jika dewanId dipilih) -->
+      <!-- TAMPILAN 2: DETAIL ANGGOTA DEWAN & KATEGORI -->
       <div id="viewKategoriDewan" style="display: none;">
         <div class="page-title-bar">
           <div class="page-title-text">
@@ -130,13 +131,19 @@
         </div>
 
         <div class="card">
+          <!-- BAGIAN KATEGORI YANG DIPERBARUI -->
           <div class="card-header">
             <div>
               <h2 class="card-title">Kategori Arsip Dokumen</h2>
-              <p class="card-subtitle">Dokumen diklasifikasikan berdasarkan kategori resmi.</p>
+              <p class="card-subtitle">Kelola kategori arsip Reses dan Pokir.</p>
             </div>
-            <div class="header-badge" id="badgeTotalKat">
-              Memuat...
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <div class="header-badge" id="badgeTotalKat">
+                Memuat...
+              </div>
+              <button type="button" class="btn btn-gold btn-sm" id="btnTambahKategori">
+                + Tambah Kategori
+              </button>
             </div>
           </div>
           <div class="card-body">
@@ -157,14 +164,17 @@
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const user = requireAuth();
+
     if (user) {
       renderSidebar('arsip');
 
       const mobileBtn = document.getElementById('mobileMenuBtn');
+
       if (mobileBtn) {
         mobileBtn.addEventListener('click', () => {
           const sidebar = document.getElementById('sidebar');
           const backdrop = document.getElementById('sidebarBackdrop');
+
           if (sidebar) sidebar.classList.add('mobile-open');
           if (backdrop) backdrop.classList.add('active');
         });
@@ -174,12 +184,10 @@
       const dewanId = params.get('dewan_id') || params.get('id');
 
       if (!dewanId) {
-        // TAMPILKAN KATALOG ANGGOTA DEWAN
         document.getElementById('viewPilihDewan').style.display = 'block';
         document.getElementById('viewKategoriDewan').style.display = 'none';
         loadDewanCatalog();
       } else {
-        // TAMPILKAN KATEGORI UNTUK DEWAN INI
         document.getElementById('viewPilihDewan').style.display = 'none';
         document.getElementById('viewKategoriDewan').style.display = 'block';
         loadKategoriForDewan(dewanId);
@@ -189,24 +197,30 @@
 
       async function loadDewanCatalog() {
         const grid = document.getElementById('dewanGrid');
+
         try {
           const res = await api.getDewanList();
+
           if (res && res.success && Array.isArray(res.data)) {
-            allDewanList = res.data.filter(d => (d.status || 'aktif').toLowerCase() === 'aktif');
+            allDewanList = res.data.filter(
+              d => (d.status || 'aktif').toLowerCase() === 'aktif'
+            );
+
             renderDewanCards(allDewanList);
           } else {
-            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--status-danger); padding: 30px;">Gagal memuat katalog anggota dewan.</div>';
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--status-danger);padding:30px;">Gagal memuat katalog anggota dewan.</div>';
           }
         } catch (e) {
-          grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${e.message}</div>`;
+          grid.textContent = 'Kesalahan: ' + e.message;
         }
       }
 
       function renderDewanCards(list) {
         const grid = document.getElementById('dewanGrid');
+
         if (!list.length) {
           grid.innerHTML = `
-            <div style="grid-column: 1/-1;">
+            <div style="grid-column:1/-1;">
               <div class="empty-state">
                 <div class="empty-state-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -251,7 +265,7 @@
                   ${d.kecamatan || 'Parepare'}
                 </span>
                 ${canAccess ? `
-                  <a href="arsip_dewan.html?dewan_id=${d.id}" class="btn btn-gold btn-sm">
+                  <a href="arsip_dewan.html?dewan_id=${encodeURIComponent(d.id)}" class="btn btn-gold btn-sm">
                     Buka Arsip &rarr;
                   </a>
                 ` : `
@@ -265,33 +279,45 @@
         }).join('');
       }
 
-      // Filter Pencarian Anggota Dewan
+      // Filter pencarian anggota dewan
       const searchDewan = document.getElementById('searchDewanInput');
+
       if (searchDewan) {
-        searchDewan.addEventListener('input', (e) => {
+        searchDewan.addEventListener('input', e => {
           const q = e.target.value.toLowerCase().trim();
+
           if (!q) {
             renderDewanCards(allDewanList);
             return;
           }
+
           const filtered = allDewanList.filter(d =>
             (d.nama && d.nama.toLowerCase().includes(q)) ||
             (d.nama_partai && d.nama_partai.toLowerCase().includes(q)) ||
             (d.jabatan && d.jabatan.toLowerCase().includes(q)) ||
             (d.kecamatan && d.kecamatan.toLowerCase().includes(q))
           );
+
           renderDewanCards(filtered);
         });
       }
 
+      // TAMPILAN KATEGORI ANGGOTA DEWAN
       async function loadKategoriForDewan(id) {
         const stepKat = document.getElementById('stepKategori');
+
         if (stepKat) stepKat.classList.add('active');
 
         const btnUpload = document.getElementById('btnUploadForDewan');
-        btnUpload.href = `tambah_dokumen.html?dewan_id=${id}`;
+        btnUpload.href = `tambah_dokumen.html?dewan_id=${encodeURIComponent(id)}`;
 
-        try {
+        const grid = document.getElementById('kategoriGrid');
+        const badge = document.getElementById('badgeTotalKat');
+        const btnTambah = document.getElementById('btnTambahKategori');
+
+        async function muatKategori() {
+          grid.innerHTML = '<div style="grid-column:1/-1;padding:30px;text-align:center;">Memuat kategori dokumen...</div>';
+
           const [resDewan, resKat] = await Promise.all([
             api.getDewanById(id),
             api.getKategoriWithDocCount(id)
@@ -307,71 +333,240 @@
               return;
             }
 
-            document.getElementById('dewanTitleName').textContent = d.nama || 'Arsip Dewan';
-            document.getElementById('dewanMetaDesc').textContent = `${d.jabatan || 'Anggota DPRD'} • ${d.nama_partai || '-'} • Pendamping: ${d.nama_pendamping || '-'}`;
+            document.getElementById('dewanTitleName').textContent =
+              d.nama || 'Arsip Dewan';
 
-            // Perbarui Breadcrumb Trail
-            document.getElementById('breadcrumbTrail').innerHTML = `
+            document.getElementById('dewanMetaDesc').textContent =
+              `${d.jabatan || 'Anggota DPRD'} • ${d.nama_partai || '-'} • Pendamping: ${d.nama_pendamping || '-'}`;
+
+            const breadcrumb = document.getElementById('breadcrumbTrail');
+
+            breadcrumb.innerHTML = `
               <a href="dashboard.html">Beranda</a>
               <span class="breadcrumb-separator">/</span>
               <a href="arsip_dewan.html">Arsip Dokumen</a>
               <span class="breadcrumb-separator">/</span>
-              <span class="breadcrumb-current">${d.nama}</span>
+              <span class="breadcrumb-current"></span>
             `;
+
+            breadcrumb.querySelector('.breadcrumb-current').textContent =
+              d.nama || 'Arsip Dewan';
           }
-          const grid = document.getElementById('kategoriGrid');
-          const badge = document.getElementById('badgeTotalKat');
 
-          if (resKat && resKat.success && Array.isArray(resKat.data)) {
-            const categories = resKat.data.filter(k => (k.status || 'aktif').toLowerCase() === 'aktif');
-            badge.textContent = `${categories.length} Kategori Tersedia`;
+          if (!resKat || !resKat.success || !Array.isArray(resKat.data)) {
+            throw new Error(resKat?.message || 'Gagal memuat kategori.');
+          }
 
-            if (!categories.length) {
-              grid.innerHTML = `
-                <div style="grid-column: 1/-1;">
-                  <div class="empty-state">
-                    <div class="empty-state-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                      </svg>
-                    </div>
-                    <h3 class="empty-state-title">Kategori Belum Tersedia</h3>
-                    <p class="empty-state-desc">Belum ada kategori yang terdaftar untuk anggota dewan ini.</p>
-                  </div>
+          // Hanya menampilkan Reses dan Pokir.
+          // Kategori lain tidak dihapus dari penyimpanan.
+          const categories = resKat.data.filter(k => {
+            if ((k.status || 'aktif').toLowerCase() !== 'aktif') {
+              return false;
+            }
+
+            const nama = (k.nama_kategori || '').trim().toLowerCase();
+
+            return nama.includes('reses') || nama.includes('pokir');
+          });
+
+          // Reses dan Pokir ditampilkan dalam urutan tetap.
+          categories.sort((a, b) => {
+            const namaA = (a.nama_kategori || '').toLowerCase();
+            const namaB = (b.nama_kategori || '').toLowerCase();
+
+            const urutanA = namaA.includes('reses') ? 0 : 1;
+            const urutanB = namaB.includes('reses') ? 0 : 1;
+
+            return urutanA - urutanB;
+          });
+
+          badge.textContent = `${categories.length} Kategori Tersedia`;
+
+          if (!categories.length) {
+            grid.innerHTML = `
+              <div class="empty-state" style="grid-column:1/-1;">
+                <div class="empty-state-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
                 </div>
-              `;
+                <h3 class="empty-state-title">Kategori Reses dan Pokir Belum Tersedia</h3>
+                <p class="empty-state-desc">Gunakan tombol Tambah Kategori untuk menambahkan kategori arsip.</p>
+              </div>
+            `;
+            return;
+          }
+
+          grid.innerHTML = categories.map(() => `
+            <div class="archive-card">
+              <div class="archive-card-header">
+                <div class="archive-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="archive-card-title"></div>
+                  <div class="archive-card-desc"></div>
+                </div>
+              </div>
+              <div class="archive-card-footer">
+                <span class="status-pill aktif" style="font-size:11.5px;">
+                  <span class="status-pill-dot"></span>
+                  <span class="jumlah-dokumen"></span>
+                </span>
+                <a class="btn btn-gold btn-sm btn-pilih-tahun">
+                  Pilih Tahun &rarr;
+                </a>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm btn-edit-kategori">
+                  Edit
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm btn-hapus-kategori" style="color:#dc2626;">
+                  Hapus
+                </button>
+              </div>
+            </div>
+          `).join('');
+
+          const cards = grid.querySelectorAll('.archive-card');
+
+          categories.forEach((k, index) => {
+            const card = cards[index];
+
+            card.querySelector('.archive-card-title').textContent =
+              k.nama_kategori || '-';
+
+            card.querySelector('.archive-card-desc').textContent =
+              k.deskripsi || 'Arsip resmi dokumen dewan';
+
+            card.querySelector('.jumlah-dokumen').textContent =
+              `${Number(k.jumlah_dokumen || 0)} Dokumen`;
+
+            card.querySelector('.btn-pilih-tahun').href =
+              `dokumen_tahun.html?dewan_id=${encodeURIComponent(id)}&kategori_id=${encodeURIComponent(k.id)}`;
+
+            // Edit kategori
+            card.querySelector('.btn-edit-kategori').addEventListener('click', async () => {
+              const namaBaru = prompt(
+                'Masukkan nama kategori:',
+                k.nama_kategori || ''
+              );
+
+              if (namaBaru === null) return;
+
+              if (!namaBaru.trim()) {
+                alert('Nama kategori tidak boleh kosong.');
+                return;
+              }
+
+              const deskripsiBaru = prompt(
+                'Masukkan deskripsi kategori:',
+                k.deskripsi || ''
+              );
+
+              if (deskripsiBaru === null) return;
+
+              try {
+                const hasil = await api.updateKategori(
+                  k.id,
+                  namaBaru.trim(),
+                  deskripsiBaru.trim()
+                );
+
+                if (!hasil || !hasil.success) {
+                  alert(hasil?.message || 'Kategori gagal diperbarui.');
+                  return;
+                }
+
+                alert('Kategori berhasil diperbarui.');
+                await muatKategori();
+              } catch (error) {
+                alert('Gagal memperbarui kategori: ' + error.message);
+              }
+            });
+
+            // Hapus kategori dengan konfirmasi
+            card.querySelector('.btn-hapus-kategori').addEventListener('click', async () => {
+              const konfirmasi = confirm(
+                `Apakah Anda yakin ingin menghapus kategori "${k.nama_kategori}"? Jika kategori masih digunakan dokumen, server mungkin menolak penghapusan.`
+              );
+
+              if (!konfirmasi) return;
+
+              try {
+                const hasil = await api.deleteKategori(k.id);
+
+                if (!hasil || !hasil.success) {
+                  alert(hasil?.message || 'Kategori gagal dihapus.');
+                  return;
+                }
+
+                alert('Kategori berhasil dihapus.');
+                await muatKategori();
+              } catch (error) {
+                alert('Gagal menghapus kategori: ' + error.message);
+              }
+            });
+          });
+        }
+
+        // Tambah kategori baru
+        btnTambah.onclick = async () => {
+          const nama = prompt('Masukkan nama kategori baru:');
+
+          if (nama === null) return;
+
+          if (!nama.trim()) {
+            alert('Nama kategori tidak boleh kosong.');
+            return;
+          }
+
+          const deskripsi = prompt('Masukkan deskripsi kategori:', '');
+
+          if (deskripsi === null) return;
+
+          try {
+            const hasil = await api.createKategori(
+              nama.trim(),
+              deskripsi.trim()
+            );
+
+            if (!hasil || !hasil.success) {
+              alert(hasil?.message || 'Kategori gagal ditambahkan.');
               return;
             }
 
-            grid.innerHTML = categories.map(k => `
-              <div class="archive-card">
-                <div class="archive-card-header">
-                  <div class="archive-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="archive-card-title">${k.nama_kategori}</div>
-                    <div class="archive-card-desc">${k.deskripsi || 'Arsip resmi dokumen dewan'}</div>
-                  </div>
-                </div>
-                <div class="archive-card-footer">
-                  <span class="status-pill aktif" style="font-size: 11.5px;">
-                    <span class="status-pill-dot"></span>
-                    ${k.jumlah_dokumen || 0} Dokumen
-                  </span>
-                  <a href="dokumen_tahun.html?dewan_id=${id}&kategori_id=${k.id}" class="btn btn-gold btn-sm">
-                    Pilih Tahun &rarr;
-                  </a>
-                </div>
-              </div>
-            `).join('');
+            alert('Kategori berhasil ditambahkan.');
+
+            // Muat ulang data kategori setelah penyimpanan.
+            await muatKategori();
+
+            const namaBaru = nama.trim().toLowerCase();
+
+            if (!namaBaru.includes('reses') && !namaBaru.includes('pokir')) {
+              alert(
+                'Kategori berhasil disimpan, tetapi tampilan halaman ini hanya menampilkan kategori Reses dan Pokir.'
+              );
+            }
+          } catch (error) {
+            alert('Gagal menambahkan kategori: ' + error.message);
           }
-        } catch (err) {
-          console.error(err);
+        };
+
+        try {
+          await muatKategori();
+        } catch (error) {
+          console.error(error);
+
+          grid.innerHTML = `
+            <div style="grid-column:1/-1;color:var(--status-danger);padding:20px;">
+              Gagal memuat kategori: ${error.message}
+            </div>
+          `;
         }
       }
     }
