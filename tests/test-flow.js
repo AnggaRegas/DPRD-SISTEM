@@ -381,6 +381,186 @@ async function runAllTests() {
   assert(getSafeRedirectUrl('//malicious.org/phish') === 'dashboard.html', 'Protocol-relative URL //malicious.org berhasil diblokir');
   assert(getSafeRedirectUrl('login.html') === 'dashboard.html', 'Pengalihan balik ke login.html dicegah untuk menghindari redirect loop');
 
+  // ================= 10. PENGUJIAN MODUL KOMISI & DOKUMEN RDP =================
+  console.log('\n--- 10. Pengujian Modul Komisi & Dokumen RDP ---');
+
+  // Test 29: Komisi harus tepat 3 komisi
+  const komisiListRes = await api.getKomisiList();
+  assert(komisiListRes.success && Array.isArray(komisiListRes.data) && komisiListRes.data.length === 3, 'Terdapat tepat 3 Komisi (Komisi 1, Komisi 2, Komisi 3)');
+  assert(komisiListRes.data[0].id === 'KOM-1' && komisiListRes.data[1].id === 'KOM-2' && komisiListRes.data[2].id === 'KOM-3', 'ID Komisi terdefinisi konsisten (KOM-1, KOM-2, KOM-3)');
+
+  // Test 30: Unggah dokumen RDP untuk Komisi 1 (tahun 2024 dan 2026)
+  const upRdp1 = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: 2024,
+    nama_dokumen: 'RDP Pembahasan APBD 2024',
+    keterangan: 'Agenda APBD',
+    fileName: 'rdp_apbd_2024.pdf'
+  });
+  assert(upRdp1.success && upRdp1.data?.id, 'Dokumen RDP 2024 berhasil diunggah ke Komisi 1');
+
+  const upRdp2 = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: 2026,
+    nama_dokumen: 'RDP Drainase & Banjir 2026',
+    keterangan: 'Agenda penanganan banjir',
+    fileName: 'rdp_banjir_2026.pdf'
+  });
+  assert(upRdp2.success && upRdp2.data?.id, 'Dokumen RDP 2026 berhasil diunggah ke Komisi 1');
+
+  // Test 31: Unggah dokumen RDP untuk Komisi 2 (tahun 2025)
+  const upRdpKom2 = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-2',
+    tahun: 2025,
+    nama_dokumen: 'RDP Pasar Tradisional 2025',
+    keterangan: 'Agenda penataan pasar',
+    fileName: 'rdp_pasar_2025.pdf'
+  });
+  assert(upRdpKom2.success && upRdpKom2.data?.id, 'Dokumen RDP 2025 berhasil diunggah ke Komisi 2');
+
+  // Test 32: Isolasi arsip antar komisi (Komisi 2 tidak boleh menampilkan arsip Komisi 1)
+  const listRdpKom2 = await api.getRdpDokumenList('KOM-2', 'semua');
+  assert(listRdpKom2.success && listRdpKom2.data?.dokumen?.length === 1, 'Komisi 2 hanya memiliki 1 dokumen RDP miliknya sendiri');
+  assert(listRdpKom2.data?.dokumen[0].dewan_id === 'KOM-2', 'Dokumen RDP Komisi 2 terisolasi dari Komisi 1');
+
+  // Test 33: Filter tahun dinamis pada Komisi 1 (available_years & filter tahun)
+  const listRdpKom1All = await api.getRdpDokumenList('KOM-1', 'semua');
+  assert(listRdpKom1All.success && listRdpKom1All.data?.dokumen?.length === 2, 'Komisi 1 menampilkan 2 dokumen RDP pada filter Semua Tahun');
+  assert(listRdpKom1All.data?.available_years?.includes(2024) && listRdpKom1All.data?.available_years?.includes(2026), 'available_years mengembalikan pilihan tahun dinamis dari data aktual');
+
+  const listRdpKom1_2024 = await api.getRdpDokumenList('KOM-1', '2024');
+  assert(listRdpKom1_2024.success && listRdpKom1_2024.data?.dokumen?.length === 1 && listRdpKom1_2024.data?.dokumen[0].tahun === 2024, 'Filter tahun 2024 hanya menampilkan arsip tahun 2024');
+
+  // Test 34: Hapus dokumen RDP
+  const delRdpRes = await api.deleteRdpDokumen(upRdp1.data.id);
+  assert(delRdpRes.success, 'Dokumen RDP berhasil dihapus');
+  const listRdpKom1AfterDel = await api.getRdpDokumenList('KOM-1', 'semua');
+  assert(listRdpKom1AfterDel.data?.dokumen?.length === 1, 'Daftar dokumen RDP berkurang setelah penghapusan');
+
+  // ================= 11. PENGUJIAN KECAMATAN ANGGOTA DEWAN =================
+  console.log('\n--- 11. Pengujian Pengaturan Kecamatan Anggota Dewan ---');
+
+  // Test 35: Tambah anggota dewan dengan kecamatan resmi Kota Parepare
+  const newDewanKec = await api.createDewan({
+    nama: 'H. TEST DEWAN KECAMATAN, S.E.',
+    jabatan: 'Anggota DPRD',
+    periode: '2024 - 2029',
+    nama_partai: 'Partai Golongan Karya',
+    nama_pendamping: 'Staff Pengarsipan',
+    kecamatan: 'Kecamatan Bacukiki Barat'
+  });
+  assert(newDewanKec.success && newDewanKec.data?.kecamatan === 'Kecamatan Bacukiki Barat', 'Superadmin berhasil menetapkan kecamatan asal dewan (Bacukiki Barat)');
+
+  // Test 36: Update kecamatan dewan
+  const updDewanKec = await api.updateDewan({
+    id: newDewanKec.data.id,
+    kecamatan: 'Kecamatan Soreang'
+  });
+  assert(updDewanKec.success && updDewanKec.data?.kecamatan === 'Kecamatan Soreang', 'Superadmin berhasil memperbarui kecamatan asal dewan ke Kecamatan Soreang');
+
+  // ================= 12. PENGUJIAN PEMBATASAN AKSES STAF PENDAMPING =================
+  console.log('\n--- 12. Pengujian Otorisasi & Pembatasan Akses Staf Pendamping ---');
+
+  // Test 37: Login sebagai akun staf
+  await api.logout();
+  const staffLoginRes = await api.login('staff', 'PasswordStaff2026!');
+  assert(staffLoginRes.success && staffLoginRes.data?.user?.role === 'staff', 'Login sebagai akun staf pengarsipan berhasil');
+
+  // Test 38: Staf dilarang mengubah kecamatan dewan atau mengupdate data dewan (RBAC: FORBIDDEN)
+  const staffUpdDewan = await api.updateDewan({ id: 'DWN-01', kecamatan: 'Kecamatan Ujung' });
+  assert(!staffUpdDewan.success && staffUpdDewan.error?.code === 'FORBIDDEN', 'Staf dilarang mengubah data/kecamatan anggota dewan (RBAC: FORBIDDEN)');
+
+  // Test 39: Staf dilarang mengakses log aktivitas dan daftar user
+  const staffLogs = await api.getActivityLog();
+  assert(!staffLogs.success && staffLogs.error?.code === 'FORBIDDEN', 'Staf dilarang mengakses log aktivitas sistem (RBAC: FORBIDDEN)');
+  const staffUsers = await api.getUserList();
+  assert(!staffUsers.success && staffUsers.error?.code === 'FORBIDDEN', 'Staf dilarang mengakses daftar user sistem (RBAC: FORBIDDEN)');
+
+  // Test 40: Staf dilarang mengunggah arsip untuk dewan yang bukan penugasannya
+  // DWN-01 ditugaskan ke 'SUKARNO, S. Kom.', bukan 'Staff Pengarsipan'
+  const staffUploadLain = await api.uploadDokumen({
+    dewan_id: 'DWN-01',
+    kategori_id: 'KAT-01',
+    tahun: 2026,
+    nama_folder: 'Surat Masuk',
+    nama_dokumen: 'Arsip Tidak Berizin',
+    fileName: 'surat.pdf'
+  });
+  assert(!staffUploadLain.success && staffUploadLain.error?.code === 'FORBIDDEN', 'Staf dilarang mengunggah dokumen ke dewan staf lain (RBAC: FORBIDDEN)');
+
+  // Test 41: Staf dilarang membuka daftar dokumen dewan staf lain
+  const staffGetDocLain = await api.getDokumenList({ dewan_id: 'DWN-01' });
+  assert(!staffGetDocLain.success && staffGetDocLain.error?.code === 'FORBIDDEN', 'Staf dilarang membaca arsip dewan staf lain (RBAC: FORBIDDEN)');
+
+  // Test 42: Staf diizinkan mengunggah arsip untuk dewan penugasannya (DWN-02 ditugaskan ke Staff Pengarsipan)
+  const staffUploadSendiri = await api.uploadDokumen({
+    dewan_id: 'DWN-02',
+    kategori_id: 'KAT-01',
+    tahun: 2026,
+    nama_folder: 'Pokir',
+    nama_dokumen: 'Usulan Aspirasi Warga Soreang',
+    fileName: 'usulan_soreang.pdf'
+  });
+  assert(staffUploadSendiri.success && staffUploadSendiri.data?.id, 'Staf berhasil mengunggah arsip untuk dewan penugasannya');
+
+  // Test 43: Staf diizinkan mengunduh arsip dewan penugasannya
+  const staffDownloadSendiri = await api.downloadDokumen(staffUploadSendiri.data.id);
+  assert(staffDownloadSendiri.success && staffDownloadSendiri.data?.nama_file, 'Staf berhasil mengunduh dokumen penugasannya');
+
+  // ================= 13. PENGUJIAN PORTAL PUBLIK & LAPORAN MASYARAKAT =================
+  console.log('\n--- 13. Pengujian Portal Publik & Laporan Masyarakat ---');
+
+  // Test 44: Pengambilan daftar publik dewan tanpa login (Akses Publik)
+  await api.logout(); // Logout memastikan tidak ada sesi aktif
+  const pubDewanList = await api.getPublicDewanList();
+  assert(pubDewanList.success && Array.isArray(pubDewanList.data) && pubDewanList.data.length > 0, 'Daftar publik dewan dapat diakses publik tanpa login');
+  assert(pubDewanList.data[0].nama && pubDewanList.data[0].kecamatan !== undefined, 'Daftar publik dewan memiliki atribut nama dan kecamatan');
+  assert(!pubDewanList.data[0].password && !pubDewanList.data[0].token, 'Data privat/kredensial terlindungi dan tidak bocor ke publik');
+
+  // Test 45: Validasi kecamatan resmi Kota Parepare saat kirim laporan publik
+  const reportInvalidKec = await api.submitLaporanPublik({
+    nama_pelapor: 'Warga Luar',
+    kontak_pelapor: '081234567890',
+    kecamatan: 'Kecamatan Makale', // Bukan Parepare
+    kategori: 'Aspirasi',
+    tujuan: 'DPRD',
+    judul: 'Laporan Luar Wilayah',
+    isi: 'Uji coba'
+  });
+  assert(!reportInvalidKec.success && reportInvalidKec.error?.code === 'VALIDATION_ERROR', 'Laporan dengan kecamatan di luar Kota Parepare ditolak');
+
+  // Test 46: Pengiriman laporan publik yang valid menghasilkan nomor tiket LAP-YYYYMMDD-XXXX
+  const reportValid = await api.submitLaporanPublik({
+    nama_pelapor: 'Andi Mallarangeng',
+    kontak_pelapor: '081198765432',
+    kecamatan: 'Kecamatan Soreang',
+    kategori: 'Aspirasi Pembangunan',
+    tujuan: 'Komisi 2',
+    judul: 'Perbaikan Lampu Jalan Soreang',
+    isi: 'Mohon penambahan penerangan jalan umum di area Soreang dekat pasar.'
+  });
+  assert(reportValid.success && reportValid.data?.nomor_tiket, 'Pengiriman laporan publik berhasil diterima tanpa login');
+  assert(/^LAP-\d{8}-[A-Z0-9]{4}$/.test(reportValid.data?.nomor_tiket), 'Nomor tiket memiliki format acak aman LAP-YYYYMMDD-XXXX (' + reportValid.data?.nomor_tiket + ')');
+
+  // Test 47: Superadmin dapat melihat seluruh laporan masuk
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const adminLaporanList = await api.getLaporanList();
+  assert(adminLaporanList.success && adminLaporanList.data?.some(l => l.nomor_tiket === reportValid.data.nomor_tiket), 'Superadmin dapat melihat laporan masyarakat yang baru masuk');
+
+  // Test 48: Superadmin menugaskan laporan ke staf pendamping
+  const assignRes = await api.assignLaporan(reportValid.data.nomor_tiket, 'USR-STAFF-1', 'Staff Pengarsipan');
+  assert(assignRes.success && assignRes.data?.assigned_to === 'Staff Pengarsipan', 'Superadmin berhasil menugaskan laporan kepada Staff Pengarsipan');
+
+  // Test 49: Staf hanya dapat melihat laporan yang ditugaskan kepadanya
+  await api.logout();
+  await api.login('staff', 'PasswordStaff2026!');
+  const staffLaporanList = await api.getLaporanList();
+  assert(staffLaporanList.success && staffLaporanList.data?.some(l => l.nomor_tiket === reportValid.data.nomor_tiket), 'Staf melihat laporan yang ditugaskan kepadanya');
+
+  // Test 50: Staf yang ditugaskan berhasil mengupdate status dan memberi tanggapan
+  const staffUpdateReport = await api.updateLaporanStatus(reportValid.data.nomor_tiket, 'selesai', 'Telah dikoordinasikan dengan Dinas PUPR Kota Parepare');
+  assert(staffUpdateReport.success && staffUpdateReport.data?.status === 'selesai', 'Staf berhasil menindaklanjuti dan menyelesaikan laporan masyarakat');
+
   // Cleanup logout
   await api.logout();
 

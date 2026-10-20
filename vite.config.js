@@ -22,7 +22,9 @@ export default defineConfig({
         edit_tahun: resolve(__dirname, 'edit_tahun.html'),
         edit_folder: resolve(__dirname, 'edit_folder.html'),
         profil: resolve(__dirname, 'profil.html'),
-        aktivitas: resolve(__dirname, 'aktivitas.html')
+        aktivitas: resolve(__dirname, 'aktivitas.html'),
+        komisi: resolve(__dirname, 'komisi.html'),
+        laporan: resolve(__dirname, 'laporan.html')
       }
     }
   }

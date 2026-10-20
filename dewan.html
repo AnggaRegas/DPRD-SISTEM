@@ -78,6 +78,7 @@
                   <th>Nama Lengkap & Gelar</th>
                   <th>Jabatan</th>
                   <th>Partai Politik / Fraksi</th>
+                  <th>Kecamatan Asal</th>
                   <th>Staf Pendamping</th>
                   <th>Status</th>
                   <th style="text-align: center; width: 170px;">Aksi & Arsip</th>
@@ -85,7 +86,7 @@
               </thead>
               <tbody id="dewanTableBody">
                 <tr>
-                  <td colspan="7" style="text-align: center; padding: 30px;">
+                  <td colspan="8" style="text-align: center; padding: 30px;">
                     Memuat data anggota dewan...
                   </td>
                 </tr>
@@ -106,6 +107,12 @@
     if (currentUser) {
       renderSidebar('dewan');
 
+      // Sembunyikan tombol Tambah Dewan jika peran adalah staf
+      if (currentUser.role === 'staff') {
+        const actionsArea = document.getElementById('adminActionsArea');
+        if (actionsArea) actionsArea.style.display = 'none';
+      }
+
       const mobileBtn = document.getElementById('mobileMenuBtn');
       if (mobileBtn) {
         mobileBtn.addEventListener('click', () => {
@@ -120,17 +127,17 @@
       let allDewan = [];
 
       async function loadDewan() {
-        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Memuat data anggota dewan...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px;">Memuat data anggota dewan...</td></tr>';
         try {
           const res = await api.getDewanList();
           if (res && res.success && Array.isArray(res.data)) {
             allDewan = res.data;
             renderTable(allDewan);
           } else {
-            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">Gagal memuat dewan: ${res.message || 'Kesalahan server'}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--status-danger); padding: 30px;">Gagal memuat dewan: ${res.message || 'Kesalahan server'}</td></tr>`;
           }
         } catch (err) {
-          tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${err.message}</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${err.message}</td></tr>`;
         }
       }
 
@@ -138,7 +145,7 @@
         if (!list.length) {
           tableBody.innerHTML = `
             <tr>
-              <td colspan="7">
+              <td colspan="8">
                 <div class="empty-state">
                   <div class="empty-state-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -155,8 +162,11 @@
           return;
         }
 
+        const isSuperadmin = currentUser.role === 'superadmin';
+
         tableBody.innerHTML = list.map((d, i) => {
           const isAktif = (d.status || 'aktif').toLowerCase() === 'aktif';
+          const canAccessArsip = isSuperadmin || Boolean(d.is_assigned);
 
           return `
             <tr>
@@ -167,7 +177,15 @@
               </td>
               <td>${d.jabatan || 'Anggota DPRD'}</td>
               <td>${d.nama_partai || '-'}</td>
-              <td>${d.nama_pendamping || '<span style="color:var(--text-light);">-</span>'}</td>
+              <td>
+                <span style="display:inline-block; padding: 2px 8px; background: var(--gray-100); border-radius: 4px; font-size: 11.5px; font-weight: 500; color: var(--navy-800);">
+                  ${d.kecamatan || '<span style="color:var(--text-light); font-style:italic;">Belum diatur</span>'}
+                </span>
+              </td>
+              <td>
+                ${d.nama_pendamping || '<span style="color:var(--text-light);">-</span>'}
+                ${currentUser.role === 'staff' && d.is_assigned ? '<div style="margin-top:3px;"><span style="background:#e0f2fe; color:#0369a1; font-size:10.5px; padding:2px 6px; border-radius:4px; font-weight:600; display:inline-block;">Penugasan Anda</span></div>' : ''}
+              </td>
               <td>
                 <span class="status-pill ${isAktif ? 'aktif' : 'nonaktif'}">
                   <span class="status-pill-dot"></span>
@@ -176,53 +194,63 @@
               </td>
               <td style="text-align: center;">
                 <div class="action-buttons" style="justify-content: center;">
-                  <a href="arsip_dewan.html?dewan_id=${d.id}" class="btn btn-secondary btn-sm" title="Buka Arsip Dokumen">
-                    Buka Arsip &rarr;
-                  </a>
-                  <a href="edit_dewan.html?id=${d.id}" class="btn-icon-action" title="Ubah Data Dewan">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                  </a>
-                  <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${d.id}" data-nama="${d.nama}" title="Hapus Anggota Dewan">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
+                  ${canAccessArsip ? `
+                    <a href="arsip_dewan.html?dewan_id=${d.id}" class="btn btn-secondary btn-sm" title="Buka Arsip Dokumen">
+                      Buka Arsip &rarr;
+                    </a>
+                  ` : `
+                    <span class="btn btn-secondary btn-sm" style="opacity: 0.45; cursor: not-allowed; background:#f1f5f9; color:#94a3b8;" title="Bukan penugasan Anda">
+                      Terkunci
+                    </span>
+                  `}
+                  ${isSuperadmin ? `
+                    <a href="edit_dewan.html?id=${d.id}" class="btn-icon-action" title="Ubah Data Dewan">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </a>
+                    <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${d.id}" data-nama="${d.nama}" title="Hapus Anggota Dewan">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  ` : ''}
                 </div>
               </td>
             </tr>
           `;
         }).join('');
 
-        // Event Hapus Anggota Dewan
-        tableBody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const id = btn.dataset.id;
-            const nama = btn.dataset.nama;
-            showConfirmDialog({
-              title: 'Hapus Anggota Dewan',
-              message: `Apakah Anda yakin ingin menghapus data anggota dewan "${nama}"? Data hanya dapat dihapus jika tidak memiliki dokumen arsip terikat.`,
-              confirmText: 'Ya, Hapus',
-              isDanger: true,
-              onConfirm: async () => {
-                try {
-                  const res = await api.deleteDewan(id);
-                  if (res && res.success) {
-                    showToast('Anggota dewan berhasil dihapus.', 'success');
-                    loadDewan();
-                  } else {
-                    showToast(res.message || 'Gagal menghapus dewan.', 'error');
+        // Event Hapus Anggota Dewan (hanya untuk superadmin)
+        if (isSuperadmin) {
+          tableBody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const id = btn.dataset.id;
+              const nama = btn.dataset.nama;
+              showConfirmDialog({
+                title: 'Hapus Anggota Dewan',
+                message: `Apakah Anda yakin ingin menghapus data anggota dewan "${nama}"? Data hanya dapat dihapus jika tidak memiliki dokumen arsip terikat.`,
+                confirmText: 'Ya, Hapus',
+                isDanger: true,
+                onConfirm: async () => {
+                  try {
+                    const res = await api.deleteDewan(id);
+                    if (res && res.success) {
+                      showToast('Anggota dewan berhasil dihapus.', 'success');
+                      loadDewan();
+                    } else {
+                      showToast(res.message || 'Gagal menghapus dewan.', 'error');
+                    }
+                  } catch (e) {
+                    showToast(e.message, 'error');
                   }
-                } catch (e) {
-                  showToast(e.message, 'error');
                 }
-              }
+              });
             });
           });
-        });
+        }
       }
 
       // Filter Pencarian
@@ -236,7 +264,8 @@
         const filtered = allDewan.filter(d =>
           (d.nama && d.nama.toLowerCase().includes(q)) ||
           (d.nama_partai && d.nama_partai.toLowerCase().includes(q)) ||
-          (d.jabatan && d.jabatan.toLowerCase().includes(q))
+          (d.jabatan && d.jabatan.toLowerCase().includes(q)) ||
+          (d.kecamatan && d.kecamatan.toLowerCase().includes(q))
         );
         renderTable(filtered);
       });

@@ -340,13 +340,42 @@ function verifySession(token, ss) {
     throw new Error('Akses ditolak: Akun telah dinonaktifkan.');
   }
 
-  session.role = 'superadmin';
+  session.role = String(currentUser.role || 'staff').toLowerCase();
   session.nama = String(currentUser.nama || session.username);
   session.mustChangePassword = false;
   session.userRowIndex = currentUser._rowIndex;
   session.token = cleanToken;
 
   return session;
+}
+
+function isStaffAuthorizedForDewan(ss, session, dewanId) {
+  if (!session || !session.role) return false;
+  if (session.role === 'superadmin' || session.role === 'admin') return true;
+  if (!dewanId) return false;
+  const dewanList = getSheetData(ss, 'dewan');
+  const target = dewanList.find(function(d) { return String(d.id || '').trim() === String(dewanId).trim(); });
+  if (!target) return false;
+  const pendamping = String(target.nama_pendamping || '').trim().toLowerCase();
+  const staffUsername = String(session.username || '').trim().toLowerCase();
+  const staffNama = String(session.nama || '').trim().toLowerCase();
+  if (pendamping && (pendamping === staffUsername || pendamping.indexOf(staffUsername) !== -1 || (staffNama && pendamping.indexOf(staffNama) !== -1))) {
+    return true;
+  }
+  return false;
+}
+
+function isStaffAuthorizedForDokumen(ss, session, doc) {
+  if (!session || !session.role) return false;
+  if (session.role === 'superadmin' || session.role === 'admin') return true;
+  if (!doc) return false;
+  if (String(doc.uploaded_by || '').trim().toLowerCase() === String(session.username || '').trim().toLowerCase()) {
+    return true;
+  }
+  if (doc.dewan_id && isStaffAuthorizedForDewan(ss, session, doc.dewan_id)) {
+    return true;
+  }
+  return false;
 }
 
 function revokeUserSessions(userId) {
@@ -616,11 +645,12 @@ function doPost(e) {
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
       const expiresAt = Date.now() + (12 * 60 * 60 * 1000); // 12 Jam
 
+      const userRole = String(matchedUser.role || 'staff').toLowerCase();
       const sessionData = {
         userId: matchedUser.id,
         username: matchedUser.username,
-        role: 'superadmin',
-        nama: matchedUser.nama || 'Administrator Arsip',
+        role: userRole,
+        nama: matchedUser.nama || 'Pengguna Sistem',
         mustChangePassword: false,
         createdAt: Date.now(),
         expiresAt: expiresAt
@@ -634,7 +664,7 @@ function doPost(e) {
         ss.getSheetByName('users').getRange(matchedUser._rowIndex, 10).setValue(nowIso);
       } catch (err) {}
 
-      recordActivity(ss, matchedUser.id, matchedUser.username, 'superadmin', 'LOGIN_SUKSES', 'Pengguna berhasil masuk ke sistem');
+      recordActivity(ss, matchedUser.id, matchedUser.username, userRole, 'LOGIN_SUKSES', 'Pengguna berhasil masuk ke sistem');
 
       return jsonResponse(true, {
         token: sessionToken,
@@ -642,13 +672,133 @@ function doPost(e) {
           id: matchedUser.id,
           username: matchedUser.username,
           nama: matchedUser.nama,
-          role: 'superadmin',
+          role: userRole,
           mustChangePassword: false
         }
       }, 'Login berhasil.');
     }
 
-    // ---------------- VERIFIKASI SESI (SATU AKTOR BERHAK PENUH) ----------------
+    // ---------------- ENDPOINT PUBLIK (TANPA TOKEN) ----------------
+    if (action === 'submitLaporanPublik') {
+      const d = payload.data || payload;
+      const namaPelapor = String(d.nama_pelapor || '').trim();
+      const kontakPelapor = String(d.kontak_pelapor || '').trim();
+      const kecamatan = String(d.kecamatan || '').trim();
+      const kategori = String(d.kategori || 'Aspirasi').trim();
+      const tujuan = String(d.tujuan || 'DPRD Kota Parepare').trim();
+      const judul = String(d.judul || '').trim();
+      const isi = String(d.isi || '').trim();
+
+      if (!namaPelapor || !kontakPelapor || !kecamatan || !judul || !isi) {
+        return jsonResponse(false, null, 'Nama, kontak, kecamatan lokasi, judul, dan isi laporan wajib diisi.', 'VALIDATION_ERROR');
+      }
+
+      if (namaPelapor.length > 100 || kontakPelapor.length > 100 || judul.length > 200 || isi.length > 5000) {
+        return jsonResponse(false, null, 'Panjang isian formulir melebihi batas karakter aman.', 'VALIDATION_ERROR');
+      }
+
+      const allowedKecamatan = [
+        'Kecamatan Bacukiki', 'Kecamatan Bacukiki Barat', 'Kecamatan Soreang', 'Kecamatan Ujung',
+        'Bacukiki', 'Bacukiki Barat', 'Soreang', 'Ujung'
+      ];
+      const matchKec = allowedKecamatan.find(function(k) { return k.toLowerCase() === kecamatan.toLowerCase(); });
+      if (!matchKec) {
+        return jsonResponse(false, null, 'Kecamatan harus berada di wilayah resmi Kota Parepare (Bacukiki, Bacukiki Barat, Soreang, Ujung).', 'VALIDATION_ERROR');
+      }
+
+      // Proteksi anti-spam rate limiting: maks 5 laporan per 10 menit
+      const cache = CacheService.getScriptCache();
+      const spamKey = 'spam_lap_' + kontakPelapor.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
+      const submitCount = parseInt(cache.get(spamKey) || '0', 10);
+      if (submitCount >= 5) {
+        return jsonResponse(false, null, 'Terlalu banyak pengiriman laporan. Silakan tunggu 10 menit sebelum mengirim kembali.', 'RATE_LIMITED');
+      }
+      cache.put(spamKey, String(submitCount + 1), 600);
+
+      // Tangani lampiran dokumen jika disertakan
+      let fileId = '';
+      let fileUrl = '';
+      let fileName = '';
+      if (d.base64 && d.fileName) {
+        try {
+          const validatedFile = validateFileContentAndSignature(d.base64, d.fileName);
+          const driveFolder = getDocFolder();
+          const blob = Utilities.newBlob(validatedFile.bytes, validatedFile.mimeType, d.fileName);
+          const newFile = driveFolder.createFile(blob);
+          newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          fileId = newFile.getId();
+          fileUrl = newFile.getUrl();
+          fileName = d.fileName;
+        } catch (fileErr) {
+          return jsonResponse(false, null, 'Lampiran tidak valid: ' + fileErr.message, 'FILE_VALIDATION_ERROR');
+        }
+      }
+
+      let lapSheet = ss.getSheetByName('laporan_masyarakat');
+      if (!lapSheet) {
+        lapSheet = ss.insertSheet('laporan_masyarakat');
+        lapSheet.appendRow([
+          'id', 'nomor_tiket', 'nama_pelapor', 'kontak_pelapor', 'kecamatan',
+          'kategori', 'tujuan', 'judul', 'isi', 'lampiran_file_id', 'lampiran_url',
+          'lampiran_nama', 'status', 'assigned_to', 'tanggapan', 'created_at', 'updated_at'
+        ]);
+        lapSheet.setFrozenRows(1);
+      }
+
+      const now = new Date();
+      const ymd = Utilities.formatDate(now, TIMEZONE, 'yyyyMMdd');
+      const randomHex = Utilities.getUuid().substring(0, 4).toUpperCase();
+      const nomorTiket = 'LAP-' + ymd + '-' + randomHex;
+      const stableId = 'RPT-' + Date.now();
+      const nowIso = Utilities.formatDate(now, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+      lapSheet.appendRow([
+        stableId,
+        nomorTiket,
+        sanitizeSheetValue(namaPelapor),
+        sanitizeSheetValue(kontakPelapor),
+        sanitizeSheetValue(matchKec),
+        sanitizeSheetValue(kategori),
+        sanitizeSheetValue(tujuan),
+        sanitizeSheetValue(judul),
+        sanitizeSheetValue(isi),
+        fileId,
+        fileUrl,
+        sanitizeSheetValue(fileName),
+        'menunggu',
+        '',
+        '',
+        nowIso,
+        nowIso
+      ]);
+
+      return jsonResponse(true, {
+        nomor_tiket: nomorTiket,
+        created_at: nowIso
+      }, 'Aspirasi / pengaduan Anda telah berhasil diterima oleh Sekretariat DPRD Kota Parepare. Simpan nomor referensi Anda untuk bukti pengajuan.');
+    }
+
+    if (action === 'getPublicDewanList') {
+      const dewanList = getSheetData(ss, 'dewan').filter(function(d) {
+        return String(d.status || '').toLowerCase() === 'aktif';
+      });
+      const sanitized = dewanList.map(function(d) {
+        return {
+          nomor_urut: d.nomor_urut,
+          nama: d.nama,
+          jabatan: d.jabatan,
+          nama_partai: d.nama_partai,
+          kecamatan: d.kecamatan || '',
+          komisi: (d.jabatan && String(d.jabatan).indexOf('Komisi') !== -1) ? d.jabatan : ''
+        };
+      });
+      sanitized.sort(function(a, b) {
+        return (parseInt(a.nomor_urut, 10) || 999) - (parseInt(b.nomor_urut, 10) || 999);
+      });
+      return jsonResponse(true, sanitized, 'Daftar publik anggota dewan berhasil dimuat.');
+    }
+
+    // ---------------- VERIFIKASI SESI (ROLE BASED ACCESS CONTROL) ----------------
     let session;
     try {
       session = verifySession(token, ss);
@@ -663,6 +813,8 @@ function doPost(e) {
       'createTahun', 'updateTahun', 'deleteTahun',
       'createFolder', 'updateFolder', 'deleteFolder',
       'uploadDokumen', 'updateDokumen', 'deleteDokumen',
+      'uploadRdpDokumen', 'deleteRdpDokumen',
+      'assignLaporan', 'updateLaporanStatus',
       'changePassword', 'clearActivityLog'
     ];
 
@@ -685,7 +837,7 @@ function doPost(e) {
         id: session.userId,
         username: session.username,
         nama: session.nama,
-        role: 'superadmin',
+        role: session.role,
         mustChangePassword: false
       }, 'Sesi valid.');
     }
@@ -717,7 +869,7 @@ function doPost(e) {
       uSheet.getRange(currentUser._rowIndex, 4).setValue(newSalt);
       uSheet.getRange(currentUser._rowIndex, 8).setValue('false');
 
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'CHANGE_PASSWORD', 'Pengguna berhasil memperbarui kata sandi');
+      recordActivity(ss, session.userId, session.username, session.role, 'CHANGE_PASSWORD', 'Pengguna berhasil memperbarui kata sandi');
       return jsonResponse(true, { mustChangePassword: false }, 'Kata sandi berhasil diperbarui.');
     }
 
@@ -764,7 +916,8 @@ function doPost(e) {
           const nama = String(d.nama || '').toLowerCase();
           const partai = String(d.nama_partai || '').toLowerCase();
           const jabatan = String(d.jabatan || '').toLowerCase();
-          return nama.indexOf(q) !== -1 || partai.indexOf(q) !== -1 || jabatan.indexOf(q) !== -1;
+          const kec = String(d.kecamatan || '').toLowerCase();
+          return nama.indexOf(q) !== -1 || partai.indexOf(q) !== -1 || jabatan.indexOf(q) !== -1 || kec.indexOf(q) !== -1;
         });
       }
 
@@ -773,6 +926,14 @@ function doPost(e) {
         const numB = parseInt(b.nomor_urut, 10) || 999;
         return numA - numB;
       });
+
+      if (session.role === 'staff') {
+        list = list.map(function(d) {
+          const copy = Object.assign({}, d);
+          copy.is_assigned = isStaffAuthorizedForDewan(ss, session, d.id);
+          return copy;
+        });
+      }
 
       return jsonResponse(true, list, 'Daftar anggota dewan berhasil dimuat.');
     }
@@ -786,12 +947,17 @@ function doPost(e) {
     }
 
     if (action === 'createDewan') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menambah anggota dewan.', 'FORBIDDEN');
+      }
+
       const d = payload.data || payload;
       const nama = String(d.nama || '').trim();
       const jabatan = String(d.jabatan || '').trim();
       const periode = String(d.periode || '').trim();
       const partai = String(d.nama_partai || '').trim();
       const pendamping = String(d.nama_pendamping || d.nama_pengawas || '').trim();
+      const kecamatan = String(d.kecamatan || '').trim();
 
       if (!nama || !jabatan || !partai) {
         return jsonResponse(false, null, 'Nama lengkap, jabatan, dan partai politik wajib diisi.', 'VALIDATION_ERROR');
@@ -813,14 +979,19 @@ function doPost(e) {
         sanitizeSheetValue(partai),
         'aktif',
         nowIso,
-        nowIso
+        nowIso,
+        sanitizeSheetValue(kecamatan)
       ]);
 
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'TAMBAH_DEWAN', 'Menambahkan dewan: ' + nama);
-      return jsonResponse(true, { id: newId, nama: nama }, 'Anggota dewan berhasil ditambahkan.');
+      recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_DEWAN', 'Menambahkan dewan: ' + nama);
+      return jsonResponse(true, { id: newId, nama: nama, kecamatan: kecamatan }, 'Anggota dewan berhasil ditambahkan.');
     }
 
     if (action === 'updateDewan') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengubah data dewan.', 'FORBIDDEN');
+      }
+
       const d = payload.data || payload;
       const id = String(d.id || '').trim();
       const dewanSheet = ss.getSheetByName('dewan');
@@ -837,13 +1008,18 @@ function doPost(e) {
       if (d.periode) dewanSheet.getRange(rowIdx, 5).setValue(sanitizeSheetValue(String(d.periode).trim()));
       if (d.nama_pendamping !== undefined) dewanSheet.getRange(rowIdx, 6).setValue(sanitizeSheetValue(String(d.nama_pendamping).trim()));
       if (d.nama_partai) dewanSheet.getRange(rowIdx, 7).setValue(sanitizeSheetValue(String(d.nama_partai).trim()));
+      if (d.kecamatan !== undefined) dewanSheet.getRange(rowIdx, 11).setValue(sanitizeSheetValue(String(d.kecamatan).trim()));
       dewanSheet.getRange(rowIdx, 10).setValue(nowIso);
 
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'UPDATE_DEWAN', 'Memperbarui profil dewan: ' + (d.nama || target.nama));
+      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_DEWAN', 'Memperbarui profil dewan: ' + (d.nama || target.nama));
       return jsonResponse(true, { id: id }, 'Profil dewan berhasil diperbarui.');
     }
 
     if (action === 'toggleDewanStatus') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengubah status dewan.', 'FORBIDDEN');
+      }
+
       const id = String(payload.id || '').trim();
       const newStatus = String(payload.status || 'aktif').toLowerCase() === 'aktif' ? 'aktif' : 'nonaktif';
       const dewanSheet = ss.getSheetByName('dewan');
@@ -853,11 +1029,15 @@ function doPost(e) {
       if (!target) return jsonResponse(false, null, 'Data dewan tidak ditemukan.', 'NOT_FOUND');
 
       dewanSheet.getRange(target._rowIndex, 8).setValue(newStatus);
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'STATUS_DEWAN', 'Mengubah status dewan ' + target.nama + ' menjadi: ' + newStatus);
+      recordActivity(ss, session.userId, session.username, session.role, 'STATUS_DEWAN', 'Mengubah status dewan ' + target.nama + ' menjadi: ' + newStatus);
       return jsonResponse(true, { id: id, status: newStatus }, 'Status dewan berhasil diubah.');
     }
 
     if (action === 'deleteDewan') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menghapus dewan.', 'FORBIDDEN');
+      }
+
       const id = String(payload.id || '').trim();
       const allDocs = getSheetData(ss, 'dokumen');
       const hasDocs = allDocs.some(function(doc) {
@@ -875,7 +1055,7 @@ function doPost(e) {
       if (!target) return jsonResponse(false, null, 'Data dewan tidak ditemukan.', 'NOT_FOUND');
 
       dewanSheet.deleteRow(target._rowIndex);
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'HAPUS_DEWAN', 'Menghapus anggota dewan: ' + target.nama);
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_DEWAN', 'Menghapus anggota dewan: ' + target.nama);
       return jsonResponse(true, { id: id }, 'Anggota dewan berhasil dihapus.');
     }
 
@@ -913,6 +1093,10 @@ function doPost(e) {
     }
 
     if (action === 'createKategori') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menambah kategori.', 'FORBIDDEN');
+      }
+
       const nama = String(payload.nama_kategori || '').trim();
       const deskripsi = String(payload.deskripsi || '').trim();
 
@@ -930,11 +1114,15 @@ function doPost(e) {
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
       katSheet.appendRow([nextId, sanitizeSheetValue(nama), sanitizeSheetValue(deskripsi), 'aktif', nowIso, nowIso]);
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'TAMBAH_KATEGORI', 'Menambahkan kategori: ' + nama);
+      recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_KATEGORI', 'Menambahkan kategori: ' + nama);
       return jsonResponse(true, { id: nextId, nama_kategori: nama }, 'Kategori berhasil ditambahkan.');
     }
 
     if (action === 'updateKategori') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengubah kategori.', 'FORBIDDEN');
+      }
+
       const id = String(payload.id || '').trim();
       const nama = String(payload.nama_kategori || '').trim();
       const deskripsi = payload.deskripsi !== undefined ? String(payload.deskripsi).trim() : null;
@@ -950,11 +1138,15 @@ function doPost(e) {
       if (deskripsi !== null) katSheet.getRange(target._rowIndex, 3).setValue(sanitizeSheetValue(deskripsi));
       katSheet.getRange(target._rowIndex, 6).setValue(nowIso);
 
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'UPDATE_KATEGORI', 'Memperbarui kategori: ' + (nama || target.nama_kategori));
+      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_KATEGORI', 'Memperbarui kategori: ' + (nama || target.nama_kategori));
       return jsonResponse(true, { id: id }, 'Kategori berhasil diperbarui.');
     }
 
     if (action === 'deleteKategori') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menghapus kategori.', 'FORBIDDEN');
+      }
+
       const id = String(payload.id || '').trim();
       const allDocs = getSheetData(ss, 'dokumen');
       const hasDocs = allDocs.some(function(doc) {
@@ -972,7 +1164,7 @@ function doPost(e) {
       if (!target) return jsonResponse(false, null, 'Kategori tidak ditemukan.', 'NOT_FOUND');
 
       katSheet.deleteRow(target._rowIndex);
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'HAPUS_KATEGORI', 'Menghapus kategori: ' + target.nama_kategori);
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_KATEGORI', 'Menghapus kategori: ' + target.nama_kategori);
       return jsonResponse(true, { id: id }, 'Kategori berhasil dihapus.');
     }
 
@@ -1235,6 +1427,15 @@ function doPost(e) {
         return String(d.status || '').toLowerCase() === 'aktif';
       });
 
+      if (session.role === 'staff') {
+        if (dewanId && !isStaffAuthorizedForDewan(ss, session, dewanId)) {
+          return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang untuk arsip dewan ini.', 'FORBIDDEN');
+        }
+        list = list.filter(function(d) {
+          return isStaffAuthorizedForDokumen(ss, session, d);
+        });
+      }
+
       if (dewanId) list = list.filter(function(d) { return String(d.dewan_id).trim() === dewanId; });
       if (katId) list = list.filter(function(d) { return String(d.kategori_id).trim() === katId; });
       if (yr) list = list.filter(function(d) { return parseInt(d.tahun, 10) === yr; });
@@ -1249,6 +1450,11 @@ function doPost(e) {
       const item = allDocs.find(function(d) { return String(d.id || '').trim() === id; });
 
       if (!item) return jsonResponse(false, null, 'Dokumen tidak ditemukan.', 'NOT_FOUND');
+
+      if (session.role === 'staff' && !isStaffAuthorizedForDokumen(ss, session, item)) {
+        return jsonResponse(false, null, 'Akses ditolak: Dokumen bukan wewenang Anda.', 'FORBIDDEN');
+      }
+
       return jsonResponse(true, item, 'Data dokumen berhasil dimuat.');
     }
 
@@ -1265,6 +1471,10 @@ function doPost(e) {
 
       if (!dewanId || !katId || !tahun || !namaDokumen || !base64Data) {
         return jsonResponse(false, null, 'Dewan, kategori, tahun, nama dokumen, dan berkas fisik wajib diisi.', 'VALIDATION_ERROR');
+      }
+
+      if (session.role === 'staff' && !isStaffAuthorizedForDewan(ss, session, dewanId)) {
+        return jsonResponse(false, null, 'Akses ditolak: Anda tidak ditugaskan pada anggota dewan ini.', 'FORBIDDEN');
       }
 
       const allDewan = getSheetData(ss, 'dewan');
@@ -1342,7 +1552,7 @@ function doPost(e) {
           nowIso
         ]);
 
-        recordActivity(ss, session.userId, session.username, 'superadmin', 'UPLOAD_DOKUMEN', 'Mengunggah: ' + namaDokumen + ' (' + fileName + ')');
+        recordActivity(ss, session.userId, session.username, session.role, 'UPLOAD_DOKUMEN', 'Mengunggah: ' + namaDokumen + ' (' + fileName + ')');
 
         return jsonResponse(true, {
           id: stableDocId,
@@ -1367,12 +1577,16 @@ function doPost(e) {
       if (!target) return jsonResponse(false, null, 'Dokumen tidak ditemukan.', 'NOT_FOUND');
       if (!target.file_id) return jsonResponse(false, null, 'ID berkas Google Drive tidak tercatat.', 'FILE_NOT_FOUND');
 
+      if (session.role === 'staff' && !isStaffAuthorizedForDokumen(ss, session, target)) {
+        return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang mengunduh dokumen ini.', 'FORBIDDEN');
+      }
+
       try {
         const driveFile = DriveApp.getFileById(String(target.file_id).trim());
         const blob = driveFile.getBlob();
         const base64 = Utilities.base64Encode(blob.getBytes());
 
-        recordActivity(ss, session.userId, session.username, 'superadmin', 'DOWNLOAD_DOKUMEN', 'Mengunduh dokumen: ' + target.nama_dokumen);
+        recordActivity(ss, session.userId, session.username, session.role, 'DOWNLOAD_DOKUMEN', 'Mengunduh dokumen: ' + target.nama_dokumen);
 
         return jsonResponse(true, {
           id: target.id,
@@ -1395,6 +1609,10 @@ function doPost(e) {
       const target = allDocs.find(function(d) { return String(d.id || '').trim() === id; });
 
       if (!target) return jsonResponse(false, null, 'Dokumen tidak ditemukan.', 'NOT_FOUND');
+
+      if (session.role === 'staff' && !isStaffAuthorizedForDokumen(ss, session, target)) {
+        return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang mengubah dokumen ini.', 'FORBIDDEN');
+      }
 
       const rowIdx = target._rowIndex;
       if (data.nama_dokumen) docSheet.getRange(rowIdx, 6).setValue(sanitizeSheetValue(String(data.nama_dokumen).trim()));
@@ -1422,7 +1640,7 @@ function doPost(e) {
         docSheet.getRange(rowIdx, 13).setValue(validatedFile.sizeBytes);
       }
 
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'UPDATE_DOKUMEN', 'Memperbarui dokumen: ' + (data.nama_dokumen || target.nama_dokumen));
+      recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_DOKUMEN', 'Memperbarui dokumen: ' + (data.nama_dokumen || target.nama_dokumen));
       return jsonResponse(true, { id: id }, 'Dokumen berhasil diperbarui.');
     }
 
@@ -1433,6 +1651,10 @@ function doPost(e) {
       const target = allDocs.find(function(d) { return String(d.id || '').trim() === id; });
 
       if (!target) return jsonResponse(false, null, 'Dokumen tidak ditemukan.', 'NOT_FOUND');
+
+      if (session.role === 'staff' && !isStaffAuthorizedForDokumen(ss, session, target)) {
+        return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang menghapus dokumen ini.', 'FORBIDDEN');
+      }
 
       const fileId = target.file_id;
       if (fileId && String(fileId).trim()) {
@@ -1445,12 +1667,267 @@ function doPost(e) {
       }
 
       docSheet.deleteRow(target._rowIndex);
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'HAPUS_DOKUMEN', 'Menghapus dokumen: ' + target.nama_dokumen);
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_DOKUMEN', 'Menghapus dokumen: ' + target.nama_dokumen);
       return jsonResponse(true, { id: id }, 'Dokumen arsip berhasil dihapus.');
+    }
+
+    // ---------------- PENGELOLAAN KOMISI & RDP ----------------
+    if (action === 'getKomisiList') {
+      const komisiData = [
+        { id: 'KOM-1', kode: 'komisi_1', nama: 'Komisi 1', bidang: 'Bidang Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Membidangi urusan pemerintahan umum, hukum, perizinan, aparatur, dan ketertiban masyarakat.' },
+        { id: 'KOM-2', kode: 'komisi_2', nama: 'Komisi 2', bidang: 'Bidang Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Membidangi urusan keuangan daerah, perpajakan, perindustrian, perdagangan, dan pembangunan infrastruktur.' },
+        { id: 'KOM-3', kode: 'komisi_3', nama: 'Komisi 3', bidang: 'Bidang Kesejahteraan Rakyat dan Pendidikan', deskripsi: 'Membidangi urusan pendidikan, kesehatan, sosial, ketenagakerjaan, kepemudaan, dan kesejahteraan rakyat.' }
+      ];
+      return jsonResponse(true, komisiData, 'Daftar komisi berhasil dimuat.');
+    }
+
+    if (action === 'getRdpDokumenList') {
+      const komisiId = String(payload.komisi_id || '').trim();
+      const validKomisi = ['KOM-1', 'KOM-2', 'KOM-3'];
+      if (!validKomisi.includes(komisiId)) {
+        return jsonResponse(false, null, 'ID Komisi tidak valid. Pilih Komisi 1, Komisi 2, atau Komisi 3.', 'VALIDATION_ERROR');
+      }
+
+      const allDocs = getSheetData(ss, 'dokumen').filter(function(d) {
+        const matchKomisi = String(d.dewan_id || '').trim() === komisiId;
+        const matchFolder = String(d.nama_folder || '').trim().toUpperCase() === 'RDP' || String(d.kategori_id || '').trim().toUpperCase() === 'RDP';
+        const matchStatus = String(d.status || '').toLowerCase() === 'aktif';
+        return matchKomisi && matchFolder && matchStatus;
+      });
+
+      let filteredDocs = allDocs;
+      if (session.role === 'staff') {
+        filteredDocs = allDocs.filter(function(d) {
+          return String(d.uploaded_by || '').toLowerCase() === session.username.toLowerCase() ||
+                 (d.assigned_to && String(d.assigned_to).toLowerCase() === session.username.toLowerCase());
+        });
+      }
+
+      // Ambil daftar tahun unik dari data riil yang ada
+      const availableYears = [];
+      const yearSet = {};
+      allDocs.forEach(function(d) {
+        const y = parseInt(d.tahun, 10);
+        if (y && !yearSet[y]) {
+          yearSet[y] = true;
+          availableYears.push(y);
+        }
+      });
+      availableYears.sort(function(a, b) { return b - a; });
+
+      const yrFilter = payload.tahun ? parseInt(payload.tahun, 10) : null;
+      if (yrFilter) {
+        filteredDocs = filteredDocs.filter(function(d) { return parseInt(d.tahun, 10) === yrFilter; });
+      }
+
+      const q = String(payload.cari || payload.q || '').trim().toLowerCase();
+      if (q) {
+        filteredDocs = filteredDocs.filter(function(d) {
+          const judul = String(d.nama_dokumen || '').toLowerCase();
+          const ket = String(d.keterangan || '').toLowerCase();
+          const fn = String(d.nama_file || '').toLowerCase();
+          return judul.indexOf(q) !== -1 || ket.indexOf(q) !== -1 || fn.indexOf(q) !== -1;
+        });
+      }
+
+      return jsonResponse(true, {
+        komisi_id: komisiId,
+        available_years: availableYears,
+        dokumen: filteredDocs
+      }, 'Daftar arsip RDP berhasil dimuat.');
+    }
+
+    if (action === 'uploadRdpDokumen') {
+      const data = payload.data || payload;
+      const komisiId = String(data.komisi_id || '').trim();
+      const validKomisi = ['KOM-1', 'KOM-2', 'KOM-3'];
+      if (!validKomisi.includes(komisiId)) {
+        return jsonResponse(false, null, 'ID Komisi tidak valid.', 'VALIDATION_ERROR');
+      }
+
+      const tahun = parseInt(data.tahun, 10);
+      const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
+      const keterangan = String(data.keterangan || '').trim();
+      const fileName = String(data.fileName || data.nama_file || 'rdp.pdf').trim();
+      const base64Data = data.base64;
+
+      if (!tahun || !namaDokumen || !base64Data) {
+        return jsonResponse(false, null, 'Tahun, judul dokumen, dan berkas fisik wajib diisi.', 'VALIDATION_ERROR');
+      }
+
+      // Idempotensi: deteksi duplikasi
+      const allDocs = getSheetData(ss, 'dokumen');
+      const existingDoc = allDocs.find(function(d) {
+        return String(d.dewan_id || '').trim() === komisiId &&
+               parseInt(d.tahun, 10) === tahun &&
+               String(d.nama_folder || '').trim().toUpperCase() === 'RDP' &&
+               String(d.nama_dokumen || '').trim().toLowerCase() === namaDokumen.toLowerCase() &&
+               String(d.status || '').toLowerCase() === 'aktif';
+      });
+      if (existingDoc) {
+        return jsonResponse(true, {
+          id: existingDoc.id,
+          nama_dokumen: existingDoc.nama_dokumen,
+          file_id: existingDoc.file_id,
+          view_url: existingDoc.view_url
+        }, 'Dokumen RDP berhasil diunggah.');
+      }
+
+      const validatedFile = validateFileContentAndSignature(base64Data, fileName);
+      const driveFolder = getDocFolder();
+      let createdDriveFile = null;
+
+      try {
+        const blob = Utilities.newBlob(validatedFile.bytes, validatedFile.mimeType, fileName);
+        createdDriveFile = driveFolder.createFile(blob);
+        createdDriveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+        const driveFileId = createdDriveFile.getId();
+        const driveViewUrl = createdDriveFile.getUrl();
+        const driveDownloadUrl = createdDriveFile.getDownloadUrl();
+
+        const stableDocId = 'RDP-' + Date.now() + '-' + Utilities.getUuid().substring(0, 4);
+        const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+        const docSheet = ss.getSheetByName('dokumen');
+        docSheet.appendRow([
+          stableDocId,
+          komisiId,
+          'RDP',
+          tahun,
+          'RDP',
+          sanitizeSheetValue(namaDokumen),
+          sanitizeSheetValue(keterangan),
+          sanitizeSheetValue(fileName),
+          driveFileId,
+          driveDownloadUrl,
+          driveViewUrl,
+          validatedFile.mimeType,
+          validatedFile.sizeBytes,
+          'aktif',
+          session.username,
+          nowIso
+        ]);
+
+        recordActivity(ss, session.userId, session.username, session.role, 'UPLOAD_RDP', 'Mengunggah arsip RDP ' + komisiId + ': ' + namaDokumen);
+
+        return jsonResponse(true, {
+          id: stableDocId,
+          nama_dokumen: namaDokumen,
+          file_id: driveFileId,
+          view_url: driveViewUrl
+        }, 'Dokumen RDP berhasil diunggah.');
+      } catch (uploadErr) {
+        if (createdDriveFile) {
+          try { createdDriveFile.setTrashed(true); } catch (e) {}
+        }
+        return jsonResponse(false, null, 'Gagal mengunggah dokumen RDP: ' + uploadErr.message, 'UPLOAD_ROLLBACK');
+      }
+    }
+
+    if (action === 'deleteRdpDokumen') {
+      const id = String(payload.id || '').trim();
+      const docSheet = ss.getSheetByName('dokumen');
+      const allDocs = getSheetData(ss, 'dokumen');
+      const target = allDocs.find(function(d) { return String(d.id || '').trim() === id; });
+
+      if (!target) return jsonResponse(false, null, 'Dokumen RDP tidak ditemukan.', 'NOT_FOUND');
+
+      if (session.role === 'staff' && String(target.uploaded_by || '').toLowerCase() !== session.username.toLowerCase()) {
+        return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang menghapus dokumen RDP ini.', 'FORBIDDEN');
+      }
+
+      if (target.file_id) {
+        try {
+          DriveApp.getFileById(String(target.file_id).trim()).setTrashed(true);
+        } catch (e) {}
+      }
+
+      docSheet.deleteRow(target._rowIndex);
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_RDP', 'Menghapus arsip RDP: ' + target.nama_dokumen);
+      return jsonResponse(true, { id: id }, 'Dokumen RDP berhasil dihapus.');
+    }
+
+    // ---------------- PENGELOLAAN LAPORAN MASYARAKAT (TERAUTENTIKASI) ----------------
+    if (action === 'getLaporanList') {
+      let lapSheet = ss.getSheetByName('laporan_masyarakat');
+      if (!lapSheet) {
+        return jsonResponse(true, [], 'Belum ada laporan masyarakat.');
+      }
+      let reports = getSheetData(ss, 'laporan_masyarakat');
+
+      if (session.role === 'staff') {
+        reports = reports.filter(function(r) {
+          const assigned = String(r.assigned_to || '').trim().toLowerCase();
+          return assigned === session.username.toLowerCase() ||
+                 (session.nama && assigned === session.nama.toLowerCase()) ||
+                 assigned === String(session.userId).toLowerCase();
+        });
+      }
+
+      reports.reverse();
+      return jsonResponse(true, reports, 'Daftar laporan masyarakat berhasil dimuat.');
+    }
+
+    if (action === 'assignLaporan') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menugaskan laporan.', 'FORBIDDEN');
+      }
+      const id = String(payload.id || '').trim();
+      const staffUser = String(payload.assigned_to || '').trim();
+      const lapSheet = ss.getSheetByName('laporan_masyarakat');
+      if (!lapSheet) return jsonResponse(false, null, 'Sheet laporan tidak ditemukan.', 'NOT_FOUND');
+
+      const allReports = getSheetData(ss, 'laporan_masyarakat');
+      const target = allReports.find(function(r) { return String(r.id || '').trim() === id || String(r.nomor_tiket || '').trim() === id; });
+      if (!target) return jsonResponse(false, null, 'Laporan tidak ditemukan.', 'NOT_FOUND');
+
+      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      lapSheet.getRange(target._rowIndex, 14).setValue(sanitizeSheetValue(staffUser));
+      lapSheet.getRange(target._rowIndex, 13).setValue('diproses');
+      lapSheet.getRange(target._rowIndex, 17).setValue(nowIso);
+
+      recordActivity(ss, session.userId, session.username, session.role, 'TUGASKAN_LAPORAN', 'Menugaskan laporan ' + target.nomor_tiket + ' kepada: ' + staffUser);
+      return jsonResponse(true, { id: id, assigned_to: staffUser, status: 'diproses' }, 'Laporan berhasil ditugaskan ke staf pendamping.');
+    }
+
+    if (action === 'updateLaporanStatus') {
+      const id = String(payload.id || '').trim();
+      const newStatus = String(payload.status || 'diproses').toLowerCase();
+      const tanggapan = String(payload.tanggapan || '').trim();
+      const lapSheet = ss.getSheetByName('laporan_masyarakat');
+      if (!lapSheet) return jsonResponse(false, null, 'Sheet laporan tidak ditemukan.', 'NOT_FOUND');
+
+      const allReports = getSheetData(ss, 'laporan_masyarakat');
+      const target = allReports.find(function(r) { return String(r.id || '').trim() === id || String(r.nomor_tiket || '').trim() === id; });
+      if (!target) return jsonResponse(false, null, 'Laporan tidak ditemukan.', 'NOT_FOUND');
+
+      if (session.role === 'staff') {
+        const assigned = String(target.assigned_to || '').trim().toLowerCase();
+        const isAssigned = assigned === session.username.toLowerCase() ||
+                           (session.nama && assigned === session.nama.toLowerCase()) ||
+                           assigned === String(session.userId).toLowerCase();
+        if (!isAssigned) {
+          return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang untuk laporan ini.', 'FORBIDDEN');
+        }
+      }
+
+      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      lapSheet.getRange(target._rowIndex, 13).setValue(newStatus);
+      if (tanggapan) {
+        lapSheet.getRange(target._rowIndex, 15).setValue(sanitizeSheetValue(tanggapan));
+      }
+      lapSheet.getRange(target._rowIndex, 17).setValue(nowIso);
+
+      recordActivity(ss, session.userId, session.username, session.role, 'STATUS_LAPORAN', 'Memperbarui status laporan ' + target.nomor_tiket + ' menjadi: ' + newStatus);
+      return jsonResponse(true, { id: id, status: newStatus, tanggapan: tanggapan }, 'Status laporan berhasil diperbarui.');
     }
 
     // ---------------- AKSI LOG AUDIT & PROFILE FALLBACK ----------------
     if (action === 'getActivityLog') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengakses log aktivitas.', 'FORBIDDEN');
+      }
       const limit = parseInt(payload.limit, 10) || 100;
       const logs = getSheetData(ss, 'aktivitas_log');
       const sorted = logs.slice(-limit).reverse();
@@ -1458,27 +1935,32 @@ function doPost(e) {
     }
 
     if (action === 'clearActivityLog') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat membersihkan log.', 'FORBIDDEN');
+      }
       const sheet = ss.getSheetByName('aktivitas_log');
       if (!sheet) {
         return jsonResponse(false, null, 'Sheet log aktivitas tidak ditemukan.', 'SHEET_NOT_FOUND');
       }
       const lastRow = sheet.getLastRow();
       if (lastRow > 1) {
-        // Hapus baris rekaman log (baris 2 ke bawah), biarkan header kolom di baris 1
         sheet.deleteRows(2, lastRow - 1);
       }
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'BERSIHKAN_LOG', 'Seluruh riwayat log aktivitas dibersihkan');
+      recordActivity(ss, session.userId, session.username, session.role, 'BERSIHKAN_LOG', 'Seluruh riwayat log aktivitas dibersihkan');
       return jsonResponse(true, { cleared: true }, 'Seluruh riwayat aktivitas berhasil dibersihkan.');
     }
 
     if (action === 'getUserList') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengelola data pengguna.', 'FORBIDDEN');
+      }
       const users = getSheetData(ss, 'users');
       const safeList = users.map(function(u) {
         return {
           id: u.id,
           username: u.username,
           nama: u.nama,
-          role: 'superadmin',
+          role: u.role || 'staff',
           status: u.status,
           must_change_password: false,
           created_at: u.created_at,

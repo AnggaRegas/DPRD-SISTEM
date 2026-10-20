@@ -282,10 +282,10 @@ function getMockDb() {
       { id: 'USR-STAFF-1', nama: 'Staff Pengarsipan', username: 'staff', password: 'PasswordStaff2026!', role: 'staff', must_change_password: false, status: 'aktif' }
     ],
     dewan: [
-      { id: 'DWN-01', nomor_urut: 1, nama: 'Ir. H. KAHARUDDIN KADIR, M.Si.', jabatan: 'Ketua DPRD Kota parepare', periode: '2024 - 2029', nama_pendamping: 'SUKARNO, S. Kom.', nama_partai: 'Partai Golongan Karya', status: 'aktif' },
-      { id: 'DWN-02', nomor_urut: 2, nama: 'SUYUTI, S.E.', jabatan: 'Wakil Ketua I', periode: '2024 - 2029', nama_pendamping: 'M. KHAERUL KADAR,S.H', nama_partai: 'Partai Nasional Demokrat', status: 'aktif' },
-      { id: 'DWN-03', nomor_urut: 3, nama: 'MUHAMMAD YUSUF LAPANNA, SH.I.', jabatan: 'Wakil Ketua II', periode: '2024 - 2029', nama_pendamping: 'AJI WICAKSONO, S.H', nama_partai: 'Partai Gerakan Indonesia Raya', status: 'aktif' },
-      { id: 'DWN-04', nomor_urut: 4, nama: 'ACHMAD ARIADY, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SINTA DEWI ANGGRAENI, S.E.', nama_partai: 'Partai Nasional Demokrat', status: 'aktif' }
+      { id: 'DWN-01', nomor_urut: 1, nama: 'Ir. H. KAHARUDDIN KADIR, M.Si.', jabatan: 'Ketua DPRD Kota parepare', periode: '2024 - 2029', nama_pendamping: 'SUKARNO, S. Kom.', nama_partai: 'Partai Golongan Karya', status: 'aktif', kecamatan: 'Kecamatan Bacukiki Barat' },
+      { id: 'DWN-02', nomor_urut: 2, nama: 'SUYUTI, S.E.', jabatan: 'Wakil Ketua I', periode: '2024 - 2029', nama_pendamping: 'Staff Pengarsipan', nama_partai: 'Partai Nasional Demokrat', status: 'aktif', kecamatan: 'Kecamatan Soreang' },
+      { id: 'DWN-03', nomor_urut: 3, nama: 'MUHAMMAD YUSUF LAPANNA, SH.I.', jabatan: 'Wakil Ketua II', periode: '2024 - 2029', nama_pendamping: 'AJI WICAKSONO, S.H', nama_partai: 'Partai Gerakan Indonesia Raya', status: 'aktif', kecamatan: 'Kecamatan Bacukiki' },
+      { id: 'DWN-04', nomor_urut: 4, nama: 'ACHMAD ARIADY, S.E.', jabatan: 'Anggota', periode: '2024 - 2029', nama_pendamping: 'SINTA DEWI ANGGRAENI, S.E.', nama_partai: 'Partai Nasional Demokrat', status: 'aktif', kecamatan: 'Kecamatan Ujung' }
     ],
     kategori: [
       { id: 'KAT-01', nama_kategori: 'Pokok-Pokok Pikiran (Pokir)', deskripsi: 'Arsip usulan aspirasi masyarakat', status: 'aktif' },
@@ -317,6 +317,7 @@ function getMockDb() {
         tanggal_upload: '2024-03-15T09:30:00Z'
       }
     ],
+    laporan: [],
     logs: [],
     failedAttempts: {},
     lockouts: {}
@@ -333,6 +334,8 @@ function saveMockDb(db) {
 const MOCK_ACTION_PERMISSIONS = {
   'login': 'PUBLIC',
   'adminLogin': 'PUBLIC',
+  'submitLaporanPublik': 'PUBLIC',
+  'getPublicDewanList': 'PUBLIC',
   'logout': ['staff', 'admin', 'superadmin'],
   'adminLogout': ['staff', 'admin', 'superadmin'],
   'checkSession': ['staff', 'admin', 'superadmin'],
@@ -355,20 +358,27 @@ const MOCK_ACTION_PERMISSIONS = {
   'updateFolder': ['staff', 'admin', 'superadmin'],
   'uploadDokumen': ['staff', 'admin', 'superadmin'],
   'updateDokumen': ['staff', 'admin', 'superadmin'],
-  'createDewan': ['admin', 'superadmin'],
-  'updateDewan': ['admin', 'superadmin'],
-  'toggleDewanStatus': ['admin', 'superadmin'],
-  'deleteDewan': ['admin', 'superadmin'],
-  'createKategori': ['admin', 'superadmin'],
-  'updateKategori': ['admin', 'superadmin'],
-  'toggleKategoriStatus': ['admin', 'superadmin'],
-  'deleteKategori': ['admin', 'superadmin'],
-  'deleteTahun': ['admin', 'superadmin'],
-  'deleteFolder': ['admin', 'superadmin'],
-  'deleteDokumen': ['admin', 'superadmin'],
-  'getUserList': ['admin', 'superadmin'],
-  'getActivityLog': ['admin', 'superadmin'],
-  'clearActivityLog': ['staff', 'admin', 'superadmin'],
+  'createDewan': ['superadmin'],
+  'updateDewan': ['superadmin'],
+  'toggleDewanStatus': ['superadmin'],
+  'deleteDewan': ['superadmin'],
+  'createKategori': ['superadmin'],
+  'updateKategori': ['superadmin'],
+  'toggleKategoriStatus': ['superadmin'],
+  'deleteKategori': ['superadmin'],
+  'deleteTahun': ['superadmin'],
+  'deleteFolder': ['superadmin'],
+  'deleteDokumen': ['staff', 'admin', 'superadmin'],
+  'getKomisiList': ['staff', 'admin', 'superadmin'],
+  'getRdpDokumenList': ['staff', 'admin', 'superadmin'],
+  'uploadRdpDokumen': ['staff', 'admin', 'superadmin'],
+  'deleteRdpDokumen': ['staff', 'admin', 'superadmin'],
+  'getLaporanList': ['staff', 'admin', 'superadmin'],
+  'assignLaporan': ['superadmin'],
+  'updateLaporanStatus': ['staff', 'admin', 'superadmin'],
+  'getUserList': ['superadmin'],
+  'getActivityLog': ['superadmin'],
+  'clearActivityLog': ['superadmin'],
   'createUser': ['superadmin'],
   'toggleUserStatus': ['superadmin'],
   'resetUserPassword': ['superadmin']
@@ -384,7 +394,72 @@ async function handleMockRequest(action, payload) {
     return { success: false, data: null, message: 'Aksi API tidak dikenali: ' + action, error: { code: 'NOT_FOUND' } };
   }
 
-  // 2. Login Publik
+  // 2. Aksi Publik (Tanpa Autentikasi)
+  if (action === 'submitLaporanPublik') {
+    const d = payload.data || payload;
+    const nama = String(d.nama_pelapor || '').trim();
+    const kontak = String(d.kontak_pelapor || '').trim();
+    const kec = String(d.kecamatan || '').trim();
+    const kat = String(d.kategori || 'Aspirasi').trim();
+    const tujuan = String(d.tujuan || 'DPRD Kota Parepare').trim();
+    const judul = String(d.judul || '').trim();
+    const isi = String(d.isi || '').trim();
+
+    if (!nama || !kontak || !kec || !judul || !isi) {
+      return { success: false, message: 'Nama, kontak, kecamatan, judul, dan isi laporan wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+    }
+
+    const allowedKec = ['Kecamatan Bacukiki', 'Kecamatan Bacukiki Barat', 'Kecamatan Soreang', 'Kecamatan Ujung', 'Bacukiki', 'Bacukiki Barat', 'Soreang', 'Ujung'];
+    const matchKec = allowedKec.find((x) => x.toLowerCase() === kec.toLowerCase());
+    if (!matchKec) {
+      return { success: false, message: 'Kecamatan harus berada di wilayah resmi Kota Parepare.', error: { code: 'VALIDATION_ERROR' } };
+    }
+
+    const now = new Date();
+    const ymd = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const hex = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const nomorTiket = `LAP-${ymd}-${hex}`;
+
+    db.laporan = db.laporan || [];
+    const newReport = {
+      id: 'RPT-' + Date.now(),
+      nomor_tiket: nomorTiket,
+      nama_pelapor: nama,
+      kontak_pelapor: kontak,
+      kecamatan: matchKec,
+      kategori: kat,
+      tujuan: tujuan,
+      judul: judul,
+      isi: isi,
+      lampiran_nama: d.fileName || '',
+      status: 'menunggu',
+      assigned_to: '',
+      tanggapan: '',
+      created_at: now.toISOString(),
+      updated_at: now.toISOString()
+    };
+    db.laporan.push(newReport);
+    saveMockDb(db);
+
+    return {
+      success: true,
+      data: { nomor_tiket: nomorTiket, created_at: newReport.created_at },
+      message: 'Aspirasi / pengaduan Anda telah berhasil diterima oleh Sekretariat DPRD Kota Parepare.'
+    };
+  }
+
+  if (action === 'getPublicDewanList') {
+    const list = (db.dewan || []).filter((d) => d.status === 'aktif').map((d) => ({
+      nomor_urut: d.nomor_urut,
+      nama: d.nama,
+      jabatan: d.jabatan,
+      nama_partai: d.nama_partai,
+      kecamatan: d.kecamatan || '',
+      komisi: (d.jabatan && d.jabatan.includes('Komisi')) ? d.jabatan : ''
+    })).sort((a, b) => (a.nomor_urut || 999) - (b.nomor_urut || 999));
+    return { success: true, data: list, message: 'Daftar publik dewan berhasil dimuat.' };
+  }
+
   if (action === 'adminLogin' || action === 'login') {
     const u = (payload.username || (payload.credentials && payload.credentials.username) || '').trim().toLowerCase();
     const p = payload.password || (payload.credentials && payload.credentials.password) || '';
@@ -463,6 +538,31 @@ async function handleMockRequest(action, payload) {
     return { success: false, data: null, message: 'Akses ditolak: Peran akun "' + currentUser.role + '" tidak memiliki izin.', error: { code: 'FORBIDDEN' } };
   }
 
+  // Helper Otorisasi Staf untuk Mock Database
+  function isMockStaffAuthorizedForDewan(targetDewanId) {
+    if (!targetDewanId) return false;
+    if (currentUser.role === 'superadmin') return true;
+    if (currentUser.role !== 'staff') return false;
+
+    const idStr = String(targetDewanId).trim();
+    if (idStr.startsWith('KOM-')) return true; // Komisi terbuka untuk staf pendamping
+
+    const dwn = (db.dewan || []).find((d) => String(d.id) === idStr || String(d.nomor_urut) === idStr);
+    if (!dwn) return false;
+
+    const pendamping = String(dwn.nama_pendamping || '').trim().toLowerCase();
+    const userNama = String(currentUser.nama || '').trim().toLowerCase();
+    const userName = String(currentUser.username || '').trim().toLowerCase();
+
+    return pendamping === userNama || pendamping === userName;
+  }
+
+  function isMockStaffAuthorizedForDokumen(doc) {
+    if (!doc) return false;
+    if (currentUser.role === 'superadmin') return true;
+    return isMockStaffAuthorizedForDewan(doc.dewan_id);
+  }
+
   // 6. Router Aksi Mock
   switch (action) {
     case 'adminLogout':
@@ -509,23 +609,34 @@ async function handleMockRequest(action, payload) {
       const q = String(payload.cari || payload.q || '').trim().toLowerCase();
       let list = db.dewan.slice();
       if (q) {
-        list = list.filter((d) => d.nama.toLowerCase().includes(q) || d.nama_partai.toLowerCase().includes(q) || d.jabatan.toLowerCase().includes(q));
+        list = list.filter((d) => d.nama.toLowerCase().includes(q) || d.nama_partai.toLowerCase().includes(q) || d.jabatan.toLowerCase().includes(q) || (d.kecamatan && d.kecamatan.toLowerCase().includes(q)));
       }
       list.sort((a, b) => (a.nomor_urut || 999) - (b.nomor_urut || 999));
+      if (currentUser.role === 'staff') {
+        list = list.map((d) => ({
+          ...d,
+          is_assigned: isMockStaffAuthorizedForDewan(d.id)
+        }));
+      }
       return { success: true, data: list, message: 'Daftar anggota dewan berhasil dimuat.' };
     }
 
     case 'getDewanById': {
       const id = String(payload.id);
       const item = db.dewan.find((d) => String(d.id) === id || String(d.nomor_urut) === id);
-      return item ? { success: true, data: item } : { success: false, message: 'Data dewan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      if (!item) return { success: false, message: 'Data dewan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      const res = { ...item };
+      if (currentUser.role === 'staff') {
+        res.is_assigned = isMockStaffAuthorizedForDewan(item.id);
+      }
+      return { success: true, data: res };
     }
 
     case 'createDewan': {
       const d = payload.data || payload;
       const nextNum = db.dewan.length + 1;
       const idStr = 'DWN-' + (nextNum < 10 ? '0' + nextNum : nextNum);
-      const record = { id: idStr, nomor_urut: nextNum, ...d, status: 'aktif' };
+      const record = { id: idStr, nomor_urut: nextNum, ...d, kecamatan: d.kecamatan || '', status: 'aktif' };
       db.dewan.push(record);
       saveMockDb(db);
       return { success: true, data: record, message: 'Anggota dewan berhasil ditambahkan.' };
@@ -535,7 +646,7 @@ async function handleMockRequest(action, payload) {
       const d = payload.data || payload;
       const idx = db.dewan.findIndex((x) => String(x.id) === String(d.id));
       if (idx !== -1) {
-        db.dewan[idx] = { ...db.dewan[idx], ...d };
+        db.dewan[idx] = { ...db.dewan[idx], ...d, kecamatan: d.kecamatan !== undefined ? d.kecamatan : db.dewan[idx].kecamatan };
         saveMockDb(db);
         return { success: true, data: db.dewan[idx], message: 'Data dewan berhasil diperbarui.' };
       }
@@ -736,12 +847,32 @@ async function handleMockRequest(action, payload) {
       const katId = payload.kategori_id ? String(payload.kategori_id) : null;
       const yr = payload.tahun ? parseInt(payload.tahun, 10) : null;
       const folder = payload.nama_folder ? String(payload.nama_folder).trim().toLowerCase() : null;
+
+      if (dewanId && !isMockStaffAuthorizedForDewan(dewanId)) {
+        return { success: false, data: [], message: 'Akses ditolak: Anda tidak memiliki akses ke arsip anggota dewan ini.', error: { code: 'FORBIDDEN' } };
+      }
+
       let list = db.dokumen.filter((d) => d.status === 'aktif');
-      if (dewanId) list = list.filter((d) => String(d.dewan_id) === dewanId);
+      if (dewanId) {
+        list = list.filter((d) => String(d.dewan_id) === dewanId);
+      } else if (currentUser.role === 'staff') {
+        list = list.filter((d) => isMockStaffAuthorizedForDokumen(d));
+      }
+
       if (katId) list = list.filter((d) => String(d.kategori_id) === katId);
       if (yr) list = list.filter((d) => parseInt(d.tahun, 10) === yr);
       if (folder) list = list.filter((d) => String(d.nama_folder || '').trim().toLowerCase() === folder);
       return { success: true, data: list, message: 'Daftar dokumen berhasil dimuat.' };
+    }
+
+    case 'getDokumenById': {
+      const id = String(payload.id);
+      const doc = db.dokumen.find((d) => String(d.id) === id);
+      if (!doc) return { success: false, message: 'Dokumen tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      if (!isMockStaffAuthorizedForDokumen(doc)) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki akses ke dokumen ini.', error: { code: 'FORBIDDEN' } };
+      }
+      return { success: true, data: doc };
     }
 
     case 'uploadDokumen': {
@@ -752,6 +883,10 @@ async function handleMockRequest(action, payload) {
       const katExists = db.kategori.some((x) => String(x.id) === katId);
       if (!dewanExists || !katExists) {
         return { success: false, message: 'ID Dewan atau Kategori tidak valid.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      if (!isMockStaffAuthorizedForDewan(dewanId)) {
+        return { success: false, message: 'Akses ditolak: Anda tidak diizinkan mengunggah arsip untuk dewan ini.', error: { code: 'FORBIDDEN' } };
       }
 
       // Validasi berkas
@@ -807,6 +942,9 @@ async function handleMockRequest(action, payload) {
       const id = String(payload.id);
       const doc = db.dokumen.find((d) => String(d.id) === id);
       if (!doc) return { success: false, message: 'Dokumen tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      if (!isMockStaffAuthorizedForDokumen(doc)) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki izin untuk mengunduh dokumen ini.', error: { code: 'FORBIDDEN' } };
+      }
       return {
         success: true,
         data: {
@@ -821,11 +959,208 @@ async function handleMockRequest(action, payload) {
       };
     }
 
+    case 'updateDokumen': {
+      const d = payload.data || payload;
+      const id = String(d.id);
+      const doc = db.dokumen.find((x) => String(x.id) === id);
+      if (!doc) return { success: false, message: 'Dokumen tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      if (!isMockStaffAuthorizedForDokumen(doc)) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki izin untuk mengubah dokumen ini.', error: { code: 'FORBIDDEN' } };
+      }
+      if (d.nama_dokumen) doc.nama_dokumen = String(d.nama_dokumen).trim();
+      if (d.keterangan !== undefined) doc.keterangan = String(d.keterangan).trim();
+      saveMockDb(db);
+      return { success: true, data: doc, message: 'Dokumen berhasil diperbarui.' };
+    }
+
     case 'deleteDokumen': {
       const id = String(payload.id);
+      const doc = db.dokumen.find((d) => String(d.id) === id);
+      if (!doc) return { success: false, message: 'Dokumen tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      if (!isMockStaffAuthorizedForDokumen(doc)) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki izin untuk menghapus dokumen ini.', error: { code: 'FORBIDDEN' } };
+      }
       db.dokumen = db.dokumen.filter((d) => String(d.id) !== id);
       saveMockDb(db);
       return { success: true, message: 'Dokumen berhasil dihapus.' };
+    }
+
+    case 'getKomisiList': {
+      const komisi = [
+        { id: 'KOM-1', kode: 'KOMISI_1', nama: 'Komisi 1', bidang: 'Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Bidang Pemerintahan, Ketertiban, Kependudukan, dan Hukum' },
+        { id: 'KOM-2', kode: 'KOMISI_2', nama: 'Komisi 2', bidang: 'Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Bidang Anggaran, Keuangan Daerah, Pendapatan, dan Pembangunan' },
+        { id: 'KOM-3', kode: 'KOMISI_3', nama: 'Komisi 3', bidang: 'Pendidikan, Kesehatan, dan Kesejahteraan Sosial', deskripsi: 'Bidang Pendidikan, Kesehatan, Ketenagakerjaan, dan Kesra' }
+      ];
+      return { success: true, data: komisi, message: 'Daftar komisi berhasil dimuat.' };
+    }
+
+    case 'getRdpDokumenList': {
+      const komisiId = String(payload.komisi_id || payload.komisiId || '').trim();
+      const tahunFilter = payload.tahun ? String(payload.tahun).trim() : '';
+
+      const validKomisi = ['KOM-1', 'KOM-2', 'KOM-3'];
+      if (!validKomisi.includes(komisiId)) {
+        return { success: false, message: 'ID Komisi tidak valid.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      const allRdp = (db.dokumen || []).filter((d) =>
+        String(d.dewan_id) === komisiId &&
+        d.status === 'aktif' &&
+        (String(d.kategori_id).toUpperCase() === 'RDP' || String(d.nama_folder).toUpperCase() === 'RDP')
+      );
+
+      const yearSet = new Set();
+      allRdp.forEach((d) => {
+        if (d.tahun) yearSet.add(parseInt(d.tahun, 10));
+      });
+      const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+
+      let filtered = allRdp;
+      if (tahunFilter && tahunFilter !== 'semua' && tahunFilter !== 'ALL') {
+        const yrInt = parseInt(tahunFilter, 10);
+        filtered = filtered.filter((d) => parseInt(d.tahun, 10) === yrInt);
+      }
+
+      filtered.sort((a, b) => new Date(b.tanggal_upload || 0) - new Date(a.tanggal_upload || 0));
+
+      return {
+        success: true,
+        data: {
+          komisi_id: komisiId,
+          available_years: availableYears,
+          dokumen: filtered
+        },
+        message: 'Daftar dokumen RDP berhasil dimuat.'
+      };
+    }
+
+    case 'uploadRdpDokumen': {
+      const data = payload.data || payload;
+      const komisiId = String(data.komisi_id || '').trim();
+      const validKomisi = ['KOM-1', 'KOM-2', 'KOM-3'];
+      if (!validKomisi.includes(komisiId)) {
+        return { success: false, message: 'ID Komisi tidak valid.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      const yr = parseInt(data.tahun, 10);
+      if (!yr || isNaN(yr) || yr < 2000 || yr > 2100) {
+        return { success: false, message: 'Tahun dokumen RDP tidak valid.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
+      if (!namaDokumen) {
+        return { success: false, message: 'Nama/judul dokumen RDP wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      const fileName = String(data.fileName || data.nama_file || 'rdp.pdf').trim();
+      const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+      const allowedExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
+      if (!allowedExts.includes(ext)) {
+        return { success: false, message: 'Ekstensi berkas tidak diizinkan.', error: { code: 'FILE_VALIDATION_ERROR' } };
+      }
+
+      const newId = 'DOC-RDP-' + Date.now();
+      const doc = {
+        id: newId,
+        dewan_id: komisiId,
+        kategori_id: 'RDP',
+        tahun: yr,
+        nama_folder: 'RDP',
+        nama_dokumen: namaDokumen,
+        keterangan: String(data.keterangan || '').trim(),
+        nama_file: fileName,
+        file_id: 'mock-file-' + newId,
+        direct_url: '#',
+        view_url: '#',
+        ukuran_file: 420000,
+        status: 'aktif',
+        uploaded_by: currentUser.username,
+        tanggal_upload: new Date().toISOString()
+      };
+      db.dokumen.push(doc);
+      saveMockDb(db);
+      return { success: true, data: doc, message: 'Dokumen RDP berhasil diunggah.' };
+    }
+
+    case 'deleteRdpDokumen': {
+      const id = String(payload.id);
+      const doc = (db.dokumen || []).find((d) => String(d.id) === id && String(d.dewan_id).startsWith('KOM-'));
+      if (!doc) {
+        return { success: false, message: 'Dokumen RDP tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+      db.dokumen = db.dokumen.filter((d) => String(d.id) !== id);
+      saveMockDb(db);
+      return { success: true, message: 'Dokumen RDP berhasil dihapus.' };
+    }
+
+    case 'getLaporanList': {
+      const st = String(payload.status || '').trim().toLowerCase();
+      const kec = String(payload.kecamatan || '').trim().toLowerCase();
+      const q = String(payload.cari || payload.q || '').trim().toLowerCase();
+
+      let list = (db.laporan || []).slice();
+      if (currentUser.role === 'staff') {
+        const staffName = currentUser.nama.toLowerCase();
+        const staffUsername = currentUser.username.toLowerCase();
+        list = list.filter((l) => {
+          const assigned = String(l.assigned_to || '').toLowerCase().trim();
+          return assigned === staffName || assigned === staffUsername || assigned === currentUser.id;
+        });
+      }
+
+      if (st) {
+        list = list.filter((l) => String(l.status || '').toLowerCase() === st);
+      }
+      if (kec) {
+        list = list.filter((l) => String(l.kecamatan || '').toLowerCase().includes(kec));
+      }
+      if (q) {
+        list = list.filter((l) =>
+          String(l.nomor_tiket || '').toLowerCase().includes(q) ||
+          String(l.nama_pelapor || '').toLowerCase().includes(q) ||
+          String(l.judul || '').toLowerCase().includes(q) ||
+          String(l.isi || '').toLowerCase().includes(q)
+        );
+      }
+
+      list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      return { success: true, data: list, message: 'Daftar laporan masyarakat berhasil dimuat.' };
+    }
+
+    case 'assignLaporan': {
+      const id = String(payload.id);
+      const target = (db.laporan || []).find((l) => String(l.id) === id || String(l.nomor_tiket) === id);
+      if (!target) {
+        return { success: false, message: 'Laporan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+      target.assigned_to = payload.staff_nama || payload.staff_id || '';
+      target.status = 'diproses';
+      target.updated_at = new Date().toISOString();
+      saveMockDb(db);
+      return { success: true, data: target, message: 'Laporan berhasil ditugaskan kepada staf.' };
+    }
+
+    case 'updateLaporanStatus': {
+      const id = String(payload.id);
+      const target = (db.laporan || []).find((l) => String(l.id) === id || String(l.nomor_tiket) === id);
+      if (!target) {
+        return { success: false, message: 'Laporan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+
+      if (currentUser.role === 'staff') {
+        const staffName = currentUser.nama.toLowerCase();
+        const staffUsername = currentUser.username.toLowerCase();
+        const assigned = String(target.assigned_to || '').toLowerCase().trim();
+        if (assigned !== staffName && assigned !== staffUsername && assigned !== currentUser.id) {
+          return { success: false, message: 'Akses ditolak: Laporan ini bukan penugasan Anda.', error: { code: 'FORBIDDEN' } };
+        }
+      }
+
+      if (payload.status) target.status = payload.status;
+      if (payload.tanggapan !== undefined) target.tanggapan = payload.tanggapan;
+      target.updated_at = new Date().toISOString();
+      saveMockDb(db);
+      return { success: true, data: target, message: 'Status laporan berhasil diperbarui.' };
     }
 
     case 'getUserList':
@@ -981,6 +1316,19 @@ export const api = {
   downloadDokumen: (id) => callAppsScript('downloadDokumen', { id }),
   updateDokumen: (data) => callAppsScript('updateDokumen', data),
   deleteDokumen: (id) => callAppsScript('deleteDokumen', { id }),
+
+  // Komisi & RDP
+  getKomisiList: () => callAppsScript('getKomisiList'),
+  getRdpDokumenList: (komisi_id, tahun = '') => callAppsScript('getRdpDokumenList', { komisi_id, tahun }),
+  uploadRdpDokumen: (data) => callAppsScript('uploadRdpDokumen', data, { timeout: 40000 }),
+  deleteRdpDokumen: (id) => callAppsScript('deleteRdpDokumen', { id }),
+
+  // Laporan Masyarakat (Publik & Terautentikasi)
+  submitLaporanPublik: (data) => callAppsScript('submitLaporanPublik', { data }, { timeout: 40000 }),
+  getPublicDewanList: () => callAppsScript('getPublicDewanList'),
+  getLaporanList: (params = {}) => callAppsScript('getLaporanList', params),
+  assignLaporan: (id, staff_id, staff_nama) => callAppsScript('assignLaporan', { id, staff_id, staff_nama }),
+  updateLaporanStatus: (id, status, tanggapan = '') => callAppsScript('updateLaporanStatus', { id, status, tanggapan }),
 
   // Pengguna & Hak Akses
   getUserList: () => callAppsScript('getUserList'),

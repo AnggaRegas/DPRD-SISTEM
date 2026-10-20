@@ -222,34 +222,47 @@
           return;
         }
 
-        grid.innerHTML = list.map(d => `
-          <div class="archive-card">
-            <div class="archive-card-header">
-              <div class="archive-card-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+        const isSuperadmin = user.role === 'superadmin';
+
+        grid.innerHTML = list.map(d => {
+          const canAccess = isSuperadmin || Boolean(d.is_assigned);
+
+          return `
+            <div class="archive-card" style="${!canAccess ? 'opacity: 0.7;' : ''}">
+              <div class="archive-card-header">
+                <div class="archive-card-icon" style="${!canAccess ? 'background: #f1f5f9; color: #94a3b8;' : ''}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <div class="archive-card-title">${d.nama || '-'}</div>
+                  <div class="archive-card-desc">${d.jabatan || 'Anggota DPRD'} &bull; ${d.nama_partai || '-'}</div>
+                </div>
               </div>
-              <div>
-                <div class="archive-card-title">${d.nama || '-'}</div>
-                <div class="archive-card-desc">${d.jabatan || 'Anggota DPRD'} &bull; ${d.nama_partai || '-'}</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">
+                Pendamping: <strong style="color: var(--navy-900);">${d.nama_pendamping || '-'}</strong>
+                ${user.role === 'staff' && d.is_assigned ? '<span style="margin-left:6px; background:#e0f2fe; color:#0369a1; font-size:10.5px; padding:2px 6px; border-radius:4px; font-weight:600;">Penugasan Anda</span>' : ''}
+              </div>
+              <div class="archive-card-footer">
+                <span class="status-pill aktif" style="font-size: 11px;">
+                  <span class="status-pill-dot"></span>
+                  ${d.kecamatan || 'Parepare'}
+                </span>
+                ${canAccess ? `
+                  <a href="arsip_dewan.html?dewan_id=${d.id}" class="btn btn-gold btn-sm">
+                    Buka Arsip &rarr;
+                  </a>
+                ` : `
+                  <span class="btn btn-secondary btn-sm" style="opacity: 0.5; cursor: not-allowed; background: #f1f5f9; color: #94a3b8;" title="Bukan penugasan Anda">
+                    Terkunci
+                  </span>
+                `}
               </div>
             </div>
-            <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">
-              Pendamping: <strong style="color: var(--navy-900);">${d.nama_pendamping || '-'}</strong>
-            </div>
-            <div class="archive-card-footer">
-              <span class="status-pill aktif" style="font-size: 11px;">
-                <span class="status-pill-dot"></span>
-                Periode ${d.periode || '2024–2029'}
-              </span>
-              <a href="arsip_dewan.html?dewan_id=${d.id}" class="btn btn-gold btn-sm">
-                Buka Arsip &rarr;
-              </a>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
 
       // Filter Pencarian Anggota Dewan
@@ -264,7 +277,8 @@
           const filtered = allDewanList.filter(d =>
             (d.nama && d.nama.toLowerCase().includes(q)) ||
             (d.nama_partai && d.nama_partai.toLowerCase().includes(q)) ||
-            (d.jabatan && d.jabatan.toLowerCase().includes(q))
+            (d.jabatan && d.jabatan.toLowerCase().includes(q)) ||
+            (d.kecamatan && d.kecamatan.toLowerCase().includes(q))
           );
           renderDewanCards(filtered);
         });
@@ -285,6 +299,14 @@
 
           if (resDewan && resDewan.success && resDewan.data) {
             const d = resDewan.data;
+
+            // Jika staf dan bukan penugasan, blokir akses
+            if (user.role === 'staff' && !d.is_assigned) {
+              alert('Akses Ditolak: Anda tidak memiliki wewenang untuk melihat arsip anggota dewan ini.');
+              window.location.replace('arsip_dewan.html');
+              return;
+            }
+
             document.getElementById('dewanTitleName').textContent = d.nama || 'Arsip Dewan';
             document.getElementById('dewanMetaDesc').textContent = `${d.jabatan || 'Anggota DPRD'} • ${d.nama_partai || '-'} • Pendamping: ${d.nama_pendamping || '-'}`;
 

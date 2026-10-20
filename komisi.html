@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arsip Komisi & RDP — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" id="breadcrumbTrail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Arsip Komisi & RDP</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="header-badge-dot"></span>
+          Rapat Dengar Pendapat
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- TAMPILAN 1: PILIH KOMISI (3 Komisi) -->
+      <div id="viewPilihKomisi">
+        <div class="page-title-bar">
+          <div class="page-title-text">
+            <h1>Arsip Komisi & Rapat Dengar Pendapat (RDP)</h1>
+            <p>Pilih Komisi untuk membuka arsip risalah, notula, dan dokumen Rapat Dengar Pendapat.</p>
+          </div>
+        </div>
+
+        <div class="archive-grid" id="komisiCardsContainer" style="margin-top: 10px;">
+          <!-- Kartu 3 Komisi di-render via JavaScript -->
+        </div>
+      </div>
+
+      <!-- TAMPILAN 2: DAFTAR ARSIP RDP KOMISI -->
+      <div id="viewRdpList" style="display: none;">
+        <div class="page-title-bar">
+          <div class="page-title-text">
+            <h1 id="komisiTitleName">Komisi DPRD</h1>
+            <p id="komisiBidangText">Dokumen & Risalah Rapat Dengar Pendapat (RDP)</p>
+          </div>
+          <div class="page-actions">
+            <a href="komisi.html" class="btn btn-secondary">
+              &larr; Pilih Komisi Lain
+            </a>
+            <button type="button" id="btnBukaModalUpload" class="btn btn-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Unggah Dokumen RDP
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTER & PENCARIAN -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-body" style="padding: 16px 20px;">
+            <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+              <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <label for="filterTahunSelect" style="font-size: 13px; font-weight: 600; color: var(--navy-900);">Filter Tahun:</label>
+                <select id="filterTahunSelect" class="form-select" style="width: auto; min-width: 170px;">
+                  <option value="semua">Semua Tahun</option>
+                </select>
+              </div>
+              <div class="search-box" style="margin: 0; min-width: 280px;">
+                <span class="search-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input type="text" class="search-input" id="searchRdpInput" placeholder="Cari nama dokumen atau keterangan...">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABEL ARSIP RDP -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Berkas Dokumen RDP</h2>
+              <p class="card-subtitle" id="rdpSubTitle">Daftar arsip dokumen RDP pada komisi ini.</p>
+            </div>
+            <div class="header-badge" id="badgeTotalRdp">
+              Memuat...
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">No</th>
+                    <th>Nama Dokumen RDP</th>
+                    <th style="width: 90px; text-align: center;">Tahun</th>
+                    <th>Keterangan / Agenda</th>
+                    <th>Berkas</th>
+                    <th>Tanggal Unggah</th>
+                    <th style="text-align: center; width: 140px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="rdpTableBody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 30px;">
+                      Memuat daftar dokumen RDP...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL UNGGAH DOKUMEN RDP -->
+  <div class="modal-backdrop" id="modalUploadBackdrop" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalUploadTitle">Unggah Dokumen RDP</h3>
+        <button type="button" class="modal-close" id="btnCloseModalUpload">&times;</button>
+      </div>
+      <form id="formUploadRdp">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="inputJudulRdp" class="form-label">Nama / Judul Dokumen RDP <span class="required">*</span></label>
+            <input type="text" id="inputJudulRdp" class="form-input" placeholder="Contoh: RDP Pembahasan Drainase & Banjir" required autofocus>
+          </div>
+
+          <div class="form-group">
+            <label for="inputTahunRdp" class="form-label">Tahun Pelaksanaan <span class="required">*</span></label>
+            <input type="number" id="inputTahunRdp" class="form-input" min="2000" max="2100" value="2026" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputKeteranganRdp" class="form-label">Keterangan / Agenda Rapat</label>
+            <textarea id="inputKeteranganRdp" class="form-textarea" rows="2" placeholder="Catatan atau pihak terkait dalam RDP"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="inputFileRdp" class="form-label">Pilih Berkas Dokumen <span class="required">*</span></label>
+            <input type="file" id="inputFileRdp" class="form-input" accept=".pdf,.docx,.doc,.xlsx,.xls,.jpg,.jpeg,.png" required>
+            <small class="form-hint" style="color: var(--text-muted); font-size: 11.5px; display: block; margin-top: 4px;">
+              Format diizinkan: PDF, DOCX, XLSX, JPG, PNG (Maksimal 10 MB).
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnBatalUpload">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSubmitUploadRdp">Mulai Unggah</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api } from './assets/js/api.js';
+    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+
+    const currentUser = requireAuth();
+    if (currentUser) {
+      renderSidebar('komisi');
+
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const komisiId = params.get('komisi_id') || params.get('id');
+
+      if (!komisiId) {
+        // Tampilkan 3 kartu Komisi
+        document.getElementById('viewPilihKomisi').style.display = 'block';
+        document.getElementById('viewRdpList').style.display = 'none';
+        renderKomisiSelection();
+      } else {
+        // Tampilkan daftar RDP Komisi
+        document.getElementById('viewPilihKomisi').style.display = 'none';
+        document.getElementById('viewRdpList').style.display = 'block';
+        initRdpView(komisiId);
+      }
+
+      async function renderKomisiSelection() {
+        const container = document.getElementById('komisiCardsContainer');
+        try {
+          const res = await api.getKomisiList();
+          const list = (res && res.success && res.data) ? res.data : [
+            { id: 'KOM-1', kode: 'KOMISI_1', nama: 'Komisi 1', bidang: 'Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Bidang Pemerintahan, Ketertiban, Kependudukan, dan Hukum' },
+            { id: 'KOM-2', kode: 'KOMISI_2', nama: 'Komisi 2', bidang: 'Ekonomi, Keuangan, dan Pembangunan', deskripsi: 'Bidang Anggaran, Keuangan Daerah, Pendapatan, dan Pembangunan' },
+            { id: 'KOM-3', kode: 'KOMISI_3', nama: 'Komisi 3', bidang: 'Pendidikan, Kesehatan, dan Kesejahteraan Sosial', deskripsi: 'Bidang Pendidikan, Kesehatan, Ketenagakerjaan, dan Kesra' }
+          ];
+
+          container.innerHTML = list.map((k, idx) => `
+            <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
+              <div class="archive-card-header">
+                <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="archive-card-title" style="font-size: 16px;">${k.nama}</div>
+                  <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">${k.bidang}</div>
+                </div>
+              </div>
+              <div style="font-size: 13px; color: var(--text-muted); margin: 12px 0 20px 0; line-height: 1.5;">
+                ${k.deskripsi}
+              </div>
+              <div class="archive-card-footer">
+                <span class="status-pill aktif" style="font-size: 11.5px;">
+                  <span class="status-pill-dot"></span>
+                  Kategori: RDP
+                </span>
+                <a href="komisi.html?komisi_id=${k.id}" class="btn btn-gold btn-sm">
+                  Buka Folder RDP &rarr;
+                </a>
+              </div>
+            </div>
+          `).join('');
+        } catch (e) {
+          container.innerHTML = '<div style="grid-column: 1/-1; color: var(--status-danger); text-align: center;">Gagal memuat komisi.</div>';
+        }
+      }
+
+      // Inisialisasi Tampilan RDP Komisi
+      let rdpDataStore = [];
+      let availableYearsStore = [];
+
+      async function initRdpView(id) {
+        const komisiMap = {
+          'KOM-1': { nama: 'Komisi 1', bidang: 'Pemerintahan, Hukum, dan Ketertiban' },
+          'KOM-2': { nama: 'Komisi 2', bidang: 'Ekonomi, Keuangan, dan Pembangunan' },
+          'KOM-3': { nama: 'Komisi 3', bidang: 'Pendidikan, Kesehatan, dan Kesejahteraan Sosial' }
+        };
+        const komisiInfo = komisiMap[id] || { nama: 'Komisi ' + id, bidang: 'Rapat Dengar Pendapat' };
+
+        document.getElementById('komisiTitleName').textContent = `${komisiInfo.nama} DPRD Kota Parepare`;
+        document.getElementById('komisiBidangText').textContent = `Bidang: ${komisiInfo.bidang} — Folder Dokumen Rapat Dengar Pendapat (RDP)`;
+        document.getElementById('breadcrumbTrail').innerHTML = `
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="komisi.html">Arsip Komisi</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">${komisiInfo.nama} (RDP)</span>
+        `;
+
+        await loadRdpDocuments(id);
+
+        // Filter Tahun Event
+        const filterSelect = document.getElementById('filterTahunSelect');
+        filterSelect.addEventListener('change', () => {
+          applyFilterAndSearch();
+        });
+
+        // Filter Pencarian Event
+        const searchInput = document.getElementById('searchRdpInput');
+        searchInput.addEventListener('input', () => {
+          applyFilterAndSearch();
+        });
+
+        // Modal Upload Handling
+        setupUploadModal(id, komisiInfo.nama);
+      }
+
+      async function loadRdpDocuments(id) {
+        const tableBody = document.getElementById('rdpTableBody');
+        const badgeTotal = document.getElementById('badgeTotalRdp');
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Memuat arsip dokumen RDP...</td></tr>';
+
+        try {
+          const res = await api.getRdpDokumenList(id, 'semua');
+          if (res && res.success && res.data) {
+            rdpDataStore = res.data.dokumen || [];
+            availableYearsStore = res.data.available_years || [];
+
+            // Populate Dropdown Filter Tahun Secara Dinamis
+            const filterSelect = document.getElementById('filterTahunSelect');
+            filterSelect.innerHTML = '<option value="semua">Semua Tahun</option>';
+            availableYearsStore.forEach(yr => {
+              const opt = document.createElement('option');
+              opt.value = yr;
+              opt.textContent = `Tahun ${yr}`;
+              filterSelect.appendChild(opt);
+            });
+
+            badgeTotal.textContent = `${rdpDataStore.length} Dokumen`;
+            applyFilterAndSearch();
+          } else {
+            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">${res.message || 'Gagal memuat dokumen RDP.'}</td></tr>`;
+          }
+        } catch (e) {
+          tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${e.message}</td></tr>`;
+        }
+      }
+
+      function applyFilterAndSearch() {
+        const selectedYear = document.getElementById('filterTahunSelect').value;
+        const q = document.getElementById('searchRdpInput').value.toLowerCase().trim();
+
+        let filtered = rdpDataStore.slice();
+
+        if (selectedYear && selectedYear !== 'semua') {
+          filtered = filtered.filter(d => String(d.tahun) === selectedYear);
+        }
+
+        if (q) {
+          filtered = filtered.filter(d =>
+            (d.nama_dokumen && d.nama_dokumen.toLowerCase().includes(q)) ||
+            (d.keterangan && d.keterangan.toLowerCase().includes(q)) ||
+            (d.nama_file && d.nama_file.toLowerCase().includes(q))
+          );
+        }
+
+        renderRdpTable(filtered);
+      }
+
+      function renderRdpTable(list) {
+        const tableBody = document.getElementById('rdpTableBody');
+        if (!list.length) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="7">
+                <div class="empty-state" style="padding: 40px 20px;">
+                  <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </div>
+                  <h3 class="empty-state-title">Belum Ada Dokumen RDP</h3>
+                  <p class="empty-state-desc">Belum ada arsip dokumen RDP yang cocok dengan filter atau pencarian.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tableBody.innerHTML = list.map((doc, idx) => {
+          const tgl = doc.tanggal_upload ? new Date(doc.tanggal_upload).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+          const sizeKb = doc.ukuran_file ? Math.round(doc.ukuran_file / 1024) + ' KB' : '-';
+
+          return `
+            <tr>
+              <td style="text-align: center; color: var(--text-light); font-size: 12px;">${idx + 1}</td>
+              <td>
+                <strong style="color: var(--navy-900); font-size: 13.5px; display: block;">${doc.nama_dokumen}</strong>
+                <span style="font-size: 11.5px; color: var(--text-muted);">${doc.nama_file || 'dokumen.pdf'}</span>
+              </td>
+              <td style="text-align: center;">
+                <span class="badge" style="background: var(--navy-50); color: var(--navy-800); font-size: 11.5px; padding: 2px 7px; border-radius: 4px; font-weight: 600;">
+                  ${doc.tahun}
+                </span>
+              </td>
+              <td>
+                <span style="font-size: 12.5px; color: var(--text-muted);">${doc.keterangan || '-'}</span>
+              </td>
+              <td>
+                <span style="font-size: 12px; color: var(--text-muted);">${sizeKb}</span>
+              </td>
+              <td>
+                <span style="font-size: 12px; color: var(--text-muted);">${tgl}</span>
+              </td>
+              <td style="text-align: center;">
+                <div class="action-buttons" style="justify-content: center;">
+                  <button type="button" class="btn btn-secondary btn-sm" data-action="download" data-id="${doc.id}" data-nama="${doc.nama_dokumen}" title="Unduh Dokumen">
+                    Unduh
+                  </button>
+                  <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${doc.id}" data-nama="${doc.nama_dokumen}" title="Hapus Dokumen RDP">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Action Unduh
+        tableBody.querySelectorAll('button[data-action="download"]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const docId = btn.dataset.id;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Memuat...';
+            try {
+              const res = await api.downloadDokumen(docId);
+              if (res && res.success && res.data) {
+                showToast('Berkas berhasil diunduh.', 'success');
+              } else {
+                showToast(res.message || 'Gagal mengunduh dokumen.', 'error');
+              }
+            } catch (err) {
+              showToast('Terjadi kesalahan unduh.', 'error');
+            } finally {
+              btn.disabled = false;
+              btn.textContent = originalText;
+            }
+          });
+        });
+
+        // Action Hapus
+        tableBody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const docId = btn.dataset.id;
+            const docNama = btn.dataset.nama;
+            showConfirmDialog({
+              title: 'Hapus Dokumen RDP?',
+              message: `Apakah Anda yakin ingin menghapus arsip dokumen RDP "${docNama}"? Tindakan ini tidak dapat dibatalkan.`,
+              confirmText: 'Ya, Hapus',
+              isDanger: true,
+              onConfirm: async () => {
+                try {
+                  const res = await api.deleteRdpDokumen(docId);
+                  if (res && res.success) {
+                    showToast('Dokumen RDP berhasil dihapus.', 'success');
+                    await loadRdpDocuments(komisiId);
+                  } else {
+                    showToast(res.message || 'Gagal menghapus dokumen.', 'error');
+                  }
+                } catch (err) {
+                  showToast(err.message, 'error');
+                }
+              }
+            });
+          });
+        });
+      }
+
+      function setupUploadModal(id, komisiNama) {
+        const modal = document.getElementById('modalUploadBackdrop');
+        const btnOpen = document.getElementById('btnBukaModalUpload');
+        const btnClose = document.getElementById('btnCloseModalUpload');
+        const btnBatal = document.getElementById('btnBatalUpload');
+        const form = document.getElementById('formUploadRdp');
+        const btnSubmit = document.getElementById('btnSubmitUploadRdp');
+
+        document.getElementById('modalUploadTitle').textContent = `Unggah Dokumen RDP — ${komisiNama}`;
+
+        btnOpen.addEventListener('click', () => {
+          form.reset();
+          document.getElementById('inputTahunRdp').value = new Date().getFullYear();
+          modal.style.display = 'flex';
+        });
+
+        const closeModal = () => {
+          modal.style.display = 'none';
+        };
+
+        btnClose.addEventListener('click', closeModal);
+        btnBatal.addEventListener('click', closeModal);
+
+        let isSubmitting = false;
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (isSubmitting) return;
+
+          const judul = document.getElementById('inputJudulRdp').value.trim();
+          const tahun = document.getElementById('inputTahunRdp').value.trim();
+          const keterangan = document.getElementById('inputKeteranganRdp').value.trim();
+          const fileInput = document.getElementById('inputFileRdp');
+
+          if (!judul || !tahun || !fileInput.files.length) {
+            showToast('Harap lengkapi judul, tahun, dan pilih berkas.', 'warning');
+            return;
+          }
+
+          const file = fileInput.files[0];
+          if (file.size > 10 * 1024 * 1024) {
+            showToast('Ukuran berkas tidak boleh melebihi 10 MB.', 'warning');
+            return;
+          }
+
+          isSubmitting = true;
+          btnSubmit.disabled = true;
+          btnSubmit.textContent = 'Mengunggah Dokumen...';
+
+          try {
+            // Konversi file ke base64 jika ada
+            const reader = new FileReader();
+            reader.onload = async () => {
+              const base64Content = reader.result ? reader.result.split(',')[1] : '';
+              try {
+                const res = await api.uploadRdpDokumen({
+                  komisi_id: id,
+                  tahun: parseInt(tahun, 10),
+                  nama_dokumen: judul,
+                  keterangan: keterangan,
+                  fileName: file.name,
+                  fileData: base64Content
+                });
+
+                if (res && res.success) {
+                  showToast('Dokumen RDP berhasil diunggah!', 'success');
+                  closeModal();
+                  await loadRdpDocuments(id);
+                } else {
+                  showToast(res.message || 'Gagal mengunggah dokumen RDP.', 'error');
+                }
+              } catch (err) {
+                showToast(err.message || 'Kesalahan sistem saat mengunggah.', 'error');
+              } finally {
+                isSubmitting = false;
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Mulai Unggah';
+              }
+            };
+            reader.readAsDataURL(file);
+          } catch (err) {
+            showToast('Gagal memproses berkas.', 'error');
+            isSubmitting = false;
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Mulai Unggah';
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

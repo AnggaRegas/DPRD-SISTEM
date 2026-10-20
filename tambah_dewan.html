@@ -83,6 +83,17 @@
               </div>
             </div>
 
+            <div class="form-group">
+              <label for="inputKecamatan" class="form-label">Kecamatan Asal (Dapil / Domisili) <span class="required">*</span></label>
+              <select id="inputKecamatan" class="form-select" required>
+                <option value="">-- Pilih Kecamatan di Kota Parepare --</option>
+                <option value="Kecamatan Bacukiki">Kecamatan Bacukiki</option>
+                <option value="Kecamatan Bacukiki Barat">Kecamatan Bacukiki Barat</option>
+                <option value="Kecamatan Soreang">Kecamatan Soreang</option>
+                <option value="Kecamatan Ujung">Kecamatan Ujung</option>
+              </select>
+            </div>
+
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light);">
               <a href="dewan.html" class="btn btn-secondary">Batal</a>
               <button type="submit" class="btn btn-gold" id="btnSubmit">Simpan Anggota Dewan</button>
@@ -100,6 +111,11 @@
 
     const user = requireAuth();
     if (user) {
+      if (user.role === 'staff') {
+        showToast('Akses ditolak: Staf pendamping tidak memiliki izin menambah anggota dewan.', 'error');
+        window.location.replace('dewan.html');
+      }
+
       renderSidebar('dewan');
 
       const mobileBtn = document.getElementById('mobileMenuBtn');
@@ -124,8 +140,9 @@
         const periode = document.getElementById('inputPeriode').value.trim();
         const partai = document.getElementById('inputPartai').value.trim();
         const pendamping = document.getElementById('inputPendamping').value.trim();
+        const kecamatan = document.getElementById('inputKecamatan').value.trim();
 
-        if (!nama || !jabatan || !partai) {
+        if (!nama || !jabatan || !partai || !kecamatan) {
           showToast('Harap lengkapi kolom yang wajib diisi (*).', 'warning');
           return;
         }
@@ -140,7 +157,8 @@
             jabatan: jabatan,
             periode: periode,
             nama_partai: partai,
-            nama_pendamping: pendamping
+            nama_pendamping: pendamping,
+            kecamatan: kecamatan
           });
 
           if (res && res.success) {

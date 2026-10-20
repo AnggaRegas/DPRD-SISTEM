@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan & Aspirasi Masyarakat — Sistem Pengarsipan DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="sidebarContainer"></div>
+
+  <div class="main-wrapper">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Buka menu navigasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+          <a href="dashboard.html">Beranda</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Laporan Masyarakat</span>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="header-badge" id="roleBadge">
+          <span class="header-badge-dot"></span>
+          Pengaduan Publik
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <div class="page-title-bar">
+        <div class="page-title-text">
+          <h1>Kelola Aspirasi & Pengaduan Masyarakat</h1>
+          <p id="pageDesc">Daftar aspirasi publik dari masyarakat Kota Parepare yang disampaikan melalui portal aspirasi.</p>
+        </div>
+      </div>
+
+      <!-- FILTER & PENCARIAN -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-body" style="padding: 16px 20px;">
+          <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <div>
+                <label for="filterStatus" style="font-size: 12px; font-weight: 600; color: var(--navy-900); display: block; margin-bottom: 4px;">Status:</label>
+                <select id="filterStatus" class="form-select" style="min-width: 140px;">
+                  <option value="">Semua Status</option>
+                  <option value="menunggu">Menunggu</option>
+                  <option value="diproses">Diproses</option>
+                  <option value="selesai">Selesai</option>
+                  <option value="ditolak">Ditolak</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="filterKecamatan" style="font-size: 12px; font-weight: 600; color: var(--navy-900); display: block; margin-bottom: 4px;">Kecamatan:</label>
+                <select id="filterKecamatan" class="form-select" style="min-width: 180px;">
+                  <option value="">Semua Kecamatan</option>
+                  <option value="Bacukiki">Kecamatan Bacukiki</option>
+                  <option value="Bacukiki Barat">Kecamatan Bacukiki Barat</option>
+                  <option value="Soreang">Kecamatan Soreang</option>
+                  <option value="Ujung">Kecamatan Ujung</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="search-box" style="margin: 0; min-width: 280px; align-self: flex-end;">
+              <span class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <input type="text" class="search-input" id="searchLaporanInput" placeholder="Cari nomor tiket, nama, atau isi...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL LAPORAN -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Daftar Laporan Masuk</h2>
+            <p class="card-subtitle">Laporan terisolasi dari arsip dokumen kedewanan.</p>
+          </div>
+          <div class="header-badge" id="badgeTotalLaporan">
+            Memuat...
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">No</th>
+                  <th>Nomor Tiket & Waktu</th>
+                  <th>Pelapor & Kontak</th>
+                  <th>Kecamatan & Tujuan</th>
+                  <th>Judul & Ringkasan Laporan</th>
+                  <th>Status</th>
+                  <th>Penugasan Staf</th>
+                  <th style="text-align: center; width: 140px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="laporanTableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 30px;">
+                    Memuat daftar laporan masyarakat...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL DETAIL & TANGGAPAN LAPORAN -->
+  <div class="modal-backdrop" id="modalDetailBackdrop" style="display: none;">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalDetailTitle">Detail Aspirasi Masyarakat</h3>
+        <button type="button" class="modal-close" id="btnCloseDetail">&times;</button>
+      </div>
+      <div class="modal-body" id="modalDetailBody" style="max-height: 70vh; overflow-y: auto;">
+        <!-- Diisi dinamis -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnTutupDetail">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PENUGASAN STAF (SUPERADMIN ONLY) -->
+  <div class="modal-backdrop" id="modalAssignBackdrop" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Tugaskan Laporan ke Staf Pendamping</h3>
+        <button type="button" class="modal-close" id="btnCloseAssign">&times;</button>
+      </div>
+      <form id="formAssignStaff">
+        <div class="modal-body">
+          <input type="hidden" id="assignLaporanId">
+          <div class="form-group">
+            <label class="form-label">Nomor Tiket:</label>
+            <div id="assignTiketLabel" style="font-weight: 600; color: var(--navy-900); padding: 8px 12px; background: var(--gray-100); border-radius: 6px;"></div>
+          </div>
+          <div class="form-group">
+            <label for="selectStaff" class="form-label">Pilih Staf Pendamping <span class="required">*</span></label>
+            <select id="selectStaff" class="form-select" required>
+              <option value="">-- Pilih Staf Penerima Penugasan --</option>
+            </select>
+            <small style="color: var(--text-muted); font-size: 11.5px; margin-top: 4px; display: block;">
+              Staf yang dipilih akan dapat melihat dan menindaklanjuti laporan ini.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnBatalAssign">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btnSubmitAssign">Simpan Penugasan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api } from './assets/js/api.js';
+    import { requireAuth, showToast } from './assets/js/auth.js';
+    import { renderSidebar } from './assets/js/sidebar.js';
+
+    const currentUser = requireAuth();
+    if (currentUser) {
+      renderSidebar('laporan');
+
+      const isSuperadmin = currentUser.role === 'superadmin';
+      if (!isSuperadmin) {
+        document.getElementById('pageDesc').textContent = 'Menampilkan laporan masyarakat yang ditugaskan kepada Anda.';
+      }
+
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebarBackdrop');
+          if (sidebar) sidebar.classList.add('mobile-open');
+          if (backdrop) backdrop.classList.add('active');
+        });
+      }
+
+      let laporanListStore = [];
+      let staffListStore = [];
+
+      initPage();
+
+      async function initPage() {
+        if (isSuperadmin) {
+          loadStaffList();
+        }
+        await loadLaporan();
+
+        document.getElementById('filterStatus').addEventListener('change', () => applyFilter());
+        document.getElementById('filterKecamatan').addEventListener('change', () => applyFilter());
+        document.getElementById('searchLaporanInput').addEventListener('input', () => applyFilter());
+      }
+
+      async function loadStaffList() {
+        try {
+          const res = await api.getUserList();
+          if (res && res.success && Array.isArray(res.data)) {
+            staffListStore = res.data.filter(u => u.status === 'aktif' && u.role === 'staff');
+            const select = document.getElementById('selectStaff');
+            select.innerHTML = '<option value="">-- Pilih Staf Penerima Penugasan --</option>';
+            staffListStore.forEach(st => {
+              const opt = document.createElement('option');
+              opt.value = st.id;
+              opt.textContent = `${st.nama} (@${st.username})`;
+              select.appendChild(opt);
+            });
+          }
+        } catch (e) {
+          console.error('Gagal memuat daftar staf', e);
+        }
+      }
+
+      async function loadLaporan() {
+        const tableBody = document.getElementById('laporanTableBody');
+        const badge = document.getElementById('badgeTotalLaporan');
+        tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px;">Memuat data laporan masyarakat...</td></tr>';
+
+        try {
+          const res = await api.getLaporanList();
+          if (res && res.success && Array.isArray(res.data)) {
+            laporanListStore = res.data;
+            badge.textContent = `${laporanListStore.length} Laporan`;
+            applyFilter();
+          } else {
+            tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--status-danger); padding: 30px;">${res.message || 'Gagal memuat laporan.'}</td></tr>`;
+          }
+        } catch (e) {
+          tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--status-danger); padding: 30px;">Kesalahan: ${e.message}</td></tr>`;
+        }
+      }
+
+      function applyFilter() {
+        const status = document.getElementById('filterStatus').value.toLowerCase();
+        const kec = document.getElementById('filterKecamatan').value.toLowerCase();
+        const q = document.getElementById('searchLaporanInput').value.toLowerCase().trim();
+
+        let filtered = laporanListStore.slice();
+
+        if (status) {
+          filtered = filtered.filter(l => (l.status || '').toLowerCase() === status);
+        }
+        if (kec) {
+          filtered = filtered.filter(l => (l.kecamatan || '').toLowerCase().includes(kec));
+        }
+        if (q) {
+          filtered = filtered.filter(l =>
+            (l.nomor_tiket && l.nomor_tiket.toLowerCase().includes(q)) ||
+            (l.nama_pelapor && l.nama_pelapor.toLowerCase().includes(q)) ||
+            (l.judul && l.judul.toLowerCase().includes(q)) ||
+            (l.isi && l.isi.toLowerCase().includes(q))
+          );
+        }
+
+        renderTable(filtered);
+      }
+
+      function renderTable(list) {
+        const tableBody = document.getElementById('laporanTableBody');
+        if (!list.length) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="8">
+                <div class="empty-state" style="padding: 40px 20px;">
+                  <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  </div>
+                  <h3 class="empty-state-title">Tidak Ada Laporan Ditemukan</h3>
+                  <p class="empty-state-desc">Belum ada aspirasi atau pengaduan masyarakat pada kriteria ini.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tableBody.innerHTML = list.map((l, idx) => {
+          const tgl = l.created_at ? new Date(l.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+
+          let statusClass = 'menunggu';
+          let statusText = 'Menunggu';
+          if (l.status === 'diproses') { statusClass = 'proses'; statusText = 'Diproses'; }
+          else if (l.status === 'selesai') { statusClass = 'aktif'; statusText = 'Selesai'; }
+          else if (l.status === 'ditolak') { statusClass = 'nonaktif'; statusText = 'Ditolak'; }
+
+          return `
+            <tr>
+              <td style="text-align: center; color: var(--text-light); font-size: 12px;">${idx + 1}</td>
+              <td>
+                <span class="badge" style="background:#e0f2fe; color:#0369a1; font-family: monospace; font-size: 11px; padding: 3px 6px; border-radius: 4px; font-weight: 700;">
+                  ${l.nomor_tiket}
+                </span>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">${tgl}</div>
+              </td>
+              <td>
+                <strong style="color: var(--navy-900); font-size: 13px;">${l.nama_pelapor}</strong>
+                <div style="font-size: 11.5px; color: var(--text-muted);">${l.kontak_pelapor || '-'}</div>
+              </td>
+              <td>
+                <span style="display:inline-block; padding: 2px 7px; background: var(--gray-100); border-radius: 4px; font-size: 11.5px; font-weight: 500; color: var(--navy-800);">
+                  ${l.kecamatan}
+                </span>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Tujuan: ${l.tujuan || 'DPRD'}</div>
+              </td>
+              <td>
+                <strong style="color: var(--navy-900); font-size: 13px; display: block;">${l.judul}</strong>
+                <div style="font-size: 12px; color: var(--text-muted); max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${l.isi}
+                </div>
+              </td>
+              <td>
+                <span class="status-pill ${statusClass}" style="font-size: 11px;">
+                  <span class="status-pill-dot"></span>
+                  ${statusText}
+                </span>
+              </td>
+              <td>
+                ${l.assigned_to ? `
+                  <strong style="color: var(--navy-800); font-size: 12px;">${l.assigned_to}</strong>
+                ` : `
+                  <span style="color: var(--text-light); font-style: italic; font-size: 12px;">Belum ditugaskan</span>
+                `}
+              </td>
+              <td style="text-align: center;">
+                <div class="action-buttons" style="justify-content: center; gap: 6px;">
+                  <button type="button" class="btn btn-secondary btn-sm" data-action="detail" data-id="${l.id || l.nomor_tiket}">
+                    Detail
+                  </button>
+                  ${isSuperadmin ? `
+                    <button type="button" class="btn btn-gold btn-sm" data-action="assign" data-id="${l.id || l.nomor_tiket}" data-tiket="${l.nomor_tiket}" title="Tugaskan ke staf">
+                      Tugaskan
+                    </button>
+                  ` : ''}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Action Detail & Update Status
+        tableBody.querySelectorAll('button[data-action="detail"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const reportId = btn.dataset.id;
+            const report = laporanListStore.find(x => String(x.id) === reportId || String(x.nomor_tiket) === reportId);
+            if (report) openDetailModal(report);
+          });
+        });
+
+        // Action Assign Staf
+        tableBody.querySelectorAll('button[data-action="assign"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const reportId = btn.dataset.id;
+            const tiket = btn.dataset.tiket;
+            openAssignModal(reportId, tiket);
+          });
+        });
+      }
+
+      function openDetailModal(r) {
+        const modal = document.getElementById('modalDetailBackdrop');
+        const body = document.getElementById('modalDetailBody');
+
+        const tgl = r.created_at ? new Date(r.created_at).toLocaleString('id-ID') : '-';
+
+        body.innerHTML = `
+          <div style="background: var(--navy-50); border: 1px solid var(--border-light); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <span class="badge" style="background:#0284c7; color:#fff; font-family: monospace; font-size: 12px; padding: 4px 8px; border-radius: 4px;">${r.nomor_tiket}</span>
+                <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">${tgl}</span>
+              </div>
+              <div>
+                <span class="status-pill ${r.status === 'selesai' ? 'aktif' : (r.status === 'diproses' ? 'proses' : 'menunggu')}">${r.status || 'menunggu'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div>
+              <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Nama Pelapor</label>
+              <div style="font-weight:600; color:var(--navy-900);">${r.nama_pelapor}</div>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Kontak / WhatsApp</label>
+              <div style="color:var(--navy-900);">${r.kontak_pelapor || '-'}</div>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Wilayah / Kecamatan</label>
+              <div style="font-weight:500; color:var(--navy-900);">${r.kecamatan}</div>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Tujuan / Kategori</label>
+              <div style="color:var(--navy-900);">${r.tujuan || 'DPRD'} &bull; ${r.kategori || 'Aspirasi'}</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Judul Aspirasi</label>
+            <div style="font-weight:600; font-size:15px; color:var(--navy-900); margin-bottom: 6px;">${r.judul}</div>
+            <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Isi Lengkap Laporan</label>
+            <div style="background:var(--gray-50); border:1px solid var(--border-light); padding:14px; border-radius:6px; line-height:1.6; font-size:13.5px; white-space:pre-wrap; color:var(--navy-950);">
+              ${r.isi}
+            </div>
+            ${r.lampiran_nama ? `<div style="margin-top:8px; font-size:12px; color:var(--text-muted);">Lampiran: <strong style="color:var(--navy-900);">${r.lampiran_nama}</strong></div>` : ''}
+          </div>
+
+          <!-- FORM TINDAK LANJUT / UPDATE STATUS -->
+          <div style="border-top:1px solid var(--border-light); padding-top:16px;">
+            <h4 style="font-size:14px; color:var(--navy-900); margin-bottom:12px;">Tindak Lanjut & Tanggapan Resmi</h4>
+            <form id="formUpdateStatusLaporan">
+              <input type="hidden" id="updateReportId" value="${r.id || r.nomor_tiket}">
+              <div class="form-group">
+                <label for="updateStatusSelect" class="form-label">Ubah Status Tindak Lanjut</label>
+                <select id="updateStatusSelect" class="form-select">
+                  <option value="menunggu" ${r.status === 'menunggu' ? 'selected' : ''}>Menunggu Verifikasi</option>
+                  <option value="diproses" ${r.status === 'diproses' ? 'selected' : ''}>Diproses / Dalam Tindak Lanjut</option>
+                  <option value="selesai" ${r.status === 'selesai' ? 'selected' : ''}>Selesai Ditindaklanjuti</option>
+                  <option value="ditolak" ${r.status === 'ditolak' ? 'selected' : ''}>Ditolak / Tidak Sesuai Kewenangan</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="updateTanggapanText" class="form-label">Tanggapan / Catatan Sekretariat DPRD</label>
+                <textarea id="updateTanggapanText" class="form-textarea" rows="3" placeholder="Masukkan catatan hasil tindak lanjut...">${r.tanggapan || ''}</textarea>
+              </div>
+              <button type="submit" class="btn btn-gold" id="btnSimpanTanggapan" style="width:100%;">Simpan Status & Tanggapan</button>
+            </form>
+          </div>
+        `;
+
+        modal.style.display = 'flex';
+
+        // Submit listener
+        document.getElementById('formUpdateStatusLaporan').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const btn = document.getElementById('btnSimpanTanggapan');
+          btn.disabled = true;
+          btn.textContent = 'Menyimpan...';
+
+          const newSt = document.getElementById('updateStatusSelect').value;
+          const tanggapan = document.getElementById('updateTanggapanText').value.trim();
+
+          try {
+            const res = await api.updateLaporanStatus(r.id || r.nomor_tiket, newSt, tanggapan);
+            if (res && res.success) {
+              showToast('Status laporan berhasil diperbarui.', 'success');
+              modal.style.display = 'none';
+              await loadLaporan();
+            } else {
+              showToast(res.message || 'Gagal memperbarui status.', 'error');
+            }
+          } catch (err) {
+            showToast(err.message, 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Simpan Status & Tanggapan';
+          }
+        });
+      }
+
+      document.getElementById('btnCloseDetail').addEventListener('click', () => {
+        document.getElementById('modalDetailBackdrop').style.display = 'none';
+      });
+      document.getElementById('btnTutupDetail').addEventListener('click', () => {
+        document.getElementById('modalDetailBackdrop').style.display = 'none';
+      });
+
+      function openAssignModal(reportId, tiket) {
+        document.getElementById('assignLaporanId').value = reportId;
+        document.getElementById('assignTiketLabel').textContent = tiket;
+        document.getElementById('modalAssignBackdrop').style.display = 'flex';
+      }
+
+      const closeAssignModal = () => {
+        document.getElementById('modalAssignBackdrop').style.display = 'none';
+      };
+
+      document.getElementById('btnCloseAssign').addEventListener('click', closeAssignModal);
+      document.getElementById('btnBatalAssign').addEventListener('click', closeAssignModal);
+
+      document.getElementById('formAssignStaff').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('assignLaporanId').value;
+        const staffSelect = document.getElementById('selectStaff');
+        const staffId = staffSelect.value;
+        const staffName = staffSelect.options[staffSelect.selectedIndex].text;
+
+        if (!staffId) {
+          showToast('Harap pilih staf penerima penugasan.', 'warning');
+          return;
+        }
+
+        const btn = document.getElementById('btnSubmitAssign');
+        btn.disabled = true;
+        btn.textContent = 'Menugaskan...';
+
+        try {
+          const res = await api.assignLaporan(id, staffId, staffName);
+          if (res && res.success) {
+            showToast('Laporan berhasil ditugaskan kepada staf!', 'success');
+            closeAssignModal();
+            await loadLaporan();
+          } else {
+            showToast(res.message || 'Gagal menugaskan laporan.', 'error');
+          }
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Simpan Penugasan';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

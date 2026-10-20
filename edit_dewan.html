@@ -105,6 +105,17 @@
             </div>
 
             <div class="form-group">
+              <label for="kecamatan" class="form-label">Kecamatan Asal (Dapil / Domisili) <span class="required">*</span></label>
+              <select id="kecamatan" class="form-select" required>
+                <option value="">-- Pilih Kecamatan di Kota Parepare --</option>
+                <option value="Kecamatan Bacukiki">Kecamatan Bacukiki</option>
+                <option value="Kecamatan Bacukiki Barat">Kecamatan Bacukiki Barat</option>
+                <option value="Kecamatan Soreang">Kecamatan Soreang</option>
+                <option value="Kecamatan Ujung">Kecamatan Ujung</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label for="keterangan" class="form-label">Keterangan / Catatan</label>
               <textarea id="keterangan" class="form-textarea" rows="3" placeholder="Opsional"></textarea>
             </div>
@@ -129,6 +140,11 @@
 
     const user = requireAuth();
     if (user) {
+      if (user.role === 'staff') {
+        showToast('Akses ditolak: Staf pendamping tidak memiliki izin mengubah data anggota dewan.', 'error');
+        window.location.replace('dewan.html');
+      }
+
       renderSidebar('dewan');
 
       const mobileBtn = document.getElementById('mobileMenuBtn');
@@ -166,6 +182,7 @@
             document.getElementById('periode').value = d.periode || '';
             document.getElementById('nama_partai').value = d.nama_partai || '';
             document.getElementById('nama_pengawas').value = d.nama_pengawas || '';
+            document.getElementById('kecamatan').value = d.kecamatan || '';
             document.getElementById('keterangan').value = d.keterangan || '';
 
             loadingBox.style.display = 'none';
@@ -190,6 +207,7 @@
           periode: document.getElementById('periode').value.trim(),
           nama_partai: document.getElementById('nama_partai').value,
           nama_pengawas: document.getElementById('nama_pengawas').value.trim(),
+          kecamatan: document.getElementById('kecamatan').value.trim(),
           keterangan: document.getElementById('keterangan').value.trim()
         };
 
@@ -201,7 +219,7 @@
           if (res && res.success) {
             showToast('Profil anggota dewan berhasil diperbarui.', 'success');
             setTimeout(() => {
-              window.location.replace(`arsip_dewan.html?id=${dewanId}`);
+              window.location.replace(`arsip_dewan.html?dewan_id=${dewanId}`);
             }, 600);
           } else {
             showToast(res.message || 'Gagal memperbarui data.', 'error');

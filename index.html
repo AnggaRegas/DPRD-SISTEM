@@ -3,18 +3,749 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Pengarsipan Dokumen DPRD</title>
+  <title>Portal Aspirasi & Informasi Publik — DPRD Kota Parepare</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* Styling Khusus Portal Publik */
+    .public-navbar {
+      background: var(--navy-900);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-md);
+    }
+    .public-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .public-brand-logo {
+      width: 42px;
+      height: 42px;
+      background: var(--gold-primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--navy-900);
+    }
+    .public-brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #fff;
+    }
+    .public-brand-sub {
+      font-size: 11.5px;
+      color: var(--gold-light);
+      letter-spacing: 0.5px;
+    }
+    .public-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .public-nav-link {
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .public-nav-link:hover {
+      color: var(--gold-primary);
+    }
+    .hero-section {
+      background: linear-gradient(135deg, var(--navy-950) 0%, var(--navy-900) 60%, var(--navy-800) 100%);
+      color: #fff;
+      padding: 80px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(184, 134, 11, 0.2);
+      border: 1px solid var(--gold-primary);
+      border-radius: 20px;
+      color: var(--gold-light);
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 20px;
+      max-width: 820px;
+      margin-left: auto;
+      margin-right: auto;
+      color: #fff;
+    }
+    .hero-subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      max-width: 680px;
+      margin: 0 auto 36px auto;
+      line-height: 1.6;
+    }
+    .hero-cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .stats-bar {
+      background: #fff;
+      border-bottom: 1px solid var(--border-light);
+      padding: 24px;
+    }
+    .stats-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      text-align: center;
+    }
+    .stat-item h3 {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--navy-900);
+      margin-bottom: 4px;
+    }
+    .stat-item p {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .section-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .section-tag {
+      color: var(--gold-primary);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .section-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--navy-900);
+      margin-bottom: 12px;
+    }
+    .section-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .dewan-card {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--border-radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .dewan-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .public-form-container {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--border-radius-lg);
+      padding: 36px;
+      box-shadow: var(--shadow-md);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .alur-step-card {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--border-radius-md);
+      padding: 24px;
+      text-align: center;
+      position: relative;
+    }
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: var(--navy-900);
+      color: var(--gold-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      margin: 0 auto 16px auto;
+    }
+    .public-footer {
+      background: var(--navy-950);
+      color: #94a3b8;
+      padding: 50px 24px 30px 24px;
+      border-top: 3px solid var(--gold-primary);
+    }
+    .footer-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 36px;
+      margin-bottom: 40px;
+    }
+    .footer-col h4 {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .footer-col p, .footer-col li {
+      font-size: 13.5px;
+      line-height: 1.7;
+    }
+    .footer-col ul {
+      list-style: none;
+      padding: 0;
+    }
+    .footer-col ul li a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-col ul li a:hover {
+      color: var(--gold-primary);
+    }
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 24px;
+      text-align: center;
+      font-size: 12.5px;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 28px; }
+      .public-nav-links { display: none; }
+      .public-form-container { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body style="background: var(--bg-body);">
+
+  <!-- NAVBAR PUBLIK -->
+  <header class="public-navbar">
+    <a href="index.html" class="public-brand">
+      <div class="public-brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="public-brand-title">DPRD KOTA PAREPARE</div>
+        <div class="public-brand-sub">PORTAL ASPIRASI & INFORMASI PUBLIK</div>
+      </div>
+    </a>
+
+    <nav class="public-nav-links">
+      <a href="#tentang" class="public-nav-link">Tentang</a>
+      <a href="#dewan" class="public-nav-link">Anggota Dewan</a>
+      <a href="#komisi" class="public-nav-link">Komisi</a>
+      <a href="#alur" class="public-nav-link">Alur Aspirasi</a>
+      <a href="#aspirasi" class="public-nav-link">Sampaikan Aspirasi</a>
+      <a href="login.html" class="btn btn-secondary btn-sm" style="color: var(--navy-900);">
+        Login Petugas &rarr;
+      </a>
+    </nav>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section">
+    <div class="hero-badge">
+      <span>&#9733;</span> Portal Resmi Sekretariat DPRD Kota Parepare
+    </div>
+    <h1 class="hero-title">Sampaikan Aspirasi & Pengaduan Anda Langsung ke DPRD Kota Parepare</h1>
+    <p class="hero-subtitle">
+      Wadah resmi bagi seluruh masyarakat Kota Parepare untuk menyampaikan suara, saran, dan pengaduan pembangunan secara transparan, mudah, dan langsung ditindaklanjuti oleh wakil rakyat.
+    </p>
+    <div class="hero-cta-group">
+      <a href="#aspirasi" class="btn btn-gold" style="padding: 14px 28px; font-size: 15px; font-weight: 700;">
+        Sampaikan Aspirasi Sekarang &darr;
+      </a>
+      <a href="#dewan" class="btn btn-secondary" style="padding: 14px 24px; font-size: 15px; background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">
+        Lihat Anggota DPRD
+      </a>
+    </div>
+  </section>
+
+  <!-- STATS BAR -->
+  <section class="stats-bar">
+    <div class="stats-container">
+      <div class="stat-item">
+        <h3>25</h3>
+        <p>Anggota Legislatif Resmi</p>
+      </div>
+      <div class="stat-item">
+        <h3>3</h3>
+        <p>Komisi Bidang Kerja</p>
+      </div>
+      <div class="stat-item">
+        <h3>4</h3>
+        <p>Wilayah Kecamatan</p>
+      </div>
+      <div class="stat-item">
+        <h3>100%</h3>
+        <p>Layanan Aspirasi Terbuka</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: ALUR PENYAMPAIAN ASPIRASI -->
+  <section class="section-container" id="alur">
+    <div class="section-header">
+      <span class="section-tag">Transparan & Terarah</span>
+      <h2 class="section-title">Alur Pengelolaan Aspirasi Masyarakat</h2>
+      <p class="section-desc">Setiap laporan yang masuk akan tercatat dengan nomor tiket unik dan diproses secara berjenjang oleh Sekretariat DPRD.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+      <div class="alur-step-card">
+        <div class="step-number">1</div>
+        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Pengisian Laporan</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Masyarakat mengisi formulir aspirasi online dengan data yang jelas dan memilih wilayah kecamatan terkait.</p>
+      </div>
+
+      <div class="alur-step-card">
+        <div class="step-number">2</div>
+        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Pemberian Tiket Resmi</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Sistem secara otomatis menerbitkan Nomor Tiket Aspirasi unik sebagai tanda bukti penerimaan laporan.</p>
+      </div>
+
+      <div class="alur-step-card">
+        <div class="step-number">3</div>
+        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Verifikasi & Penugasan</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Sekretariat DPRD memverifikasi laporan dan menetapkan kepada staf pendamping / komisi yang berwenang.</p>
+      </div>
+
+      <div class="alur-step-card">
+        <div class="step-number">4</div>
+        <h4 style="font-size: 16px; color: var(--navy-900); margin-bottom: 8px;">Tindak Lanjut Dewan</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Aspirasi dibahas dalam Rapat Dengar Pendapat (RDP) atau rapat kerja komisi bersama dinas terkait.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: KOMISI DPRD -->
+  <section class="section-container" id="komisi" style="background: var(--gray-50); border-radius: var(--border-radius-lg); margin-bottom: 40px;">
+    <div class="section-header">
+      <span class="section-tag">Struktur Kerja</span>
+      <h2 class="section-title">Komisi DPRD Kota Parepare</h2>
+      <p class="section-desc">Tiga komisi utama yang menjalankan fungsi legislasi, penganggaran, dan pengawasan di Kota Parepare.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+      <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
+        <div class="archive-card-header">
+          <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="archive-card-title">Komisi 1</div>
+            <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">Pemerintahan & Hukum</div>
+          </div>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 12px 0;">
+          Membidangi urusan Pemerintahan, Hukum, Ketertiban Umum, Kependudukan, Pertanahan, dan Aparatur Sipil Daerah.
+        </p>
+      </div>
+
+      <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
+        <div class="archive-card-header">
+          <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="archive-card-title">Komisi 2</div>
+            <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">Ekonomi & Pembangunan</div>
+          </div>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 12px 0;">
+          Membidangi Keuangan Daerah, Pendapatan, Pekerjaan Umum, Perdagangan, UMKM, dan Pembangunan Infrastruktur.
+        </p>
+      </div>
+
+      <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
+        <div class="archive-card-header">
+          <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="archive-card-title">Komisi 3</div>
+            <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">Pendidikan & Kesra</div>
+          </div>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 12px 0;">
+          Membidangi urusan Pendidikan, Layanan Kesehatan, Ketenagakerjaan, Sosial, Kepemudaan, dan Kesejahteraan Rakyat.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: ANGGOTA DEWAN -->
+  <section class="section-container" id="dewan">
+    <div class="section-header">
+      <span class="section-tag">Wakil Rakyat Parepare</span>
+      <h2 class="section-title">Anggota DPRD Kota Parepare (2024–2029)</h2>
+      <p class="section-desc">Daftar resmi wakil rakyat yang bertugas mewakili suara masyarakat dari 4 wilayah kecamatan.</p>
+    </div>
+
+    <!-- Filter Kecamatan Anggota Dewan -->
+    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap;" id="dewanFilterBar">
+      <button type="button" class="btn btn-gold btn-sm filter-kec-btn active" data-kec="all">Semua Wilayah</button>
+      <button type="button" class="btn btn-secondary btn-sm filter-kec-btn" data-kec="Bacukiki">Kecamatan Bacukiki</button>
+      <button type="button" class="btn btn-secondary btn-sm filter-kec-btn" data-kec="Bacukiki Barat">Kecamatan Bacukiki Barat</button>
+      <button type="button" class="btn btn-secondary btn-sm filter-kec-btn" data-kec="Soreang">Kecamatan Soreang</button>
+      <button type="button" class="btn btn-secondary btn-sm filter-kec-btn" data-kec="Ujung">Kecamatan Ujung</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;" id="publicDewanGrid">
+      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+        Memuat daftar anggota dewan...
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: FORMULIR ASPIRASI MASYARAKAT -->
+  <section class="section-container" id="aspirasi">
+    <div class="section-header">
+      <span class="section-tag">Pelayanan Aspirasi Publik</span>
+      <h2 class="section-title">Formulir Penyampaian Aspirasi & Pengaduan</h2>
+      <p class="section-desc">Sampaikan aspirasi Anda secara lengkap. Sekretariat DPRD Kota Parepare menjamin kerahasiaan data pribadi pelapor.</p>
+    </div>
+
+    <div class="public-form-container">
+      <form id="formAspirasiPublik">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label for="pubNama" class="form-label">Nama Lengkap Anda <span class="required">*</span></label>
+            <input type="text" id="pubNama" class="form-input" placeholder="Masukkan nama lengkap Anda" required>
+          </div>
+
+          <div class="form-group">
+            <label for="pubKontak" class="form-label">Nomor WhatsApp / HP Aktif <span class="required">*</span></label>
+            <input type="tel" id="pubKontak" class="form-input" placeholder="Contoh: 081234567890" required>
+            <small style="color: var(--text-muted); font-size: 11px;">Hanya digunakan untuk konfirmasi tindak lanjut.</small>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label for="pubKecamatan" class="form-label">Kecamatan Lokasi Terkait <span class="required">*</span></label>
+            <select id="pubKecamatan" class="form-select" required>
+              <option value="">-- Pilih Kecamatan di Kota Parepare --</option>
+              <option value="Kecamatan Bacukiki">Kecamatan Bacukiki</option>
+              <option value="Kecamatan Bacukiki Barat">Kecamatan Bacukiki Barat</option>
+              <option value="Kecamatan Soreang">Kecamatan Soreang</option>
+              <option value="Kecamatan Ujung">Kecamatan Ujung</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="pubKategori" class="form-label">Kategori Laporan <span class="required">*</span></label>
+            <select id="pubKategori" class="form-select" required>
+              <option value="Aspirasi Pembangunan">Aspirasi Pembangunan Daerah</option>
+              <option value="Pengaduan Layanan Publik">Pengaduan Layanan Publik</option>
+              <option value="Usulan Kebijakan / Perda">Usulan Kebijakan / Perda</option>
+              <option value="Sosial & Kemasyarakatan">Sosial & Kemasyarakatan</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="pubTujuan" class="form-label">Tujuan Laporan</label>
+          <select id="pubTujuan" class="form-select">
+            <option value="DPRD Kota Parepare">Pimpinan / Seluruh DPRD Kota Parepare</option>
+            <option value="Komisi 1 (Pemerintahan & Hukum)">Komisi 1 (Pemerintahan & Hukum)</option>
+            <option value="Komisi 2 (Ekonomi & Pembangunan)">Komisi 2 (Ekonomi & Pembangunan)</option>
+            <option value="Komisi 3 (Pendidikan & Kesra)">Komisi 3 (Pendidikan & Kesra)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="pubJudul" class="form-label">Judul Aspirasi / Pengaduan <span class="required">*</span></label>
+          <input type="text" id="pubJudul" class="form-input" placeholder="Contoh: Perbaikan Drainase Jalan di Wilayah Soreang" required>
+        </div>
+
+        <div class="form-group">
+          <label for="pubIsi" class="form-label">Rincian Isi Aspirasi / Pengaduan <span class="required">*</span></label>
+          <textarea id="pubIsi" class="form-textarea" rows="4" placeholder="Jelaskan secara jelas duduk perkara, usulan, atau kendala yang dihadapi..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="pubLampiran" class="form-label">Lampiran Foto / Dokumen Pendukung (Opsional)</label>
+          <input type="file" id="pubLampiran" class="form-input" accept=".pdf,.docx,.jpg,.jpeg,.png">
+          <small style="color: var(--text-muted); font-size: 11px;">Format: PDF, DOCX, JPG, PNG (Maks 5 MB).</small>
+        </div>
+
+        <div style="background: var(--navy-50); border: 1px solid var(--border-light); padding: 12px 16px; border-radius: 6px; margin-bottom: 24px; font-size: 12.5px; color: var(--navy-800); line-height: 1.5;">
+          <strong>Pemberitahuan Privasi:</strong> Laporan Anda akan disimpan secara aman dan diteruskan kepada wakil rakyat terkait. Identitas dan kontak pelapor tidak dipublikasikan ke umum.
+        </div>
+
+        <button type="submit" class="btn btn-gold" id="btnSubmitPublik" style="width: 100%; padding: 14px; font-size: 15px; font-weight: 700;">
+          Kirim Aspirasi ke DPRD Kota Parepare
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- MODAL SUKSES TIKET ASPIRASI -->
+  <div class="modal-backdrop" id="modalSuksesBackdrop" style="display: none;">
+    <div class="modal-content" style="max-width: 520px; text-align: center;">
+      <div style="width: 60px; height: 60px; background: #ecfdf5; color: #059669; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 32px; height: 32px;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h3 style="font-size: 20px; color: var(--navy-900); margin-bottom: 8px;">Aspirasi Berhasil Diterima</h3>
+      <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+        Terima kasih atas partisipasi aktif Anda. Laporan aspirasi Anda telah terdaftar resmi di Sekretariat DPRD Kota Parepare dengan nomor referensi tiket:
+      </p>
+
+      <div style="background: var(--navy-50); border: 1px dashed var(--navy-300); padding: 14px; border-radius: 8px; margin-bottom: 20px;">
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Nomor Tiket Anda</div>
+        <div id="suksesNomorTiket" style="font-family: monospace; font-size: 22px; font-weight: 800; color: var(--navy-900); letter-spacing: 1px;">-</div>
+      </div>
+
+      <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 24px;">
+        Simpan nomor tiket ini sebagai tanda bukti pelaporan. Tim Sekretariat DPRD akan memverifikasi dan menindaklanjuti laporan Anda.
+      </p>
+
+      <button type="button" class="btn btn-gold" id="btnTutupSukses" style="width: 100%; padding: 12px;">
+        Selesai
+      </button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="public-footer">
+    <div class="footer-container">
+      <div class="footer-col">
+        <h4 style="color: var(--gold-light);">DPRD KOTA PAREPARE</h4>
+        <p>Dewan Perwakilan Rakyat Daerah Kota Parepare, Sulawesi Selatan. Mewujudkan representasi rakyat yang berintegritas, aspiratif, dan berkeadilan.</p>
+        <p style="margin-top: 10px; color: #cbd5e1;">Jl. Jenderal Sudirman No. 1, Kota Parepare</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Navigasi Informasi</h4>
+        <ul>
+          <li><a href="#tentang">Tentang DPRD Parepare</a></li>
+          <li><a href="#dewan">Daftar Anggota Dewan (2024–2029)</a></li>
+          <li><a href="#komisi">Komisi 1, 2, dan 3</a></li>
+          <li><a href="#alur">Alur Penyampaian Aspirasi</a></li>
+          <li><a href="#aspirasi">Formulir Pengaduan Publik</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Akses Internal Petugas</h4>
+        <p>Akses pengelolaan arsip berkas dewan, dokumen RDP, dan verifikasi aspirasi khusus petugas sekretariat DPRD.</p>
+        <div style="margin-top: 14px;">
+          <a href="login.html" class="btn btn-gold btn-sm">
+            Portal Login Petugas &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      &copy; 2026 Sekretariat DPRD Kota Parepare &bull; Bagian Fasilitasi Penganggaran dan Pengawasan &bull; Hak Cipta Dilindungi Undang-Undang.
+    </div>
+  </footer>
+
   <script type="module">
-    import { getStoredToken } from './assets/js/auth.js';
-    const token = getStoredToken();
-    if (token) {
-      window.location.replace('dashboard.html');
-    } else {
-      window.location.replace('login.html');
+    import { api } from './assets/js/api.js';
+
+    let publicDewanStore = [];
+
+    initPublicPortal();
+
+    async function initPublicPortal() {
+      await loadPublicDewan();
+      setupKecamatanFilter();
+      setupFormAspirasi();
+    }
+
+    async function loadPublicDewan() {
+      const grid = document.getElementById('publicDewanGrid');
+      try {
+        const res = await api.getPublicDewanList();
+        if (res && res.success && Array.isArray(res.data)) {
+          publicDewanStore = res.data;
+          renderPublicDewan(publicDewanStore);
+        } else {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Data anggota dewan belum tersedia.</div>';
+        }
+      } catch (err) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Tidak dapat memuat daftar anggota dewan saat ini.</div>';
+      }
+    }
+
+    function renderPublicDewan(list) {
+      const grid = document.getElementById('publicDewanGrid');
+      if (!list.length) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">Tidak ada anggota dewan pada wilayah kecamatan ini.</div>';
+        return;
+      }
+
+      grid.innerHTML = list.map(d => `
+        <div class="dewan-card">
+          <div style="display: flex; gap: 14px; align-items: flex-start;">
+            <div style="width: 44px; height: 44px; border-radius: 8px; background: var(--navy-50); color: var(--navy-900); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0;">
+              ${d.nomor_urut || '#'}
+            </div>
+            <div>
+              <h4 style="font-size: 14px; font-weight: 700; color: var(--navy-900); line-height: 1.3; margin-bottom: 4px;">${d.nama}</h4>
+              <div style="font-size: 12px; color: var(--gold-primary); font-weight: 600; margin-bottom: 2px;">${d.jabatan || 'Anggota DPRD'}</div>
+              <div style="font-size: 12px; color: var(--text-muted);">${d.nama_partai || '-'}</div>
+            </div>
+          </div>
+          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11.5px; color: var(--text-muted);">Wilayah:</span>
+            <span class="badge" style="background: var(--navy-50); color: var(--navy-900); font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+              ${d.kecamatan || 'Kota Parepare'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function setupKecamatanFilter() {
+      const buttons = document.querySelectorAll('.filter-kec-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => {
+            b.classList.remove('active', 'btn-gold');
+            b.classList.add('btn-secondary');
+          });
+          btn.classList.add('active', 'btn-gold');
+          btn.classList.remove('btn-secondary');
+
+          const kec = btn.dataset.kec;
+          if (kec === 'all') {
+            renderPublicDewan(publicDewanStore);
+          } else {
+            const filtered = publicDewanStore.filter(d => d.kecamatan && d.kecamatan.toLowerCase().includes(kec.toLowerCase()));
+            renderPublicDewan(filtered);
+          }
+        });
+      });
+    }
+
+    function setupFormAspirasi() {
+      const form = document.getElementById('formAspirasiPublik');
+      const btnSubmit = document.getElementById('btnSubmitPublik');
+      const modalSukses = document.getElementById('modalSuksesBackdrop');
+      const btnTutup = document.getElementById('btnTutupSukses');
+
+      let isSubmitting = false;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        const nama = document.getElementById('pubNama').value.trim();
+        const kontak = document.getElementById('pubKontak').value.trim();
+        const kecamatan = document.getElementById('pubKecamatan').value.trim();
+        const kategori = document.getElementById('pubKategori').value;
+        const tujuan = document.getElementById('pubTujuan').value;
+        const judul = document.getElementById('pubJudul').value.trim();
+        const isi = document.getElementById('pubIsi').value.trim();
+        const fileInput = document.getElementById('pubLampiran');
+
+        if (!nama || !kontak || !kecamatan || !judul || !isi) {
+          alert('Harap lengkapi semua kolom yang wajib diisi (*).');
+          return;
+        }
+
+        let fileName = '';
+        let fileData = '';
+        if (fileInput.files && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          if (file.size > 5 * 1024 * 1024) {
+            alert('Ukuran lampiran maksimal 5 MB.');
+            return;
+          }
+          fileName = file.name;
+        }
+
+        isSubmitting = true;
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Mengirim Aspirasi...';
+
+        try {
+          const payload = {
+            nama_pelapor: nama,
+            kontak_pelapor: kontak,
+            kecamatan: kecamatan,
+            kategori: kategori,
+            tujuan: tujuan,
+            judul: judul,
+            isi: isi,
+            fileName: fileName,
+            fileData: fileData
+          };
+
+          const res = await api.submitLaporanPublik(payload);
+          if (res && res.success && res.data) {
+            document.getElementById('suksesNomorTiket').textContent = res.data.nomor_tiket || 'LAP-BERHASIL';
+            modalSukses.style.display = 'flex';
+            form.reset();
+          } else {
+            alert(res.message || 'Gagal mengirim aspirasi. Silakan periksa kembali formulir Anda.');
+          }
+        } catch (err) {
+          alert('Terjadi kendala jaringan saat mengirim laporan. Silakan coba beberapa saat lagi.');
+        } finally {
+          isSubmitting = false;
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Kirim Aspirasi ke DPRD Kota Parepare';
+        }
+      });
+
+      btnTutup.addEventListener('click', () => {
+        modalSukses.style.display = 'none';
+      });
     }
   </script>
-</head>
-<body style="background:#f4f6f9; display:flex; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; color:#64748b;">
-  <p>Memuat Sistem Pengarsipan Dokumen DPRD...</p>
 </body>
 </html>
