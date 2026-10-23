@@ -160,7 +160,7 @@
 
   <script type="module">
     import { api } from './assets/js/api.js';
-    import { requireAuth } from './assets/js/auth.js';
+    import { requireAuth, showToast } from './assets/js/auth.js';
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const user = requireAuth();
@@ -328,8 +328,10 @@
 
             // Jika staf dan bukan penugasan, blokir akses
             if (user.role === 'staff' && !d.is_assigned) {
-              alert('Akses Ditolak: Anda tidak memiliki wewenang untuk melihat arsip anggota dewan ini.');
-              window.location.replace('arsip_dewan.html');
+              showToast('Akses Ditolak: Anda tidak memiliki wewenang untuk melihat arsip anggota dewan ini.', 'error');
+              setTimeout(() => {
+                window.location.replace('arsip_dewan.html');
+              }, 1200);
               return;
             }
 

@@ -1541,6 +1541,7 @@ body.sidebar-collapsed .main-wrapper {
   justify-content: center;
   padding: 20px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .modal-backdrop.active,
@@ -1555,7 +1556,7 @@ body.sidebar-collapsed .main-wrapper {
   border: 1px solid rgba(212, 175, 55, 0.25);
   width: 100%;
   max-width: 580px;
-  max-height: 90vh;
+  max-height: min(90vh, 760px);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1565,8 +1566,17 @@ body.sidebar-collapsed .main-wrapper {
   margin: auto;
 }
 
+/* Memastikan elemen form di dalam modal menjadi flex container vertikal yang mengisi tinggi yang tersedia */
+.modal-content > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-header {
-  padding: 20px 26px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
@@ -1603,13 +1613,16 @@ body.sidebar-collapsed .main-wrapper {
 }
 
 .modal-body {
-  padding: 24px 26px;
+  padding: 22px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-footer {
-  padding: 18px 26px;
+  padding: 16px 24px;
   border-top: 1px solid var(--border-light);
   display: flex;
   align-items: center;
@@ -1618,6 +1631,61 @@ body.sidebar-collapsed .main-wrapper {
   background-color: #f8fafc;
   flex-shrink: 0;
 }
+
+/* Scrollbar halus untuk modal-body */
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(11, 25, 44, 0.18);
+  border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(11, 25, 44, 0.32);
+}
+
+/* Responsif modal untuk layar dengan tinggi terbatas atau zoom tinggi */
+@media (max-height: 640px) {
+  .modal-backdrop {
+    padding: 10px;
+  }
+  .modal-content {
+    max-height: calc(100vh - 20px);
+  }
+  .modal-header {
+    padding: 12px 18px;
+  }
+  .modal-body {
+    padding: 14px 18px;
+  }
+  .modal-footer {
+    padding: 12px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    max-width: 100%;
+    border-radius: var(--border-radius-lg);
+  }
+  .modal-header {
+    padding: 14px 18px;
+  }
+  .modal-body {
+    padding: 16px 18px;
+  }
+  .modal-footer {
+    padding: 12px 18px;
+    flex-wrap: wrap;
+  }
+  .modal-footer .btn {
+    flex: 1;
+  }
+}
+
 
 
 .confirm-modal-box {

@@ -353,15 +353,50 @@ function isStaffAuthorizedForDewan(ss, session, dewanId) {
   if (!session || !session.role) return false;
   if (session.role === 'superadmin' || session.role === 'admin') return true;
   if (!dewanId) return false;
+
+  const idStr = String(dewanId || '').trim();
+  if (idStr.indexOf('KOM-') === 0) return false; // Arsip Komisi dilarang untuk staf pendamping
+
   const dewanList = getSheetData(ss, 'dewan');
-  const target = dewanList.find(function(d) { return String(d.id || '').trim() === String(dewanId).trim(); });
+  const target = dewanList.find(function(d) {
+    return String(d.id || '').trim() === idStr || String(d.nomor_urut || '').trim() === idStr;
+  });
   if (!target) return false;
+
   const pendamping = String(target.nama_pendamping || '').trim().toLowerCase();
+  if (!pendamping) return false;
+
   const staffUsername = String(session.username || '').trim().toLowerCase();
   const staffNama = String(session.nama || '').trim().toLowerCase();
-  if (pendamping && (pendamping === staffUsername || pendamping.indexOf(staffUsername) !== -1 || (staffNama && pendamping.indexOf(staffNama) !== -1))) {
+  const staffId = String(session.userId || '').trim().toLowerCase();
+
+  function cleanStr(s) {
+    return String(s || '').replace(/[,.]/g, ' ')
+      .replace(/\b(h|hj|ir|drs|dra|dr|prof|m\.si|msi|s\.ip|sip|s\.kom|skom|s\.e|se|s\.h|sh|s\.sos|ssos|m\.m|mm|m\.pd|mpd|s\.pd|spd)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  const pClean = cleanStr(pendamping);
+  const nClean = cleanStr(staffNama);
+
+  if (pendamping === staffUsername || pendamping === staffNama || (staffId && pendamping === staffId)) {
     return true;
   }
+  if (pClean && nClean && pClean === nClean) {
+    return true;
+  }
+  if (staffUsername && (pendamping.indexOf(staffUsername) !== -1 || staffUsername.indexOf(pendamping) !== -1)) {
+    return true;
+  }
+  if (staffNama && (pendamping.indexOf(staffNama) !== -1 || staffNama.indexOf(pendamping) !== -1)) {
+    return true;
+  }
+  if (pClean && nClean && (pClean.indexOf(nClean) !== -1 || nClean.indexOf(pClean) !== -1)) {
+    return true;
+  }
+
   return false;
 }
 
@@ -942,9 +977,15 @@ function doPost(e) {
     if (action === 'getDewanById') {
       const id = String(payload.id || '').trim();
       const list = getSheetData(ss, 'dewan');
-      const item = list.find(function(d) { return String(d.id || '').trim() === id; });
+      const item = list.find(function(d) { return String(d.id || '').trim() === id || String(d.nomor_urut || '').trim() === id; });
       if (!item) return jsonResponse(false, null, 'Data dewan tidak ditemukan.', 'NOT_FOUND');
-      return jsonResponse(true, item, 'Data dewan berhasil dimuat.');
+      const copy = Object.assign({}, item);
+      if (session.role === 'staff') {
+        copy.is_assigned = isStaffAuthorizedForDewan(ss, session, item.id);
+      } else {
+        copy.is_assigned = true;
+      }
+      return jsonResponse(true, copy, 'Data dewan berhasil dimuat.');
     }
 
     if (action === 'createDewan') {
@@ -1694,6 +1735,9 @@ function doPost(e) {
     }
 
     if (action === 'getKomisiList') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang berhak mengakses data komisi.', 'FORBIDDEN');
+      }
       const komisiData = getKomisiDataList(ss);
       return jsonResponse(true, komisiData, 'Daftar komisi berhasil dimuat.');
     }
@@ -1817,6 +1861,9 @@ function doPost(e) {
     }
 
     if (action === 'getRdpDokumenList') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang berhak mengakses arsip RDP.', 'FORBIDDEN');
+      }
       const komisiId = String(payload.komisi_id || '').trim();
       const allActiveKomisi = getKomisiDataList(ss);
       const validKomisiIds = allActiveKomisi.map(function(k) { return String(k.id || '').trim(); });
@@ -1874,6 +1921,9 @@ function doPost(e) {
     }
 
     if (action === 'uploadRdpDokumen') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengunggah arsip RDP.', 'FORBIDDEN');
+      }
       const data = payload.data || payload;
       const komisiId = String(data.komisi_id || '').trim();
       const allActiveKomisi = getKomisiDataList(ss);
@@ -1963,6 +2013,9 @@ function doPost(e) {
     }
 
     if (action === 'updateRdpDokumen') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang berhak mengubah dokumen RDP.', 'FORBIDDEN');
+      }
       const data = payload.data || payload;
       const id = String(data.id || '').trim();
       const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
@@ -1979,10 +2032,6 @@ function doPost(e) {
 
       if (!target) return jsonResponse(false, null, 'Dokumen RDP tidak ditemukan.', 'NOT_FOUND');
 
-      if (session.role === 'staff' && String(target.uploaded_by || '').toLowerCase() !== session.username.toLowerCase()) {
-        return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang mengubah metadata dokumen RDP ini.', 'FORBIDDEN');
-      }
-
       // Update kolom tahun (kolom 4), nama_dokumen (kolom 6), keterangan (kolom 7)
       docSheet.getRange(target._rowIndex, 4).setValue(tahun);
       docSheet.getRange(target._rowIndex, 6).setValue(sanitizeSheetValue(namaDokumen));
@@ -1998,16 +2047,15 @@ function doPost(e) {
     }
 
     if (action === 'deleteRdpDokumen') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang berhak menghapus dokumen RDP.', 'FORBIDDEN');
+      }
       const id = String(payload.id || '').trim();
       const docSheet = ss.getSheetByName('dokumen');
       const allDocs = getSheetData(ss, 'dokumen');
       const target = allDocs.find(function(d) { return String(d.id || '').trim() === id; });
 
       if (!target) return jsonResponse(false, null, 'Dokumen RDP tidak ditemukan.', 'NOT_FOUND');
-
-      if (session.role === 'staff' && String(target.uploaded_by || '').toLowerCase() !== session.username.toLowerCase()) {
-        return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang menghapus dokumen RDP ini.', 'FORBIDDEN');
-      }
 
       if (target.file_id) {
         try {

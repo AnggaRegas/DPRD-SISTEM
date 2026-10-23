@@ -271,7 +271,13 @@
 
     const currentUser = requireAuth();
     if (currentUser) {
-      renderSidebar('komisi');
+      if (currentUser.role !== 'superadmin') {
+        showToast('Akses ditolak: Hanya Superadmin yang berhak mengakses arsip Komisi & RDP.', 'error');
+        setTimeout(() => {
+          window.location.replace('dashboard.html');
+        }, 1200);
+      } else {
+        renderSidebar('komisi');
 
       const mobileBtn = document.getElementById('mobileMenuBtn');
       if (mobileBtn) {
@@ -869,6 +875,7 @@
             btnSubmit.textContent = 'Mulai Unggah';
           }
         });
+      }
       }
     }
   </script>

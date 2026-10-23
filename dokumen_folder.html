@@ -309,6 +309,11 @@
       // Metadata Info Header
       api.getDewanById(dewanId).then(res => {
         if (res && res.success && res.data) {
+          if (user.role === 'staff' && !res.data.is_assigned) {
+            showToast('Akses Ditolak: Anda tidak memiliki wewenang untuk arsip anggota dewan ini.', 'error');
+            setTimeout(() => window.location.replace('arsip_dewan.html'), 1200);
+            return;
+          }
           document.getElementById('breadcrumbDewanLink').textContent = res.data.nama;
           document.getElementById('stepDewan').textContent = res.data.nama;
         }

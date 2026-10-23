@@ -163,11 +163,11 @@
   </div>
 
   <!-- MODAL TAMBAH AKUN STAF -->
-  <div class="modal-backdrop" id="modalTambahStafBackdrop">
+  <div class="modal-backdrop" id="modalTambahStafBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTambahTitle">
     <div class="modal-content" style="max-width: 600px;">
       <div class="modal-header">
-        <h3 class="modal-title">Tambah Akun Staf Pendamping</h3>
-        <button type="button" class="modal-close" id="btnCloseTambahStaf">&times;</button>
+        <h3 class="modal-title" id="modalTambahTitle">Tambah Akun Staf Pendamping</h3>
+        <button type="button" class="modal-close" id="btnCloseTambahStaf" aria-label="Tutup modal">&times;</button>
       </div>
       <form id="formTambahStaf">
         <div class="modal-body">
@@ -211,11 +211,11 @@
   </div>
 
   <!-- MODAL EDIT AKUN STAF -->
-  <div class="modal-backdrop" id="modalEditStafBackdrop">
+  <div class="modal-backdrop" id="modalEditStafBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalEditTitle">
     <div class="modal-content" style="max-width: 600px;">
       <div class="modal-header">
-        <h3 class="modal-title">Edit Profil & Penugasan Staf</h3>
-        <button type="button" class="modal-close" id="btnCloseEditStaf">&times;</button>
+        <h3 class="modal-title" id="modalEditTitle">Edit Profil & Penugasan Staf</h3>
+        <button type="button" class="modal-close" id="btnCloseEditStaf" aria-label="Tutup modal">&times;</button>
       </div>
       <form id="formEditStaf">
         <input type="hidden" id="editUserId">
@@ -257,11 +257,11 @@
   </div>
 
   <!-- MODAL RESET SANDI -->
-  <div class="modal-backdrop" id="modalResetSandiBackdrop">
+  <div class="modal-backdrop" id="modalResetSandiBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalResetTitle">
     <div class="modal-content" style="max-width: 480px;">
       <div class="modal-header">
-        <h3 class="modal-title">Reset Kata Sandi Staf</h3>
-        <button type="button" class="modal-close" id="btnCloseResetSandi">&times;</button>
+        <h3 class="modal-title" id="modalResetTitle">Reset Kata Sandi Staf</h3>
+        <button type="button" class="modal-close" id="btnCloseResetSandi" aria-label="Tutup modal">&times;</button>
       </div>
       <form id="formResetSandi">
         <input type="hidden" id="resetUserId">
@@ -538,6 +538,52 @@
       bindActionButtons(tbody);
     }
 
+    function openModal(modalId, focusElId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (focusElId) {
+        setTimeout(() => {
+          const el = document.getElementById(focusElId);
+          if (el) el.focus();
+        }, 60);
+      }
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.style.display = 'none';
+      const anyOpen = document.querySelectorAll('.modal-backdrop[style*="display: flex"]');
+      if (anyOpen.length === 0) {
+        document.body.style.overflow = '';
+      }
+    }
+
+    // Dukungan tombol keyboard Escape untuk menutup modal yang aktif
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const openModals = document.querySelectorAll('.modal-backdrop[style*="display: flex"]');
+        openModals.forEach(m => {
+          m.style.display = 'none';
+        });
+        document.body.style.overflow = '';
+      }
+    });
+
+    // Dukungan klik pada backdrop untuk menutup modal
+    ['modalTambahStafBackdrop', 'modalEditStafBackdrop', 'modalResetSandiBackdrop'].forEach(id => {
+      const backdrop = document.getElementById(id);
+      if (backdrop) {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) {
+            closeModal(id);
+          }
+        });
+      }
+    });
+
     function bindActionButtons(tbody) {
       // 1. Edit User
       tbody.querySelectorAll('button[data-action="edit"]').forEach(btn => {
@@ -553,7 +599,7 @@
           const selectedIds = Array.isArray(u.assigned_dewan) ? u.assigned_dewan.map(d => d.id) : [];
           renderDewanCheckboxes('editDewanCheckboxContainer', selectedIds);
 
-          document.getElementById('modalEditStafBackdrop').style.display = 'flex';
+          openModal('modalEditStafBackdrop', 'editNama');
         });
       });
 
@@ -563,7 +609,7 @@
           document.getElementById('resetUserId').value = btn.dataset.id;
           document.getElementById('resetUserInfoText').innerHTML = `Reset kata sandi untuk akun <strong>${btn.dataset.nama}</strong> (@${btn.dataset.username}).`;
           document.getElementById('inputNewPassword').value = '';
-          document.getElementById('modalResetSandiBackdrop').style.display = 'flex';
+          openModal('modalResetSandiBackdrop', 'inputNewPassword');
         });
       });
 
@@ -630,7 +676,6 @@
     }
 
     function setupTambahStafModal() {
-      const modal = document.getElementById('modalTambahStafBackdrop');
       const btnOpen = document.getElementById('btnBukaModalTambah');
       const btnClose = document.getElementById('btnCloseTambahStaf');
       const btnBatal = document.getElementById('btnBatalTambah');
@@ -640,12 +685,12 @@
       btnOpen.addEventListener('click', () => {
         form.reset();
         renderDewanCheckboxes('dewanCheckboxContainer', []);
-        modal.style.display = 'flex';
+        openModal('modalTambahStafBackdrop', 'inputUsername');
       });
 
-      const closeModal = () => { modal.style.display = 'none'; };
-      btnClose.addEventListener('click', closeModal);
-      btnBatal.addEventListener('click', closeModal);
+      const handleClose = () => { closeModal('modalTambahStafBackdrop'); };
+      btnClose.addEventListener('click', handleClose);
+      btnBatal.addEventListener('click', handleClose);
 
       let isSubmitting = false;
       form.addEventListener('submit', async (e) => {
@@ -678,7 +723,7 @@
 
           if (res && res.success) {
             showToast('Akun staf pendamping berhasil didaftarkan!', 'success');
-            closeModal();
+            handleClose();
             await loadUsersData();
             await loadMasterDewan();
           } else {
@@ -695,15 +740,14 @@
     }
 
     function setupEditStafModal() {
-      const modal = document.getElementById('modalEditStafBackdrop');
       const btnClose = document.getElementById('btnCloseEditStaf');
       const btnBatal = document.getElementById('btnBatalEdit');
       const form = document.getElementById('formEditStaf');
       const btnSubmit = document.getElementById('btnSubmitEditStaf');
 
-      const closeModal = () => { modal.style.display = 'none'; };
-      btnClose.addEventListener('click', closeModal);
-      btnBatal.addEventListener('click', closeModal);
+      const handleClose = () => { closeModal('modalEditStafBackdrop'); };
+      btnClose.addEventListener('click', handleClose);
+      btnBatal.addEventListener('click', handleClose);
 
       let isSubmitting = false;
       form.addEventListener('submit', async (e) => {
@@ -733,7 +777,7 @@
 
           if (res && res.success) {
             showToast('Profil dan penugasan staf berhasil diperbarui!', 'success');
-            closeModal();
+            handleClose();
             await loadUsersData();
             await loadMasterDewan();
           } else {
@@ -750,15 +794,14 @@
     }
 
     function setupResetSandiModal() {
-      const modal = document.getElementById('modalResetSandiBackdrop');
       const btnClose = document.getElementById('btnCloseResetSandi');
       const btnBatal = document.getElementById('btnBatalReset');
       const form = document.getElementById('formResetSandi');
       const btnSubmit = document.getElementById('btnSubmitResetSandi');
 
-      const closeModal = () => { modal.style.display = 'none'; };
-      btnClose.addEventListener('click', closeModal);
-      btnBatal.addEventListener('click', closeModal);
+      const handleClose = () => { closeModal('modalResetSandiBackdrop'); };
+      btnClose.addEventListener('click', handleClose);
+      btnBatal.addEventListener('click', handleClose);
 
       let isSubmitting = false;
       form.addEventListener('submit', async (e) => {
@@ -781,7 +824,7 @@
           const res = await api.resetUserPassword(id, newPass);
           if (res && res.success) {
             showToast('Kata sandi berhasil direset!', 'success');
-            closeModal();
+            handleClose();
           } else {
             showToast(res.message || 'Gagal mereset kata sandi.', 'error');
           }

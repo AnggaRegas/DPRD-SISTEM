@@ -242,12 +242,21 @@
           ]);
 
           if (resDewan && resDewan.success && Array.isArray(resDewan.data)) {
-            selectDewan.innerHTML = '<option value="">-- Pilih Anggota DPRD --</option>' +
-              resDewan.data.map(d => `
-                <option value="${d.id}" ${String(d.id) === String(initialDewanId) ? 'selected' : ''}>
-                  ${d.nama} (${d.jabatan || 'Anggota'})
-                </option>
-              `).join('');
+            let dewanList = resDewan.data;
+            if (user.role === 'staff') {
+              dewanList = dewanList.filter(d => Boolean(d.is_assigned));
+            }
+            if (!dewanList.length && user.role === 'staff') {
+              selectDewan.innerHTML = '<option value="">-- Anda belum ditugaskan pada anggota dewan --</option>';
+              showToast('Perhatian: Akun Anda belum memiliki penugasan anggota dewan aktif.', 'warning');
+            } else {
+              selectDewan.innerHTML = '<option value="">-- Pilih Anggota DPRD --</option>' +
+                dewanList.map(d => `
+                  <option value="${d.id}" ${String(d.id) === String(initialDewanId) ? 'selected' : ''}>
+                    ${d.nama} (${d.jabatan || 'Anggota'})
+                  </option>
+                `).join('');
+            }
           }
 
           if (resKat && resKat.success && Array.isArray(resKat.data)) {

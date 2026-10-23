@@ -379,13 +379,13 @@ const MOCK_ACTION_PERMISSIONS = {
   'deleteTahun': ['superadmin'],
   'deleteFolder': ['superadmin'],
   'deleteDokumen': ['staff', 'admin', 'superadmin'],
-  'getKomisiList': ['staff', 'admin', 'superadmin'],
+  'getKomisiList': ['superadmin'],
   'createKomisi': ['superadmin'],
   'deleteKomisi': ['superadmin'],
-  'getRdpDokumenList': ['staff', 'admin', 'superadmin'],
-  'uploadRdpDokumen': ['staff', 'admin', 'superadmin'],
-  'updateRdpDokumen': ['staff', 'admin', 'superadmin'],
-  'deleteRdpDokumen': ['staff', 'admin', 'superadmin'],
+  'getRdpDokumenList': ['superadmin'],
+  'uploadRdpDokumen': ['superadmin'],
+  'updateRdpDokumen': ['superadmin'],
+  'deleteRdpDokumen': ['superadmin'],
   'getLaporanList': ['staff', 'admin', 'superadmin'],
   'assignLaporan': ['superadmin'],
   'updateLaporanStatus': ['staff', 'admin', 'superadmin'],
@@ -538,9 +538,15 @@ async function handleMockRequest(action, payload) {
     return { success: false, data: null, message: 'Akses ditolak: Akun telah dinonaktifkan.', error: { code: 'UNAUTHORIZED' } };
   }
 
-  // Sinkronisasi status peran dan kewajiban ganti password terbaru
+  // Sinkronisasi status peran, nama, username, dan kewajiban ganti password terbaru
   currentUser.role = liveUser.role;
   currentUser.mustChangePassword = Boolean(liveUser.must_change_password);
+  currentUser.nama = liveUser.nama;
+  currentUser.username = liveUser.username;
+  try {
+    safeSessionStorage.setItem('dprd_user', JSON.stringify(currentUser));
+    safeLocalStorage.setItem('dprd_user', JSON.stringify(currentUser));
+  } catch (e) {}
 
   // 4. Proteksi Wajib Ganti Password
   const ALLOWED_MUST_CHANGE = ['changePassword', 'logout', 'adminLogout', 'checkSession', 'getCurrentUser', 'getProfile'];
@@ -554,22 +560,58 @@ async function handleMockRequest(action, payload) {
   }
 
   // Helper Otorisasi Staf untuk Mock Database
+  function cleanStaffTitle(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/[,.]/g, ' ')
+      .replace(/\b(h|hj|ir|drs|dra|dr|prof|m\.si|msi|s\.ip|sip|s\.kom|skom|s\.e|se|s\.h|sh|s\.sos|ssos|m\.m|mm|m\.pd|mpd|s\.pd|spd)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
   function isMockStaffAuthorizedForDewan(targetDewanId) {
     if (!targetDewanId) return false;
-    if (currentUser.role === 'superadmin') return true;
+    if (currentUser.role === 'superadmin' || currentUser.role === 'admin') return true;
     if (currentUser.role !== 'staff') return false;
 
     const idStr = String(targetDewanId).trim();
-    if (idStr.startsWith('KOM-')) return true; // Komisi terbuka untuk staf pendamping
+    if (idStr.startsWith('KOM-')) return false; // Arsip Komisi dilarang untuk staf pendamping
 
     const dwn = (db.dewan || []).find((d) => String(d.id) === idStr || String(d.nomor_urut) === idStr);
     if (!dwn) return false;
 
-    const pendamping = String(dwn.nama_pendamping || '').trim().toLowerCase();
-    const userNama = String(currentUser.nama || '').trim().toLowerCase();
-    const userName = String(currentUser.username || '').trim().toLowerCase();
+    const pendampingRaw = String(dwn.nama_pendamping || '').trim().toLowerCase();
+    if (!pendampingRaw) return false;
 
-    return pendamping === userNama || pendamping === userName;
+    const pendampingClean = cleanStaffTitle(pendampingRaw);
+    const userNamaRaw = String(currentUser.nama || '').trim().toLowerCase();
+    const userNamaClean = cleanStaffTitle(userNamaRaw);
+    const userNameRaw = String(currentUser.username || '').trim().toLowerCase();
+    const userIdRaw = String(currentUser.id || '').trim().toLowerCase();
+
+    // 1. Direct equality / ID / Username
+    if (pendampingRaw === userNamaRaw || pendampingRaw === userNameRaw || pendampingRaw === userIdRaw) {
+      return true;
+    }
+
+    // 2. Normalized clean name equality
+    if (userNamaClean && pendampingClean && (pendampingClean === userNamaClean)) {
+      return true;
+    }
+
+    // 3. Substring / inclusion matching
+    if (userNameRaw && (pendampingRaw.includes(userNameRaw) || userNameRaw.includes(pendampingRaw))) {
+      return true;
+    }
+    if (userNamaRaw && (pendampingRaw.includes(userNamaRaw) || userNamaRaw.includes(pendampingRaw))) {
+      return true;
+    }
+    if (userNamaClean && pendampingClean && (pendampingClean.includes(userNamaClean) || userNamaClean.includes(pendampingClean))) {
+      return true;
+    }
+
+    return false;
   }
 
   function isMockStaffAuthorizedForDokumen(doc) {
@@ -642,9 +684,11 @@ async function handleMockRequest(action, payload) {
       if (!item) return { success: false, message: 'Data dewan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
       const res = { ...item };
       if (currentUser.role === 'staff') {
-        res.is_assigned = isMockStaffAuthorizedForDewan(item.id);
+        res.is_assigned = Boolean(isMockStaffAuthorizedForDewan(item.id));
+      } else {
+        res.is_assigned = true;
       }
-      return { success: true, data: res };
+      return { success: true, data: res, is_assigned: res.is_assigned };
     }
 
     case 'createDewan': {
@@ -1001,6 +1045,9 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'getKomisiList': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang berhak mengakses daftar komisi.', error: { code: 'FORBIDDEN' } };
+      }
       if (!Array.isArray(db.komisi) || db.komisi.length === 0) {
         db.komisi = [
           { id: 'KOM-1', kode: 'komisi_1', nama: 'Komisi 1', bidang: 'Bidang Pemerintahan, Hukum, dan Ketertiban', deskripsi: 'Membidangi urusan pemerintahan umum, hukum, perizinan, aparatur, dan ketertiban masyarakat.', kategori_folder: 'RDP', status: 'aktif' },
@@ -1104,6 +1151,9 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'getRdpDokumenList': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang berhak mengakses arsip RDP.', error: { code: 'FORBIDDEN' } };
+      }
       const komisiId = String(payload.komisi_id || payload.komisiId || '').trim();
       const tahunFilter = payload.tahun ? String(payload.tahun).trim() : '';
 
@@ -1144,6 +1194,9 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'uploadRdpDokumen': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang dapat mengunggah arsip RDP.', error: { code: 'FORBIDDEN' } };
+      }
       const data = payload.data || payload;
       const komisiId = String(data.komisi_id || '').trim();
       const validKomisi = (db.komisi || []).filter(k => (k.status || 'aktif') === 'aktif').map(k => String(k.id));
@@ -1192,6 +1245,9 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'updateRdpDokumen': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang berhak mengubah dokumen RDP.', error: { code: 'FORBIDDEN' } };
+      }
       const data = payload.data || payload;
       const id = String(data.id || '').trim();
       const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
@@ -1207,10 +1263,6 @@ async function handleMockRequest(action, payload) {
         return { success: false, message: 'Dokumen RDP tidak ditemukan.', error: { code: 'NOT_FOUND' } };
       }
 
-      if (currentUser.role === 'staff' && String(doc.uploaded_by || '').toLowerCase() !== currentUser.username.toLowerCase()) {
-        return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang mengubah metadata dokumen RDP ini.', error: { code: 'FORBIDDEN' } };
-      }
-
       doc.nama_dokumen = namaDokumen;
       doc.tahun = yr;
       doc.keterangan = keterangan;
@@ -1220,13 +1272,13 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'deleteRdpDokumen': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang berhak menghapus dokumen RDP.', error: { code: 'FORBIDDEN' } };
+      }
       const id = String(payload.id);
       const doc = (db.dokumen || []).find((d) => String(d.id) === id && String(d.dewan_id).startsWith('KOM-'));
       if (!doc) {
         return { success: false, message: 'Dokumen RDP tidak ditemukan.', error: { code: 'NOT_FOUND' } };
-      }
-      if (currentUser.role === 'staff' && String(doc.uploaded_by || '').toLowerCase() !== currentUser.username.toLowerCase()) {
-        return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang menghapus dokumen RDP ini.', error: { code: 'FORBIDDEN' } };
       }
       db.dokumen = db.dokumen.filter((d) => String(d.id) !== id);
       saveMockDb(db);

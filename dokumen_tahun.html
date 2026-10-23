@@ -323,6 +323,11 @@
             ]);
 
             if (resDewan?.success && resDewan.data) {
+              if (user.role === 'staff' && !resDewan.data.is_assigned) {
+                showToast('Akses Ditolak: Anda tidak memiliki wewenang untuk arsip anggota dewan ini.', 'error');
+                setTimeout(() => window.location.replace('arsip_dewan.html'), 1200);
+                return;
+              }
               document.getElementById('breadcrumbDewanLink').textContent =
                 resDewan.data.nama;
 

@@ -661,16 +661,40 @@ async function runAllTests() {
   const staffTryResetPass = await api.resetUserPassword('USR-1', 'NewPass123!');
   assert(!staffTryResetPass.success && staffTryResetPass.error?.code === 'FORBIDDEN', 'Staf dilarang mereset kata sandi user (RBAC: FORBIDDEN)');
 
-  // Test 60: Isolasi Dokumen Antar Staf (Staf A vs Staf B)
-  // Staf A ('staff') mengunggah dokumen RDP ke Komisi 1
-  const docStafA = await api.uploadRdpDokumen({
+  // Test 60: Penegasan Hak Akses Staf — Ditolak dari Seluruh Endpoint Komisi & RDP
+  const staffTryKomisiList = await api.getKomisiList();
+  assert(!staffTryKomisiList.success && staffTryKomisiList.error?.code === 'FORBIDDEN', 'Staf dilarang mengakses daftar komisi (RBAC: FORBIDDEN)');
+
+  const staffTryRdpList = await api.getRdpDokumenList('KOM-1');
+  assert(!staffTryRdpList.success && staffTryRdpList.error?.code === 'FORBIDDEN', 'Staf dilarang membaca dokumen RDP Komisi (RBAC: FORBIDDEN)');
+
+  const staffTryUploadRdp = await api.uploadRdpDokumen({
     komisi_id: 'KOM-1',
     tahun: 2026,
-    nama_dokumen: 'RDP Tata Ruang Wilayah - Staf A',
-    keterangan: 'Agenda tata ruang dari staf A',
-    fileName: 'rdp_tataruang_staf_a.pdf'
+    nama_dokumen: 'RDP Ilegal oleh Staf',
+    keterangan: 'Upaya unggah oleh staf',
+    fileName: 'rdp_ilegal.pdf'
   });
-  assert(docStafA.success && docStafA.data?.id, 'Staf A berhasil mengunggah dokumen RDP miliknya');
+  assert(!staffTryUploadRdp.success && staffTryUploadRdp.error?.code === 'FORBIDDEN', 'Staf dilarang mengunggah dokumen RDP ke Komisi (RBAC: FORBIDDEN)');
+
+  // Test 60B: Verifikasi Hak Akses Staf Dewan & Pembuktian Solusi Bug "Akun akses ditolak"
+  // Staf A ('staff') ditugaskan ke DWN-02
+  const dwn2StafA = await api.getDewanById('DWN-02');
+  assert(dwn2StafA.success && dwn2StafA.is_assigned === true, 'Staf A sah teridentifikasi memiliki hak akses (is_assigned: true) pada dewan penugasannya DWN-02');
+
+  const dwn1StafA = await api.getDewanById('DWN-01');
+  assert(dwn1StafA.success && dwn1StafA.is_assigned === false, 'Staf A tidak memiliki hak akses (is_assigned: false) pada dewan staf lain DWN-01');
+
+  // Staf A mengunggah dokumen arsip untuk dewan penugasannya DWN-02
+  const docStafA = await api.uploadDokumen({
+    dewan_id: 'DWN-02',
+    kategori_id: 'KAT-01',
+    tahun: 2026,
+    nama_folder: 'Reses',
+    nama_dokumen: 'Laporan Reses Dapil II - Staf A',
+    fileName: 'reses_dapil_2_staf_a.pdf'
+  });
+  assert(docStafA.success && docStafA.data?.id, 'Staf A berhasil mengunggah arsip dewan yang ditugaskan kepadanya');
 
   // Login sebagai Staf B ('staf_keuangan' dengan password baru)
   await api.logout();
@@ -681,33 +705,27 @@ async function runAllTests() {
   const changePassRes = await api.changePassword('PasswordBaruStaf2026!', 'PasswordStafBValid123!');
   assert(changePassRes.success, 'Staf B berhasil menyelesaikan kewajiban ganti sandi');
 
-  // Staf B mencoba mengubah metadata dokumen milik Staf A (harus DITOLAK FORBIDDEN)
-  const stafBTryUpdate = await api.updateRdpDokumen({
-    id: docStafA.data.id,
-    nama_dokumen: 'RDP Telah Diretas Staf B',
-    tahun: 2026,
-    keterangan: 'Perubahan tanpa wewenang'
-  });
-  assert(!stafBTryUpdate.success && stafBTryUpdate.error?.code === 'FORBIDDEN', 'Staf B dilarang mengubah metadata dokumen RDP milik Staf A (RBAC: FORBIDDEN)');
+  // Staf B ditugaskan ke DWN-04 (bukan DWN-02)
+  const dwn4StafB = await api.getDewanById('DWN-04');
+  assert(dwn4StafB.success && dwn4StafB.is_assigned === true, 'Staf B sah teridentifikasi memiliki hak akses (is_assigned: true) pada DWN-04');
+
+  const dwn2StafB = await api.getDewanById('DWN-02');
+  assert(dwn2StafB.success && dwn2StafB.is_assigned === false, 'Staf B ditolak hak aksesnya (is_assigned: false) pada dewan DWN-02 milik Staf A');
+
+  // Staf B mencoba membaca daftar arsip dokumen milik Staf A di DWN-02 (harus DITOLAK FORBIDDEN)
+  const stafBTryReadDoc = await api.getDokumenList({ dewan_id: 'DWN-02' });
+  assert(!stafBTryReadDoc.success && stafBTryReadDoc.error?.code === 'FORBIDDEN', 'Staf B dilarang membaca arsip dewan milik Staf A (RBAC: FORBIDDEN)');
 
   // Staf B mencoba menghapus dokumen milik Staf A (harus DITOLAK FORBIDDEN)
-  const stafBTryDelete = await api.deleteRdpDokumen(docStafA.data.id);
-  assert(!stafBTryDelete.success && stafBTryDelete.error?.code === 'FORBIDDEN', 'Staf B dilarang menghapus dokumen RDP milik Staf A (RBAC: FORBIDDEN)');
+  const stafBTryDelete = await api.deleteDokumen(docStafA.data.id);
+  assert(!stafBTryDelete.success && stafBTryDelete.error?.code === 'FORBIDDEN', 'Staf B dilarang menghapus dokumen arsip milik Staf A (RBAC: FORBIDDEN)');
 
   // Login kembali sebagai Staf A untuk memodifikasi dan menghapus dokumennya sendiri
   await api.logout();
   await api.login('staff', 'PasswordStaff2026!');
 
-  const stafAUpdateOwn = await api.updateRdpDokumen({
-    id: docStafA.data.id,
-    nama_dokumen: 'RDP Tata Ruang Wilayah - Revisi Final Staf A',
-    tahun: 2026,
-    keterangan: 'Revisi agenda tata ruang'
-  });
-  assert(stafAUpdateOwn.success && stafAUpdateOwn.data?.nama_dokumen.includes('Revisi Final'), 'Staf A berhasil memperbarui metadata dokumen RDP miliknya sendiri');
-
-  const stafADeleteOwn = await api.deleteRdpDokumen(docStafA.data.id);
-  assert(stafADeleteOwn.success, 'Staf A berhasil menghapus dokumen RDP miliknya sendiri');
+  const stafADeleteOwn = await api.deleteDokumen(docStafA.data.id);
+  assert(stafADeleteOwn.success, 'Staf A berhasil menghapus arsip dokumen miliknya sendiri');
 
   // Test 61: Tamu / Masyarakat Tanpa Login (Ditolak dari seluruh akses internal)
   await api.logout();
@@ -823,6 +841,68 @@ async function runAllTests() {
   const listAfterCleanDel = await api.getKomisiList();
   assert(listAfterCleanDel.success && listAfterCleanDel.data?.length === 3, 'CRUD Delete: Daftar komisi kembali menjadi 3 komisi');
   assert(!listAfterCleanDel.data?.some(k => k.id === kom4Id), 'Komisi 4 terhapus tidak muncul lagi di daftar');
+
+  // ================= 18. PENGUJIAN NORMALISASI GELAR STAF & SINKRONISASI PENUGASAN REAL-TIME =================
+  console.log('\n--- 18. Pengujian Normalisasi Gelar Staf & Sinkronisasi Penugasan Real-Time ---');
+
+  // Superadmin mendaftarkan staf dengan gelar akademik lengkap
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const stafGelarRes = await api.createUser({
+    username: 'staf_gelar',
+    nama: 'Drs. H. Ahmad Pratama, M.Si',
+    password: 'PasswordGelar2026!',
+    role: 'staff',
+    assigned_dewan: ['DWN-05']
+  });
+  assert(stafGelarRes.success, 'Superadmin berhasil mendaftarkan staf dengan gelar akademik lengkap');
+
+  // Login sebagai staf bergelar
+  await api.logout();
+  const loginGelar = await api.login('staf_gelar', 'PasswordGelar2026!');
+  assert(loginGelar.success, 'Login sebagai staf bergelar berhasil');
+
+  await api.changePassword('PasswordGelar2026!', 'PasswordGelarValid2026!');
+
+  // Test 80: Normalisasi gelar berhasil mencocokkan izin staf tanpa false positive "Akun akses ditolak"
+  const dwn5Gelar = await api.getDewanById('DWN-05');
+  assert(dwn5Gelar.success && dwn5Gelar.data?.is_assigned === true, 'Staf bergelar sah teridentifikasi memiliki hak akses (is_assigned: true) pada DWN-05');
+
+  // Test 81: Staf bergelar dapat mengunggah berkas ke dewan penugasannya
+  const uploadDocGelar = await api.uploadDokumen({
+    dewan_id: 'DWN-05',
+    kategori_id: 'KAT-01',
+    tahun: 2026,
+    nama_folder: 'Reses',
+    nama_dokumen: 'Dokumen Verifikasi Gelar',
+    fileName: 'gelar_verif.pdf'
+  });
+  assert(uploadDocGelar.success && uploadDocGelar.data?.id, 'Staf bergelar berhasil mengunggah berkas ke dewan yang ditugaskan');
+
+  // Test 82: Superadmin memperbarui penugasan dewan secara real-time
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const updatePenugasanRes = await api.updateUser(stafGelarRes.data.id, {
+    nama: 'Drs. H. Ahmad Pratama, M.Si',
+    status: 'aktif',
+    assigned_dewan: ['DWN-03'] // Mengalihkan penugasan dari DWN-05 ke DWN-03 yang valid
+  });
+  assert(updatePenugasanRes.success, 'Superadmin berhasil memperbarui penugasan staf ke DWN-03 secara real-time');
+
+  // Login kembali sebagai staf bergelar untuk menguji pembaruan izin instan
+  await api.logout();
+  await api.login('staf_gelar', 'PasswordGelarValid2026!');
+
+  // Penugasan baru DWN-03 langsung aktif (is_assigned: true)
+  const dwn3AfterUpdate = await api.getDewanById('DWN-03');
+  assert(dwn3AfterUpdate.success && dwn3AfterUpdate.data?.is_assigned === true, 'Pembaruan izin langsung aktif: Staf memperoleh hak akses pada DWN-03');
+
+  // Penugasan lama DWN-05 langsung dicabut (is_assigned: false)
+  const dwn5AfterUpdate = await api.getDewanById('DWN-05');
+  assert(dwn5AfterUpdate.success && dwn5AfterUpdate.data?.is_assigned === false, 'Pembaruan izin langsung aktif: Hak akses staf pada DWN-05 telah dicabut');
+
+  // Bersihkan data uji
+  await api.deleteDokumen(uploadDocGelar.data.id);
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  await api.deleteUser(stafGelarRes.data.id);
 
   // Cleanup logout
   await api.logout();

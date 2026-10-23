@@ -80,7 +80,8 @@ export function renderSidebar(activeMenu = '') {
           <span class="nav-text">Arsip Dokumen</span>
         </a>
 
-        <!-- 3. ARSIP KOMISI & RDP -->
+        ${isSuperadmin ? `
+        <!-- 3. ARSIP KOMISI & RDP (SUPERADMIN ONLY) -->
         <a href="komisi.html" class="nav-item ${isKomisiActive ? 'active' : ''}" title="Arsip Komisi & Dokumen RDP">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -92,6 +93,7 @@ export function renderSidebar(activeMenu = '') {
           </span>
           <span class="nav-text">Arsip Komisi & RDP</span>
         </a>
+        ` : ''}
 
         <!-- 4. ANGGOTA DPRD -->
         <a href="dewan.html" class="nav-item ${isDewanActive ? 'active' : ''}" title="Daftar Anggota DPRD Kota Parepare">
