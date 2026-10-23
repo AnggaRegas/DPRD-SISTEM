@@ -281,14 +281,29 @@
 
     /* Hero Right Visual: Bespoke Institutional Preview Card */
     .hero-visual-card {
-      background: linear-gradient(160deg, rgba(15, 30, 52, 0.85) 0%, rgba(6, 14, 24, 0.95) 100%);
-      border: 1px solid rgba(212, 175, 55, 0.35);
+      background: linear-gradient(160deg, rgba(15, 30, 52, 0.88) 0%, rgba(6, 14, 24, 0.96) 100%);
+      border: 1px solid rgba(212, 175, 55, 0.4);
       border-radius: 24px;
       padding: 28px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 30px rgba(212, 175, 55, 0.12);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 35px rgba(212, 175, 55, 0.15);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       position: relative;
+      animation: heroCardFloat 7s ease-in-out infinite alternate;
+      will-change: transform;
+      transform-style: preserve-3d;
+    }
+
+    .hero-visual-card::before {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border-radius: 34px;
+      background: radial-gradient(circle at 60% 40%, rgba(212, 175, 55, 0.22) 0%, rgba(14, 165, 233, 0.12) 45%, transparent 70%);
+      filter: blur(22px);
+      z-index: -1;
+      pointer-events: none;
+      animation: heroAuraBreath 8s ease-in-out infinite alternate;
     }
 
     .hero-card-header {
@@ -320,11 +335,26 @@
       align-items: center;
       gap: 8px;
       font-size: 11.5px;
-      color: #94a3b8;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 4px 12px;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 5px 13px;
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+    }
+
+    .status-live-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.75);
+      animation: statusDotPulse 2s ease-in-out infinite;
+    }
+
+    .status-live-text {
+      font-weight: 600;
+      letter-spacing: 0.02em;
     }
 
     .hero-card-body {
@@ -341,13 +371,27 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
+      will-change: transform;
+    }
+
+    .mockup-item:nth-child(1) {
+      animation: subFloat1 6.5s ease-in-out infinite alternate;
+    }
+
+    .mockup-item:nth-child(2) {
+      animation: subFloat2 7.2s ease-in-out infinite alternate;
+    }
+
+    .mockup-item:nth-child(3) {
+      animation: subFloat3 6s ease-in-out infinite alternate;
     }
 
     .mockup-item:hover {
       background: rgba(212, 175, 55, 0.08);
-      border-color: rgba(212, 175, 55, 0.3);
-      transform: translateX(4px);
+      border-color: rgba(212, 175, 55, 0.35);
+      animation-play-state: paused;
+      transform: translateX(5px) !important;
     }
 
     .mockup-left {
@@ -389,18 +433,22 @@
       padding: 3px 10px;
       border-radius: 20px;
       font-weight: 600;
+      display: inline-flex;
+      align-items: center;
     }
 
     .badge-aktif {
       background: rgba(34, 197, 94, 0.15);
       color: #4ade80;
-      border: 1px solid rgba(34, 197, 94, 0.3);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      animation: badgePulseAktif 3.2s ease-in-out infinite alternate;
     }
 
     .badge-proses {
       background: rgba(212, 175, 55, 0.15);
       color: #f1dfa8;
-      border: 1px solid rgba(212, 175, 55, 0.3);
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      animation: badgePulseProses 3.2s ease-in-out infinite alternate;
     }
 
     /* Floating Stats Bar */
@@ -421,20 +469,22 @@
 
     .stat-card-pub {
       background: #ffffff;
+      background-image: radial-gradient(rgba(212, 175, 55, 0.09) 1px, transparent 1px);
+      background-size: 14px 14px;
       border: 1px solid var(--border-light, #e2e8f0);
-      border-radius: 18px;
-      padding: 24px 20px;
+      border-radius: 20px;
+      padding: 26px 22px;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(11, 25, 44, 0.08);
+      box-shadow: 0 12px 32px rgba(11, 25, 44, 0.07), 0 2px 6px rgba(11, 25, 44, 0.03);
       position: relative;
       overflow: hidden;
-      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s, border-color 0.22s;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s, border-color 0.28s;
     }
 
     .stat-card-pub:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 36px rgba(11, 25, 44, 0.14);
-      border-color: rgba(212, 175, 55, 0.45);
+      transform: translateY(-6px);
+      box-shadow: 0 18px 42px rgba(11, 25, 44, 0.13), 0 0 22px rgba(212, 175, 55, 0.16);
+      border-color: rgba(212, 175, 55, 0.5);
     }
 
     .stat-card-pub::after {
@@ -443,8 +493,32 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 3.5px;
-      background: linear-gradient(90deg, #f1dfa8, #d4af37);
+      height: 4px;
+      background: linear-gradient(90deg, #f1dfa8 0%, #d4af37 50%, #b8860b 100%);
+    }
+
+    .stat-watermark {
+      position: absolute;
+      right: -10px;
+      bottom: -10px;
+      width: 84px;
+      height: 84px;
+      color: #0b192c;
+      opacity: 0.065;
+      pointer-events: none;
+      transition: all 0.35s ease;
+      z-index: 1;
+    }
+
+    .stat-card-pub:hover .stat-watermark {
+      opacity: 0.13;
+      transform: scale(1.08) rotate(-4deg);
+      color: #d4af37;
+    }
+
+    .stat-content {
+      position: relative;
+      z-index: 2;
     }
 
     .stat-card-pub h3 {
@@ -520,12 +594,40 @@
       line-height: 1.7;
     }
 
-    /* Alur Step Cards (Node Timeline) */
+    /* Alur Step Cards (Node Timeline & Visual Journey) */
     .alur-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 24px;
       position: relative;
+    }
+
+    .alur-connector {
+      position: absolute;
+      top: 57px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .alur-connector-line {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.65) 50%, rgba(212, 175, 55, 0.2) 100%);
+    }
+
+    .alur-connector-pulse {
+      position: absolute;
+      top: -3px;
+      left: 0;
+      width: 28px;
+      height: 8px;
+      border-radius: 9999px;
+      background: radial-gradient(ellipse at center, #ffffff 0%, #f1dfa8 60%, transparent 100%);
+      filter: drop-shadow(0 0 6px #d4af37);
+      animation: connectorPulseTravel 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
 
     .alur-step-card {
@@ -535,19 +637,28 @@
       padding: 32px 24px;
       text-align: center;
       position: relative;
+      z-index: 2;
       box-shadow: 0 4px 16px rgba(11, 25, 44, 0.05);
-      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .alur-step-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 14px 32px rgba(11, 25, 44, 0.1);
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px rgba(11, 25, 44, 0.11), 0 0 20px rgba(212, 175, 55, 0.14);
       border-color: rgba(212, 175, 55, 0.45);
     }
 
+    .step-number-wrap {
+      position: relative;
+      display: inline-block;
+      margin: 0 auto 20px auto;
+    }
+
     .step-number {
-      width: 50px;
-      height: 50px;
+      position: relative;
+      z-index: 2;
+      width: 52px;
+      height: 52px;
       background: linear-gradient(135deg, #060e18 0%, #0b192c 100%);
       color: #f1dfa8;
       border: 2px solid #d4af37;
@@ -557,8 +668,33 @@
       justify-content: center;
       font-weight: 800;
       font-size: 18px;
-      margin: 0 auto 20px auto;
-      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+      transition: all 0.3s ease;
+    }
+
+    .step-number::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1px dashed rgba(212, 175, 55, 0.45);
+      animation: ringRotate 14s linear infinite;
+    }
+
+    .step-number::after {
+      content: "";
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.25) 0%, transparent 70%);
+      opacity: 0.6;
+      animation: ringPulse 3s ease-in-out infinite alternate;
+    }
+
+    .alur-step-card:hover .step-number {
+      transform: scale(1.08);
+      box-shadow: 0 6px 22px rgba(212, 175, 55, 0.55);
+      border-color: #f1dfa8;
     }
 
     .alur-step-card h4 {
@@ -911,6 +1047,9 @@
         grid-template-columns: 1fr;
         gap: 36px;
       }
+      .alur-connector {
+        display: none;
+      }
     }
 
     @media (max-width: 768px) {
@@ -937,6 +1076,120 @@
       .section-title { font-size: 26px; }
       .alur-grid { grid-template-columns: 1fr; }
       .public-form-container { padding: 30px 20px; }
+    }
+
+    /* Animation Keyframes */
+    @keyframes heroCardFloat {
+      0% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(0.35deg); }
+      100% { transform: translateY(4px) rotate(-0.25deg); }
+    }
+
+    @keyframes heroAuraBreath {
+      0% { opacity: 0.55; transform: scale(0.97); }
+      100% { opacity: 0.95; transform: scale(1.03); }
+    }
+
+    @keyframes subFloat1 {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-3px); }
+    }
+
+    @keyframes subFloat2 {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(2.5px); }
+    }
+
+    @keyframes subFloat3 {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-2px); }
+    }
+
+    @keyframes statusDotPulse {
+      0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 8px rgba(16, 185, 129, 0.75); }
+      50% { transform: scale(1.25); opacity: 0.85; box-shadow: 0 0 14px rgba(16, 185, 129, 0.95); }
+    }
+
+    @keyframes badgePulseAktif {
+      0% { box-shadow: 0 0 0 rgba(74, 222, 128, 0); }
+      100% { box-shadow: 0 0 10px rgba(74, 222, 128, 0.4); }
+    }
+
+    @keyframes badgePulseProses {
+      0% { box-shadow: 0 0 0 rgba(241, 223, 168, 0); }
+      100% { box-shadow: 0 0 10px rgba(241, 223, 168, 0.45); }
+    }
+
+    @keyframes connectorPulseTravel {
+      0% { left: 0%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { left: 100%; opacity: 0; }
+    }
+
+    @keyframes ringRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes ringPulse {
+      0% { transform: scale(0.92); opacity: 0.4; }
+      100% { transform: scale(1.15); opacity: 0.8; }
+    }
+
+    /* Directional Scroll Animations */
+    .reveal-elem {
+      opacity: 0;
+      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .reveal-from-left {
+      transform: translateX(-38px);
+    }
+
+    .reveal-from-right {
+      transform: translateX(38px);
+    }
+
+    .reveal-from-bottom {
+      transform: translateY(32px);
+    }
+
+    .reveal-from-scale {
+      transform: scale(0.92) translateY(20px);
+    }
+
+    .reveal-elem.is-revealed {
+      opacity: 1;
+      transform: translate(0) scale(1);
+    }
+
+    .delay-100 { transition-delay: 100ms; }
+    .delay-150 { transition-delay: 150ms; }
+    .delay-200 { transition-delay: 200ms; }
+    .delay-250 { transition-delay: 250ms; }
+    .delay-300 { transition-delay: 300ms; }
+    .delay-400 { transition-delay: 400ms; }
+
+    /* Accessibility / Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      .hero-visual-card,
+      .hero-visual-card::before,
+      .mockup-item,
+      .mockup-badge,
+      .status-live-dot,
+      .alur-connector-pulse,
+      .step-number::before,
+      .step-number::after {
+        animation: none !important;
+        transform: none !important;
+      }
+      .reveal-elem {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
     }
   </style>
 </head>
@@ -1023,8 +1276,8 @@
             <span class="card-dot dot-green"></span>
           </div>
           <div class="hero-card-status">
-            <span style="display:inline-block; width:6px; height:6px; background:#22c55e; border-radius:50%;"></span>
-            <span>Sistem Terkoneksi Google Cloud</span>
+            <span class="status-live-dot"></span>
+            <span class="status-live-text">Layanan Digital Terpadu</span>
           </div>
         </div>
 
@@ -1088,28 +1341,60 @@
   <!-- STATS BAR -->
   <section class="stats-bar">
     <div class="stats-container">
-      <div class="stat-card-pub">
-        <h3>25</h3>
-        <p>Anggota Legislatif Resmi</p>
+      <div class="stat-card-pub reveal-elem reveal-from-left">
+        <div class="stat-watermark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M3 21h18M3 10h18M5 10v11M9 10v11M13 10v11M17 10v11M19 10v11M12 2l9 8H3l9-8z"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3>25</h3>
+          <p>Anggota Legislatif Resmi</p>
+        </div>
       </div>
-      <div class="stat-card-pub">
-        <h3>3</h3>
-        <p>Komisi Bidang Kerja</p>
+      <div class="stat-card-pub reveal-elem reveal-from-bottom delay-100">
+        <div class="stat-watermark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3>3</h3>
+          <p>Komisi Bidang Kerja</p>
+        </div>
       </div>
-      <div class="stat-card-pub">
-        <h3>4</h3>
-        <p>Wilayah Kecamatan</p>
+      <div class="stat-card-pub reveal-elem reveal-from-bottom delay-200">
+        <div class="stat-watermark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3>4</h3>
+          <p>Wilayah Kecamatan</p>
+        </div>
       </div>
-      <div class="stat-card-pub">
-        <h3>100%</h3>
-        <p>Transparan & Terbuka</p>
+      <div class="stat-card-pub reveal-elem reveal-from-right delay-100">
+        <div class="stat-watermark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <polyline points="9 12 11 14 15 10"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <h3>100%</h3>
+          <p>Transparan & Terbuka</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ALUR PENYAMPAIAN ASPIRASI (TIMELINE CARDS) -->
+  <!-- ALUR PENYAMPAIAN ASPIRASI (TIMELINE CARDS & VISUAL JOURNEY) -->
   <section class="section-container" id="alur">
-    <div class="section-header">
+    <div class="section-header reveal-elem reveal-from-bottom">
       <div class="section-tag-divider">
         <span class="section-tag">Alur Pelayanan Publik</span>
       </div>
@@ -1120,26 +1405,40 @@
     </div>
 
     <div class="alur-grid">
-      <div class="alur-step-card">
-        <div class="step-number">1</div>
+      <!-- Journey Route Connector Line (Desktop) -->
+      <div class="alur-connector" aria-hidden="true">
+        <div class="alur-connector-line"></div>
+        <div class="alur-connector-pulse"></div>
+      </div>
+
+      <div class="alur-step-card reveal-elem reveal-from-left">
+        <div class="step-number-wrap">
+          <div class="step-number">1</div>
+        </div>
         <h4>Pengisian Formulir</h4>
         <p>Warga mengisi identitas singkat, memilih kecamatan wilayah, dan menguraikan aspirasi atau laporan kendala secara jelas.</p>
       </div>
 
-      <div class="alur-step-card">
-        <div class="step-number">2</div>
+      <div class="alur-step-card reveal-elem reveal-from-scale delay-100">
+        <div class="step-number-wrap">
+          <div class="step-number">2</div>
+        </div>
         <h4>Nomor Tiket Resmi</h4>
         <p>Sistem secara otomatis menerbitkan Nomor Tiket Aspirasi unik (format LAP-YYYYMMDD-XXXX) sebagai bukti sah tanda terima.</p>
       </div>
 
-      <div class="alur-step-card">
-        <div class="step-number">3</div>
+      <div class="alur-step-card reveal-elem reveal-from-scale delay-200">
+        <div class="step-number-wrap">
+          <div class="step-number">3</div>
+        </div>
         <h4>Telaah & Verifikasi</h4>
         <p>Sekretariat DPRD memverifikasi materi laporan dan mendisposisikannya kepada staf pendamping komisi yang membidangi urusan tersebut.</p>
       </div>
 
-      <div class="alur-step-card">
-        <div class="step-number">4</div>
+      <div class="alur-step-card reveal-elem reveal-from-right delay-300">
+        <div class="step-number-wrap">
+          <div class="step-number">4</div>
+        </div>
         <h4>Tindak Lanjut & RDP</h4>
         <p>Materi aspirasi dibahas dalam Rapat Dengar Pendapat (RDP) komisi bersama Organisasi Perangkat Daerah (OPD) terkait.</p>
       </div>
@@ -1148,7 +1447,7 @@
 
   <!-- KOMISI KERJA DPRD (WHAT'S INCLUDED / BESPOKE CARDS) -->
   <section class="section-container" id="komisi" style="background: var(--bg-subtle, #f8fafc); border-radius: 28px; border: 1px solid var(--border-light, #e2e8f0); margin-bottom: 40px;">
-    <div class="section-header">
+    <div class="section-header reveal-elem reveal-from-bottom">
       <div class="section-tag-divider">
         <span class="section-tag">Struktur Kerja Dewan</span>
       </div>
@@ -1160,7 +1459,7 @@
 
     <div class="komisi-grid">
       <!-- Komisi 1 -->
-      <div class="komisi-feature-card">
+      <div class="komisi-feature-card reveal-elem reveal-from-left">
         <div class="komisi-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -1188,7 +1487,7 @@
       </div>
 
       <!-- Komisi 2 -->
-      <div class="komisi-feature-card">
+      <div class="komisi-feature-card reveal-elem reveal-from-bottom delay-150">
         <div class="komisi-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="1" x2="12" y2="23"></line>
@@ -1217,7 +1516,7 @@
       </div>
 
       <!-- Komisi 3 -->
-      <div class="komisi-feature-card">
+      <div class="komisi-feature-card reveal-elem reveal-from-right delay-300">
         <div class="komisi-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
@@ -1248,7 +1547,7 @@
 
   <!-- DIREKTORI ANGGOTA DEWAN -->
   <section class="section-container" id="dewan">
-    <div class="section-header">
+    <div class="section-header reveal-elem reveal-from-bottom">
       <div class="section-tag-divider">
         <span class="section-tag">Wakil Rakyat Terpilih</span>
       </div>
@@ -1259,7 +1558,7 @@
     </div>
 
     <!-- Filter Pills -->
-    <div class="filter-pills-bar" id="dewanFilterBar">
+    <div class="filter-pills-bar reveal-elem reveal-from-bottom delay-100" id="dewanFilterBar">
       <button type="button" class="filter-kec-btn active" data-kec="all">Semua Wilayah (25 Dewan)</button>
       <button type="button" class="filter-kec-btn" data-kec="Bacukiki">Kecamatan Bacukiki</button>
       <button type="button" class="filter-kec-btn" data-kec="Bacukiki Barat">Kecamatan Bacukiki Barat</button>
@@ -1276,7 +1575,7 @@
 
   <!-- FORMULIR ASPIRASI MASYARAKAT -->
   <section class="section-container" id="aspirasi">
-    <div class="section-header">
+    <div class="section-header reveal-elem reveal-from-bottom">
       <div class="section-tag-divider">
         <span class="section-tag">Layanan Aspirasi Langsung</span>
       </div>
@@ -1286,7 +1585,7 @@
       </p>
     </div>
 
-    <div class="public-form-container">
+    <div class="public-form-container reveal-elem reveal-from-scale">
       <form id="formAspirasiPublik">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
           <div class="form-group">
@@ -1368,7 +1667,7 @@
 
   <!-- SECTION FAQ (FREQUENTLY ASKED QUESTIONS) -->
   <section class="section-container" id="faq">
-    <div class="section-header">
+    <div class="section-header reveal-elem reveal-from-bottom">
       <div class="section-tag-divider">
         <span class="section-tag">Pusat Bantuan Warga</span>
       </div>
@@ -1379,7 +1678,7 @@
     </div>
 
     <div class="faq-container">
-      <div class="faq-item active">
+      <div class="faq-item active reveal-elem reveal-from-bottom">
         <div class="faq-question">
           <span>Berapa lama aspirasi atau laporan saya akan diproses?</span>
           <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1391,7 +1690,7 @@
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item reveal-elem reveal-from-bottom delay-100">
         <div class="faq-question">
           <span>Apakah identitas dan nomor kontak saya aman dan dirahasiakan?</span>
           <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1403,7 +1702,7 @@
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item reveal-elem reveal-from-bottom delay-200">
         <div class="faq-question">
           <span>Bagaimana cara saya memantau status tindak lanjut aspirasi saya?</span>
           <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1415,7 +1714,7 @@
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item reveal-elem reveal-from-bottom delay-300">
         <div class="faq-question">
           <span>Apakah ada pungutan biaya dalam menyampaikan aspirasi ini?</span>
           <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1518,9 +1817,34 @@
       setupMobileNav();
       setupFaqAccordion();
       setupCopyTicket();
+      setupScrollReveals();
       await loadPublicDewan();
       setupKecamatanFilter();
       setupFormAspirasi();
+    }
+
+    function setupScrollReveals() {
+      const reveals = document.querySelectorAll('.reveal-elem');
+      if (!reveals.length) return;
+
+      if (!('IntersectionObserver' in window)) {
+        reveals.forEach(el => el.classList.add('is-revealed'));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+            obs.unobserve(entry.target);
+          }
+        });
+      }, {
+        rootMargin: '0px 0px -40px 0px',
+        threshold: 0.1
+      });
+
+      reveals.forEach(el => observer.observe(el));
     }
 
     function setupMobileNav() {
