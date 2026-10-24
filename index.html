@@ -281,15 +281,15 @@
 
     /* Hero Right Visual: Bespoke Institutional Preview Card */
     .hero-visual-card {
-      background: linear-gradient(160deg, rgba(15, 30, 52, 0.88) 0%, rgba(6, 14, 24, 0.96) 100%);
-      border: 1px solid rgba(212, 175, 55, 0.4);
+      background: linear-gradient(165deg, rgba(11, 23, 40, 0.97) 0%, rgba(6, 14, 24, 0.98) 100%);
+      border: 1px solid rgba(212, 175, 55, 0.35);
       border-radius: 24px;
       padding: 28px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 35px rgba(212, 175, 55, 0.15);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 25px rgba(212, 175, 55, 0.1);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       position: relative;
-      animation: heroCardFloat 7s ease-in-out infinite alternate;
+      animation: heroCardFloat 8s ease-in-out infinite alternate;
       will-change: transform;
       transform-style: preserve-3d;
     }
@@ -297,13 +297,13 @@
     .hero-visual-card::before {
       content: "";
       position: absolute;
-      inset: -14px;
-      border-radius: 34px;
-      background: radial-gradient(circle at 60% 40%, rgba(212, 175, 55, 0.22) 0%, rgba(14, 165, 233, 0.12) 45%, transparent 70%);
-      filter: blur(22px);
+      inset: -18px;
+      border-radius: 38px;
+      background: radial-gradient(circle at 75% 20%, rgba(212, 175, 55, 0.12) 0%, rgba(14, 165, 233, 0.05) 38%, transparent 66%);
+      filter: blur(28px);
       z-index: -1;
       pointer-events: none;
-      animation: heroAuraBreath 8s ease-in-out infinite alternate;
+      animation: heroAuraBreath 9s ease-in-out infinite alternate;
     }
 
     .hero-card-header {
@@ -349,7 +349,7 @@
       background: #10b981;
       border-radius: 50%;
       box-shadow: 0 0 8px rgba(16, 185, 129, 0.75);
-      animation: statusDotPulse 2s ease-in-out infinite;
+      animation: statusDotPulse 2.8s ease-in-out infinite;
     }
 
     .status-live-text {
@@ -371,27 +371,13 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      transition: all 0.25s ease;
-      will-change: transform;
-    }
-
-    .mockup-item:nth-child(1) {
-      animation: subFloat1 6.5s ease-in-out infinite alternate;
-    }
-
-    .mockup-item:nth-child(2) {
-      animation: subFloat2 7.2s ease-in-out infinite alternate;
-    }
-
-    .mockup-item:nth-child(3) {
-      animation: subFloat3 6s ease-in-out infinite alternate;
+      transition: all 0.22s ease;
     }
 
     .mockup-item:hover {
       background: rgba(212, 175, 55, 0.08);
       border-color: rgba(212, 175, 55, 0.35);
-      animation-play-state: paused;
-      transform: translateX(5px) !important;
+      transform: translateX(4px);
     }
 
     .mockup-left {
@@ -627,7 +613,7 @@
       border-radius: 9999px;
       background: radial-gradient(ellipse at center, #ffffff 0%, #f1dfa8 60%, transparent 100%);
       filter: drop-shadow(0 0 6px #d4af37);
-      animation: connectorPulseTravel 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      animation: connectorPulseTravel 8.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
 
     .alur-step-card {
@@ -657,8 +643,8 @@
     .step-number {
       position: relative;
       z-index: 2;
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       background: linear-gradient(135deg, #060e18 0%, #0b192c 100%);
       color: #f1dfa8;
       border: 2px solid #d4af37;
@@ -666,35 +652,35 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      font-size: 18px;
+      font-weight: 850;
+      font-size: 22px;
+      line-height: 1;
       box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
       transition: all 0.3s ease;
     }
 
+    /* Single delicate curved orbit line */
     .step-number::before {
       content: "";
       position: absolute;
-      inset: -6px;
+      inset: -7px;
       border-radius: 50%;
-      border: 1px dashed rgba(212, 175, 55, 0.45);
-      animation: ringRotate 14s linear infinite;
-    }
-
-    .step-number::after {
-      content: "";
-      position: absolute;
-      inset: -12px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(212, 175, 55, 0.25) 0%, transparent 70%);
-      opacity: 0.6;
-      animation: ringPulse 3s ease-in-out infinite alternate;
+      border: 1.5px solid transparent;
+      border-top-color: #d4af37;
+      border-right-color: rgba(212, 175, 55, 0.4);
+      animation: ringRotate 16s linear infinite;
+      pointer-events: none;
     }
 
     .alur-step-card:hover .step-number {
-      transform: scale(1.08);
-      box-shadow: 0 6px 22px rgba(212, 175, 55, 0.55);
+      transform: scale(1.06);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
       border-color: #f1dfa8;
+    }
+
+    .alur-step-card:hover .step-number::before {
+      border-top-color: #f1dfa8;
+      border-right-color: rgba(241, 223, 168, 0.6);
     }
 
     .alur-step-card h4 {
@@ -724,7 +710,7 @@
       border-radius: 22px;
       padding: 34px 30px;
       box-shadow: 0 6px 20px rgba(11, 25, 44, 0.06);
-      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       position: relative;
@@ -737,14 +723,41 @@
       border-color: rgba(212, 175, 55, 0.5);
     }
 
+    /* Futuristic L-shaped technical framing ornaments */
     .komisi-feature-card::before {
       content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #f1dfa8, #d4af37);
+      top: 14px;
+      left: 14px;
+      width: 20px;
+      height: 20px;
+      border-top: 1.5px solid rgba(212, 175, 55, 0.65);
+      border-left: 1.5px solid rgba(212, 175, 55, 0.65);
+      border-top-left-radius: 4px;
+      pointer-events: none;
+      transition: border-color 0.3s ease, filter 0.3s ease;
+      z-index: 1;
+    }
+
+    .komisi-feature-card::after {
+      content: "";
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      width: 20px;
+      height: 20px;
+      border-bottom: 1.5px solid rgba(212, 175, 55, 0.65);
+      border-right: 1.5px solid rgba(212, 175, 55, 0.65);
+      border-bottom-right-radius: 4px;
+      pointer-events: none;
+      transition: border-color 0.3s ease, filter 0.3s ease;
+      z-index: 1;
+    }
+
+    .komisi-feature-card:hover::before,
+    .komisi-feature-card:hover::after {
+      border-color: rgba(212, 175, 55, 1);
+      filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.45));
     }
 
     .komisi-icon-circle {
@@ -758,11 +771,32 @@
       align-items: center;
       justify-content: center;
       margin-bottom: 22px;
+      position: relative;
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.12);
+      transition: all 0.3s ease;
+    }
+
+    .komisi-icon-circle::before {
+      content: "";
+      position: absolute;
+      inset: -5px;
+      border-radius: 20px;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.22) 0%, transparent 70%);
+      z-index: 0;
+      pointer-events: none;
+      animation: iconHaloPulse 4.5s ease-in-out infinite alternate;
     }
 
     .komisi-icon-circle svg {
       width: 28px;
       height: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .komisi-feature-card:hover .komisi-icon-circle {
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.25);
+      border-color: rgba(212, 175, 55, 0.55);
     }
 
     .komisi-name {
@@ -1081,43 +1115,33 @@
     /* Animation Keyframes */
     @keyframes heroCardFloat {
       0% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-8px) rotate(0.35deg); }
-      100% { transform: translateY(4px) rotate(-0.25deg); }
+      50% { transform: translateY(-10px) rotate(0.35deg); }
+      100% { transform: translateY(5px) rotate(-0.25deg); }
     }
 
     @keyframes heroAuraBreath {
-      0% { opacity: 0.55; transform: scale(0.97); }
-      100% { opacity: 0.95; transform: scale(1.03); }
+      0% { opacity: 0.45; transform: scale(0.98); }
+      100% { opacity: 0.85; transform: scale(1.02); }
     }
 
-    @keyframes subFloat1 {
-      0% { transform: translateY(0px); }
-      100% { transform: translateY(-3px); }
-    }
-
-    @keyframes subFloat2 {
-      0% { transform: translateY(0px); }
-      100% { transform: translateY(2.5px); }
-    }
-
-    @keyframes subFloat3 {
-      0% { transform: translateY(0px); }
-      100% { transform: translateY(-2px); }
+    @keyframes iconHaloPulse {
+      0% { transform: scale(0.96); opacity: 0.35; }
+      100% { transform: scale(1.08); opacity: 0.7; }
     }
 
     @keyframes statusDotPulse {
       0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 8px rgba(16, 185, 129, 0.75); }
-      50% { transform: scale(1.25); opacity: 0.85; box-shadow: 0 0 14px rgba(16, 185, 129, 0.95); }
+      50% { transform: scale(1.22); opacity: 0.85; box-shadow: 0 0 13px rgba(16, 185, 129, 0.9); }
     }
 
     @keyframes badgePulseAktif {
       0% { box-shadow: 0 0 0 rgba(74, 222, 128, 0); }
-      100% { box-shadow: 0 0 10px rgba(74, 222, 128, 0.4); }
+      100% { box-shadow: 0 0 8px rgba(74, 222, 128, 0.35); }
     }
 
     @keyframes badgePulseProses {
       0% { box-shadow: 0 0 0 rgba(241, 223, 168, 0); }
-      100% { box-shadow: 0 0 10px rgba(241, 223, 168, 0.45); }
+      100% { box-shadow: 0 0 8px rgba(241, 223, 168, 0.4); }
     }
 
     @keyframes connectorPulseTravel {
@@ -1132,32 +1156,27 @@
       to { transform: rotate(360deg); }
     }
 
-    @keyframes ringPulse {
-      0% { transform: scale(0.92); opacity: 0.4; }
-      100% { transform: scale(1.15); opacity: 0.8; }
-    }
-
-    /* Directional Scroll Animations */
+    /* Directional Scroll Animations (Refined: Calmer & Shorter Travel) */
     .reveal-elem {
       opacity: 0;
-      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.95s cubic-bezier(0.16, 1, 0.3, 1), transform 0.95s cubic-bezier(0.16, 1, 0.3, 1);
       will-change: opacity, transform;
     }
 
     .reveal-from-left {
-      transform: translateX(-38px);
+      transform: translateX(-22px);
     }
 
     .reveal-from-right {
-      transform: translateX(38px);
+      transform: translateX(22px);
     }
 
     .reveal-from-bottom {
-      transform: translateY(32px);
+      transform: translateY(20px);
     }
 
     .reveal-from-scale {
-      transform: scale(0.92) translateY(20px);
+      transform: scale(0.96) translateY(14px);
     }
 
     .reveal-elem.is-revealed {
@@ -1165,12 +1184,12 @@
       transform: translate(0) scale(1);
     }
 
-    .delay-100 { transition-delay: 100ms; }
+    .delay-100 { transition-delay: 90ms; }
     .delay-150 { transition-delay: 150ms; }
-    .delay-200 { transition-delay: 200ms; }
-    .delay-250 { transition-delay: 250ms; }
+    .delay-200 { transition-delay: 210ms; }
+    .delay-250 { transition-delay: 260ms; }
     .delay-300 { transition-delay: 300ms; }
-    .delay-400 { transition-delay: 400ms; }
+    .delay-400 { transition-delay: 380ms; }
 
     /* Accessibility / Reduced Motion */
     @media (prefers-reduced-motion: reduce) {
@@ -1181,7 +1200,7 @@
       .status-live-dot,
       .alur-connector-pulse,
       .step-number::before,
-      .step-number::after {
+      .komisi-icon-circle::before {
         animation: none !important;
         transform: none !important;
       }
@@ -1791,11 +1810,11 @@
       </div>
 
       <div class="footer-col">
-        <h4>Akses Internal Petugas</h4>
-        <p>Portal khusus petugas Sekretariat DPRD untuk pengelolaan berkas arsip dewan, risalah RDP komisi, dan disposisi tindak lanjut laporan masyarakat.</p>
+        <h4>Portal Layanan DPRD</h4>
+        <p>Akses layanan digital Sekretariat DPRD untuk mendukung pengelolaan informasi dan pelayanan masyarakat secara tertib, transparan, dan mudah diakses oleh pihak yang berwenang.</p>
         <div style="margin-top: 16px;">
           <a href="login.html" class="btn btn-gold btn-sm" style="border-radius: 8px; font-weight: 700; padding: 9px 18px;">
-            Masuk Portal Petugas &rarr;
+            Masuk Portal &rarr;
           </a>
         </div>
       </div>
