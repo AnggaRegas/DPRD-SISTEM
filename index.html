@@ -590,7 +590,7 @@
 
     .alur-connector {
       position: absolute;
-      top: 57px;
+      top: 66px;
       left: 10%;
       right: 10%;
       height: 2px;
@@ -637,50 +637,53 @@
     .step-number-wrap {
       position: relative;
       display: inline-block;
-      margin: 0 auto 20px auto;
+      margin: 0 auto 22px auto;
     }
 
     .step-number {
       position: relative;
       z-index: 2;
-      width: 56px;
-      height: 56px;
+      width: 68px;
+      height: 68px;
       background: linear-gradient(135deg, #060e18 0%, #0b192c 100%);
       color: #f1dfa8;
-      border: 2px solid #d4af37;
+      border: 2.5px solid #d4af37;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 850;
-      font-size: 22px;
+      font-weight: 900;
+      font-size: 30px;
       line-height: 1;
-      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
       transition: all 0.3s ease;
+      font-variant-numeric: tabular-nums;
     }
 
     /* Single delicate curved orbit line */
     .step-number::before {
       content: "";
       position: absolute;
-      inset: -7px;
+      inset: -9px;
       border-radius: 50%;
-      border: 1.5px solid transparent;
+      border: 2px solid transparent;
       border-top-color: #d4af37;
-      border-right-color: rgba(212, 175, 55, 0.4);
+      border-right-color: rgba(212, 175, 55, 0.55);
       animation: ringRotate 16s linear infinite;
       pointer-events: none;
+      filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.45));
     }
 
     .alur-step-card:hover .step-number {
       transform: scale(1.06);
-      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+      box-shadow: 0 8px 26px rgba(212, 175, 55, 0.58);
       border-color: #f1dfa8;
     }
 
     .alur-step-card:hover .step-number::before {
       border-top-color: #f1dfa8;
-      border-right-color: rgba(241, 223, 168, 0.6);
+      border-right-color: rgba(241, 223, 168, 0.8);
+      filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.65));
     }
 
     .alur-step-card h4 {
@@ -701,90 +704,109 @@
     .komisi-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 28px;
+      gap: 32px;
+      position: relative;
+      z-index: 1;
     }
 
     .komisi-feature-card {
       background: #ffffff;
       border: 1px solid var(--border-light, #e2e8f0);
       border-radius: 22px;
-      padding: 34px 30px;
-      box-shadow: 0 6px 20px rgba(11, 25, 44, 0.06);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 36px 30px;
+      box-shadow: 0 8px 24px rgba(11, 25, 44, 0.06);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s;
       display: flex;
       flex-direction: column;
       position: relative;
-      overflow: hidden;
+      z-index: 1;
+      overflow: visible;
     }
 
     .komisi-feature-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 18px 40px rgba(11, 25, 44, 0.12);
-      border-color: rgba(212, 175, 55, 0.5);
+      transform: translateY(-6px);
+      box-shadow: 0 20px 44px rgba(11, 25, 44, 0.13);
+      border-color: rgba(212, 175, 55, 0.65);
     }
 
-    /* Futuristic L-shaped technical framing ornaments */
+    /* Futuristic Bold L-Shaped Technical Brackets (Peeking from Behind the Card) */
     .komisi-feature-card::before {
       content: "";
       position: absolute;
-      top: 14px;
-      left: 14px;
-      width: 20px;
-      height: 20px;
-      border-top: 1.5px solid rgba(212, 175, 55, 0.65);
-      border-left: 1.5px solid rgba(212, 175, 55, 0.65);
-      border-top-left-radius: 4px;
+      top: -12px;
+      left: -12px;
+      width: 64px;
+      height: 64px;
+      border-top: 3.5px solid #d4af37;
+      border-left: 3.5px solid #d4af37;
+      border-top-left-radius: 16px;
       pointer-events: none;
-      transition: border-color 0.3s ease, filter 0.3s ease;
-      z-index: 1;
+      z-index: -1;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: -2px -2px 14px rgba(212, 175, 55, 0.38);
+      opacity: 0.92;
     }
 
     .komisi-feature-card::after {
       content: "";
       position: absolute;
-      bottom: 14px;
-      right: 14px;
-      width: 20px;
-      height: 20px;
-      border-bottom: 1.5px solid rgba(212, 175, 55, 0.65);
-      border-right: 1.5px solid rgba(212, 175, 55, 0.65);
-      border-bottom-right-radius: 4px;
+      bottom: -12px;
+      right: -12px;
+      width: 64px;
+      height: 64px;
+      border-bottom: 3.5px solid #d4af37;
+      border-right: 3.5px solid #d4af37;
+      border-bottom-right-radius: 16px;
       pointer-events: none;
-      transition: border-color 0.3s ease, filter 0.3s ease;
-      z-index: 1;
+      z-index: -1;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 2px 2px 14px rgba(212, 175, 55, 0.38);
+      opacity: 0.92;
     }
 
-    .komisi-feature-card:hover::before,
+    .komisi-feature-card:hover::before {
+      top: -16px;
+      left: -16px;
+      border-color: #f1dfa8;
+      box-shadow: -4px -4px 20px rgba(212, 175, 55, 0.7);
+      opacity: 1;
+    }
+
     .komisi-feature-card:hover::after {
-      border-color: rgba(212, 175, 55, 1);
-      filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.45));
+      bottom: -16px;
+      right: -16px;
+      border-color: #f1dfa8;
+      box-shadow: 4px 4px 20px rgba(212, 175, 55, 0.7);
+      opacity: 1;
     }
 
     .komisi-icon-circle {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      background: rgba(212, 175, 55, 0.12);
-      border: 1px solid rgba(212, 175, 55, 0.35);
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.16) 0%, rgba(212, 175, 55, 0.08) 100%);
+      border: 1.5px solid rgba(212, 175, 55, 0.45);
       color: #b8860b;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 22px;
       position: relative;
-      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.12);
+      z-index: 2;
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.16);
       transition: all 0.3s ease;
     }
 
     .komisi-icon-circle::before {
       content: "";
       position: absolute;
-      inset: -5px;
+      inset: -3px;
       border-radius: 20px;
-      background: radial-gradient(circle, rgba(212, 175, 55, 0.22) 0%, transparent 70%);
+      border: 2px solid rgba(212, 175, 55, 0.65);
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, rgba(212, 175, 55, 0.08) 60%, transparent 100%);
       z-index: 0;
       pointer-events: none;
-      animation: iconHaloPulse 4.5s ease-in-out infinite alternate;
+      animation: iconDetakPulse 2.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
     }
 
     .komisi-icon-circle svg {
@@ -795,8 +817,8 @@
     }
 
     .komisi-feature-card:hover .komisi-icon-circle {
-      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.25);
-      border-color: rgba(212, 175, 55, 0.55);
+      box-shadow: 0 6px 22px rgba(212, 175, 55, 0.3);
+      border-color: rgba(212, 175, 55, 0.7);
     }
 
     .komisi-name {
@@ -1110,6 +1132,33 @@
       .section-title { font-size: 26px; }
       .alur-grid { grid-template-columns: 1fr; }
       .public-form-container { padding: 30px 20px; }
+      .step-number {
+        width: 62px;
+        height: 62px;
+        font-size: 27px;
+      }
+      .komisi-feature-card::before {
+        top: -8px;
+        left: -8px;
+        width: 50px;
+        height: 50px;
+        border-width: 3px;
+      }
+      .komisi-feature-card::after {
+        bottom: -8px;
+        right: -8px;
+        width: 50px;
+        height: 50px;
+        border-width: 3px;
+      }
+      .komisi-feature-card:hover::before {
+        top: -11px;
+        left: -11px;
+      }
+      .komisi-feature-card:hover::after {
+        bottom: -11px;
+        right: -11px;
+      }
     }
 
     /* Animation Keyframes */
@@ -1124,9 +1173,35 @@
       100% { opacity: 0.85; transform: scale(1.02); }
     }
 
-    @keyframes iconHaloPulse {
-      0% { transform: scale(0.96); opacity: 0.35; }
-      100% { transform: scale(1.08); opacity: 0.7; }
+    @keyframes iconDetakPulse {
+      0% {
+        transform: scale(0.96);
+        opacity: 0.85;
+        box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.65);
+      }
+      22% {
+        transform: scale(1.18);
+        opacity: 0.95;
+        box-shadow: 0 0 16px 4px rgba(212, 175, 55, 0.5);
+      }
+      36% {
+        transform: scale(1.10);
+        opacity: 0.75;
+      }
+      54% {
+        transform: scale(1.34);
+        opacity: 0.45;
+        box-shadow: 0 0 24px 8px rgba(212, 175, 55, 0.3);
+      }
+      76% {
+        transform: scale(1.48);
+        opacity: 0;
+        box-shadow: 0 0 32px 14px rgba(212, 175, 55, 0);
+      }
+      100% {
+        transform: scale(0.96);
+        opacity: 0;
+      }
     }
 
     @keyframes statusDotPulse {
