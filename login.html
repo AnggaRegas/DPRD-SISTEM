@@ -134,7 +134,8 @@
           window.location.replace(destination);
         } else {
           const msg = res && res.message ? res.message : 'Username atau password tidak valid.';
-          showAlert(msg, 'danger');
+          const isWarning = res && res.error && (res.error.code === 'TOO_MANY_REQUESTS' || res.error.code === 'ACCOUNT_INACTIVE');
+          showAlert(msg, isWarning ? 'warning' : 'danger');
         }
       } catch (err) {
         showAlert('Layanan autentikasi sedang tidak tersedia. Silakan coba beberapa saat lagi.', 'danger');

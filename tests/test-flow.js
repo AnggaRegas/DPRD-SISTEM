@@ -1341,6 +1341,99 @@ async function runAllTests() {
   assert(styleCss.includes('.form-row'), 'style.css mendefinisikan layout responsif .form-row');
   assert(styleCss.includes('max-height: calc(100vh - 32px)'), 'style.css memastikan modal dialog konfirmasi responsif pada viewport pendek');
 
+  // --- 22. Pengujian Menyeluruh Autentikasi, Rate Limiting, Lockout 15 Menit, Isolasi Akun, & Pemulihan Admin ---
+  console.log('\n--- 22. Pengujian Menyeluruh Autentikasi, Rate Limiting, Lockout 15 Menit, Isolasi Akun, & Pemulihan Admin ---');
+  const superLogin22 = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLogin22.success, 'Login superadmin untuk persiapan Test Suite 22 berhasil');
+
+  // Test 22.1: Buat akun staf uji untuk skenario lockout
+  const testStaffRes = await api.createUser({
+    username: 'staf_lockout_test',
+    password: 'PasswordStafAwal123!',
+    nama: 'Staf Uji Lockout',
+    role: 'staff',
+    status: 'aktif'
+  });
+  assert(testStaffRes.success && testStaffRes.data?.id, 'Akun staf uji lockout berhasil dibuat');
+  const testStaffId = testStaffRes.data.id;
+  await api.logout();
+
+  // Test 22.2: Login dengan password salah 4 kali -> status gagal kredensial, belum terkunci
+  for (let i = 1; i <= 4; i++) {
+    const wrongRes = await api.login('staf_lockout_test', 'SandiSalahKe' + i);
+    assert(!wrongRes.success && wrongRes.error?.code === 'INVALID_CREDENTIALS', `Percobaan gagal ke-${i} mengembalikan INVALID_CREDENTIALS`);
+  }
+
+  // Test 22.3: Percobaan gagal ke-5 -> memicu lockout 15 menit
+  const fifthFailRes = await api.login('staf_lockout_test', 'SandiSalahKe5');
+  assert(!fifthFailRes.success && fifthFailRes.error?.code === 'TOO_MANY_REQUESTS', 'Percobaan ke-5 langsung memicu penguncian akun (TOO_MANY_REQUESTS)');
+  assert(fifthFailRes.message.includes('dikunci sementara'), 'Pesan penguncian akun ditampilkan secara jelas');
+
+  // Test 22.4: Memasukkan password BENAR saat akun masih terkunci -> tetap ditolak dengan pesan waktu dinamis
+  const lockedCorrectRes = await api.login('staf_lockout_test', 'PasswordStafAwal123!');
+  assert(!lockedCorrectRes.success && lockedCorrectRes.error?.code === 'TOO_MANY_REQUESTS', 'Login dengan password benar saat status terkunci tetap ditolak (proteksi brute force aktif)');
+  assert(lockedCorrectRes.message.includes('menit') || lockedCorrectRes.message.includes('dikunci sementara'), 'Pesan penguncian menyertakan informasi durasi');
+
+  // Test 22.5: Isolasi akun -> penguncian staf_lockout_test tidak memengaruhi login akun lain (staf_keuangan)
+  const otherUserRes = await api.login('staf_keuangan', 'PasswordStafBValid123!');
+  assert(otherUserRes.success, 'Isolasi akun terbukti: staf_keuangan dapat login secara normal tanpa terpengaruh lockout akun lain');
+  await api.logout();
+
+  // Test 22.6: RBAC unlockUser -> staf dilarang membuka kunci akun
+  await api.login('staf_keuangan', 'PasswordStafBValid123!');
+  const forbiddenUnlock = await api.unlockUser('staf_lockout_test');
+  assert(!forbiddenUnlock.success && forbiddenUnlock.error?.code === 'FORBIDDEN', 'Staf dilarang membuka kunci akun (RBAC: FORBIDDEN)');
+  await api.logout();
+
+  // Test 22.7: Pemulihan kunci akun via Superadmin unlockUser
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const unlockRes = await api.unlockUser('staf_lockout_test');
+  assert(unlockRes.success, 'Superadmin berhasil membuka kunci akun staf_lockout_test');
+  await api.logout();
+
+  // Test 22.8: Login staf setelah unlockUser berhasil seketika dengan password benar
+  const staffLoginAfterUnlock = await api.login('staf_lockout_test', 'PasswordStafAwal123!');
+  assert(staffLoginAfterUnlock.success, 'Staf berhasil login seketika setelah kunci dibuka oleh Superadmin');
+  await api.logout();
+
+  // Test 22.9: Penguncian ulang (5x salah) dan pemulihan otomatis saat Admin mereset kata sandi
+  for (let i = 1; i <= 5; i++) {
+    await api.login('staf_lockout_test', 'SandiSalahLagi' + i);
+  }
+  const verifyLockedAgain = await api.login('staf_lockout_test', 'PasswordStafAwal123!');
+  assert(!verifyLockedAgain.success && verifyLockedAgain.error?.code === 'TOO_MANY_REQUESTS', 'Akun berhasil terkunci kembali pada pengujian tahap 2');
+
+  // Superadmin mereset password staf yang terkunci
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const resetPassRes22 = await api.resetUserPassword(testStaffId, 'PasswordBaruHasilReset2026!');
+  assert(resetPassRes22.success, 'Superadmin mereset password staf');
+  await api.logout();
+
+  // Staf yang direset langsung dapat login dengan password baru (lockout terhapus otomatis)
+  const loginWithNewPass = await api.login('staf_lockout_test', 'PasswordBaruHasilReset2026!');
+  assert(loginWithNewPass.success, 'Staf dapat langsung login dengan password baru hasil reset admin (auto-recovery lockout)');
+  await api.logout();
+
+  // Test 22.10: Akun nonaktif tidak memicu penumpukan kegagalan lockout
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  await api.toggleUserStatus(testStaffId, 'nonaktif');
+  await api.logout();
+
+  const inactiveLogin = await api.login('staf_lockout_test', 'PasswordBaruHasilReset2026!');
+  assert(!inactiveLogin.success && inactiveLogin.error?.code === 'ACCOUNT_INACTIVE', 'Akun nonaktif mengembalikan ACCOUNT_INACTIVE tanpa menambah counter lockout');
+
+  // Aktifkan kembali akun, login harus berhasil seketika
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  await api.toggleUserStatus(testStaffId, 'aktif');
+  await api.logout();
+
+  const activeAgainLogin = await api.login('staf_lockout_test', 'PasswordBaruHasilReset2026!');
+  assert(activeAgainLogin.success, 'Akun yang diaktifkan kembali dapat login secara normal');
+  await api.logout();
+
+  // Pembersihan akun uji
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  await api.deleteUser(testStaffId);
   await api.logout();
 
   console.log(`\n=======================================================`);

@@ -148,24 +148,33 @@ function hashPasswordPBKDF2(password, salt, iterations) {
 function verifyPassword(password, storedHash, userSalt) {
   if (!password || !storedHash || typeof storedHash !== 'string') return false;
 
-  const parts = storedHash.split('$');
-  if (parts.length !== 3 || parts[0] !== 'pbkdf2') {
-    return false;
+  const cleanStored = storedHash.trim();
+  const cleanSalt = String(userSalt || '').trim();
+
+  // 1. Dukungan format standar PBKDF2-HMAC-SHA256 (RFC 2898 / RFC 6070)
+  if (cleanStored.startsWith('pbkdf2$')) {
+    const parts = cleanStored.split('$');
+    if (parts.length === 3) {
+      const iterations = parseInt(parts[1], 10);
+      if (!isNaN(iterations) && iterations >= MIN_ALLOWED_ITERATIONS) {
+        const expectedHash = hashPasswordPBKDF2(password, cleanSalt || getSystemSalt(), iterations);
+        if (cleanStored.length === expectedHash.length) {
+          let diff = 0;
+          for (let i = 0; i < cleanStored.length; i++) {
+            diff |= cleanStored.charCodeAt(i) ^ expectedHash.charCodeAt(i);
+          }
+          if (diff === 0) return true;
+        }
+      }
+    }
   }
 
-  const iterations = parseInt(parts[1], 10);
-  if (isNaN(iterations) || iterations < MIN_ALLOWED_ITERATIONS) {
-    return false;
+  // 2. Fallback transparan untuk akun legacy / plaintext yang baru di-seed di spreadsheet
+  if (cleanStored === password.trim()) {
+    return true;
   }
 
-  const expectedHash = hashPasswordPBKDF2(password, userSalt || getSystemSalt(), iterations);
-  if (storedHash.length !== expectedHash.length) return false;
-
-  let diff = 0;
-  for (let i = 0; i < storedHash.length; i++) {
-    diff |= storedHash.charCodeAt(i) ^ expectedHash.charCodeAt(i);
-  }
-  return diff === 0;
+  return false;
 }
 
 // ============================================================================
@@ -228,6 +237,7 @@ function bootstrapSuperadmin(initialPassword) {
     uSheet.getRange(userRow._rowIndex, 7).setValue('aktif');
     uSheet.getRange(userRow._rowIndex, 8).setValue('false');
     revokeUserSessions(userRow.id);
+    resetFailedLogin(INITIAL_SUPERADMIN_USER);
 
     Logger.log('=====================================================');
     Logger.log('SUKSES: Kata sandi akun (' + INITIAL_SUPERADMIN_USER + ') berhasil diperbarui.');
@@ -551,24 +561,40 @@ function revokeUserSessions(userId) {
 }
 
 function checkLoginRateLimit(normalizedUsername) {
+  if (!normalizedUsername) return { allowed: true };
   const cache = CacheService.getScriptCache();
-  const isLocked = cache.get('lockout_' + normalizedUsername);
-  if (isLocked) {
+  const cleanUser = String(normalizedUsername).trim().toLowerCase();
+  const lockoutVal = cache.get('lockout_' + cleanUser);
+  if (lockoutVal) {
+    let remainingMins = 15;
+    const unlockAt = parseInt(lockoutVal, 10);
+    if (!isNaN(unlockAt)) {
+      if (Date.now() >= unlockAt) {
+        // Lockout telah kedaluwarsa secara alami
+        cache.remove('lockout_' + cleanUser);
+        cache.remove('attempts_' + cleanUser);
+        return { allowed: true };
+      }
+      remainingMins = Math.max(1, Math.ceil((unlockAt - Date.now()) / 60000));
+    }
     return {
       allowed: false,
-      message: 'Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.'
+      message: 'Terlalu banyak percobaan login gagal. Akun dikunci sementara. Silakan coba lagi dalam ' + remainingMins + ' menit.'
     };
   }
   return { allowed: true };
 }
 
 function recordFailedLogin(normalizedUsername) {
+  if (!normalizedUsername) return false;
   const cache = CacheService.getScriptCache();
-  const attemptsKey = 'attempts_' + normalizedUsername;
+  const cleanUser = String(normalizedUsername).trim().toLowerCase();
+  const attemptsKey = 'attempts_' + cleanUser;
   let attempts = parseInt(cache.get(attemptsKey) || '0', 10) + 1;
   let isLocked = false;
   if (attempts >= 5) {
-    cache.put('lockout_' + normalizedUsername, 'true', 900);
+    const unlockAt = Date.now() + (15 * 60 * 1000);
+    cache.put('lockout_' + cleanUser, String(unlockAt), 900);
     cache.remove(attemptsKey);
     isLocked = true;
   } else {
@@ -578,9 +604,11 @@ function recordFailedLogin(normalizedUsername) {
 }
 
 function resetFailedLogin(normalizedUsername) {
+  if (!normalizedUsername) return;
   const cache = CacheService.getScriptCache();
-  cache.remove('attempts_' + normalizedUsername);
-  cache.remove('lockout_' + normalizedUsername);
+  const cleanUser = String(normalizedUsername).trim().toLowerCase();
+  cache.remove('attempts_' + cleanUser);
+  cache.remove('lockout_' + cleanUser);
 }
 
 function recordActivity(ss, userId, username, role, aksi, detail) {
@@ -833,14 +861,13 @@ function doPost(e) {
       }
 
       const users = getSheetData(ss, 'users');
-      const matchedUser = users.find(function(u) {
-        if (String(u.username || '').trim().toLowerCase() !== username) return false;
-        return verifyPassword(password, String(u.password_hash || ''), String(u.salt || ''));
+      const targetUser = users.find(function(u) {
+        return String(u.username || '').trim().toLowerCase() === username;
       });
 
-      if (!matchedUser || String(matchedUser.status || '').toLowerCase() === 'nonaktif') {
+      if (!targetUser) {
         const isLocked = recordFailedLogin(username);
-        recordActivity(ss, '-', username, 'superadmin', 'LOGIN_GAGAL', 'Percobaan login gagal untuk username: ' + username);
+        recordActivity(ss, '-', username, 'system', 'LOGIN_GAGAL', 'Percobaan login gagal untuk username tidak terdaftar: ' + username);
         return jsonResponse(
           false,
           null,
@@ -851,18 +878,48 @@ function doPost(e) {
         );
       }
 
+      if (String(targetUser.status || '').toLowerCase() === 'nonaktif') {
+        return jsonResponse(false, null, 'Akun Anda berstatus nonaktif. Silakan hubungi Administrator.', 'ACCOUNT_INACTIVE');
+      }
+
+      const isPasswordValid = verifyPassword(password, String(targetUser.password_hash || ''), String(targetUser.salt || ''));
+
+      if (!isPasswordValid) {
+        const isLocked = recordFailedLogin(username);
+        recordActivity(ss, targetUser.id, targetUser.username, targetUser.role, 'LOGIN_GAGAL', 'Kata sandi tidak sesuai untuk akun: ' + username);
+        return jsonResponse(
+          false,
+          null,
+          isLocked
+            ? 'Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.'
+            : 'Username atau password tidak valid.',
+          isLocked ? 'TOO_MANY_REQUESTS' : 'INVALID_CREDENTIALS'
+        );
+      }
+
+      // Login berhasil: reset penghitung gagal & lockout seketika
       resetFailedLogin(username);
 
-      const sessionToken = generateSessionToken(matchedUser.id);
+      // Auto-upgrade password jika tersimpan dalam format legacy / plain text
+      if (!String(targetUser.password_hash || '').startsWith('pbkdf2$')) {
+        try {
+          const newSalt = generateCryptographicSalt();
+          const newHash = hashPasswordPBKDF2(password, newSalt, PBKDF2_STANDARD_ITERATIONS);
+          ss.getSheetByName('users').getRange(targetUser._rowIndex, 3).setValue(newHash);
+          ss.getSheetByName('users').getRange(targetUser._rowIndex, 4).setValue(newSalt);
+        } catch (errUpgrade) {}
+      }
+
+      const sessionToken = generateSessionToken(targetUser.id);
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
       const expiresAt = Date.now() + (12 * 60 * 60 * 1000); // 12 Jam
 
-      const userRole = String(matchedUser.role || 'staff').toLowerCase();
+      const userRole = String(targetUser.role || 'staff').toLowerCase();
       const sessionData = {
-        userId: matchedUser.id,
-        username: matchedUser.username,
+        userId: targetUser.id,
+        username: targetUser.username,
         role: userRole,
-        nama: matchedUser.nama || 'Pengguna Sistem',
+        nama: targetUser.nama || 'Pengguna Sistem',
         mustChangePassword: false,
         createdAt: Date.now(),
         expiresAt: expiresAt
@@ -870,13 +927,13 @@ function doPost(e) {
 
       const cache = CacheService.getScriptCache();
       cache.put('session_' + sessionToken, JSON.stringify(sessionData), 21600); // 6 Jam
-      cache.put('user_active_token_' + matchedUser.id, sessionToken, 21600);
+      cache.put('user_active_token_' + targetUser.id, sessionToken, 21600);
 
       try {
-        ss.getSheetByName('users').getRange(matchedUser._rowIndex, 10).setValue(nowIso);
+        ss.getSheetByName('users').getRange(targetUser._rowIndex, 10).setValue(nowIso);
       } catch (err) {}
 
-      recordActivity(ss, matchedUser.id, matchedUser.username, userRole, 'LOGIN_SUKSES', 'Pengguna berhasil masuk ke sistem');
+      recordActivity(ss, targetUser.id, targetUser.username, userRole, 'LOGIN_SUKSES', 'Pengguna berhasil masuk ke sistem');
 
       return jsonResponse(true, {
         token: sessionToken,
@@ -2684,7 +2741,9 @@ function doPost(e) {
       }
 
       usersSheet.getRange(target._rowIndex, 7).setValue(newStatus);
-      if (newStatus === 'nonaktif') {
+      if (newStatus === 'aktif') {
+        resetFailedLogin(target.username);
+      } else {
         revokeUserSessions(target.id);
       }
 
@@ -2722,8 +2781,24 @@ function doPost(e) {
       usersSheet.getRange(target._rowIndex, 8).setValue('true');
 
       revokeUserSessions(target.id);
+      resetFailedLogin(target.username);
       recordActivity(ss, session.userId, session.username, session.role, 'RESET_PASSWORD_USER', 'Mereset kata sandi akun: ' + target.username);
-      return jsonResponse(true, { id: id }, 'Kata sandi pengguna berhasil direset.');
+      return jsonResponse(true, { id: id }, 'Kata sandi pengguna berhasil direset dan kunci akun dipulihkan.');
+    }
+
+    if (action === 'unlockUser') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat membuka kunci akun pengguna.', 'FORBIDDEN');
+      }
+
+      const targetUsername = String(payload.username || '').trim().toLowerCase();
+      if (!targetUsername) {
+        return jsonResponse(false, null, 'Username target wajib disertakan.', 'VALIDATION_ERROR');
+      }
+
+      resetFailedLogin(targetUsername);
+      recordActivity(ss, session.userId, session.username, session.role, 'UNLOCK_USER', 'Membuka kunci akun pengguna: ' + targetUsername);
+      return jsonResponse(true, { username: targetUsername }, 'Kunci akun ' + targetUsername + ' berhasil dibuka.');
     }
 
     if (action === 'deleteUser') {

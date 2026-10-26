@@ -404,6 +404,7 @@ const MOCK_ACTION_PERMISSIONS = {
   'updateUser': ['superadmin'],
   'toggleUserStatus': ['superadmin'],
   'resetUserPassword': ['superadmin'],
+  'unlockUser': ['superadmin'],
   'deleteUser': ['superadmin']
 };
 
@@ -585,40 +586,107 @@ async function handleMockRequest(action, payload) {
     const u = (payload.username || (payload.credentials && payload.credentials.username) || '').trim().toLowerCase();
     const p = payload.password || (payload.credentials && payload.credentials.password) || '';
 
-    // Cek Lockout
-    if (db.lockouts[u] && db.lockouts[u] > Date.now()) {
-      return { success: false, data: null, message: 'Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.', error: { code: 'TOO_MANY_REQUESTS' } };
+    if (!u || !p) {
+      return { success: false, data: null, message: 'Username dan kata sandi wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
     }
 
-    const matched = db.users.find((x) => x.username.toLowerCase() === u && x.password === p && x.status === 'aktif');
-    if (!matched) {
+    if (!db.lockouts) db.lockouts = {};
+    if (!db.failedAttempts) db.failedAttempts = {};
+
+    // Cek status Lockout
+    if (db.lockouts[u]) {
+      if (Date.now() < db.lockouts[u]) {
+        const remainingMins = Math.max(1, Math.ceil((db.lockouts[u] - Date.now()) / 60000));
+        return {
+          success: false,
+          data: null,
+          message: `Terlalu banyak percobaan login gagal. Akun dikunci sementara. Silakan coba lagi dalam ${remainingMins} menit.`,
+          error: { code: 'TOO_MANY_REQUESTS' }
+        };
+      } else {
+        // Lockout telah kedaluwarsa secara alami
+        delete db.lockouts[u];
+        delete db.failedAttempts[u];
+        saveMockDb(db);
+      }
+    }
+
+    const targetUser = db.users.find((x) => String(x.username || '').trim().toLowerCase() === u);
+    if (!targetUser) {
       db.failedAttempts[u] = (db.failedAttempts[u] || 0) + 1;
       let isLocked = false;
+      let msg = 'Username atau password tidak valid.';
       if (db.failedAttempts[u] >= 5) {
         db.lockouts[u] = Date.now() + 15 * 60 * 1000;
         delete db.failedAttempts[u];
         isLocked = true;
+        msg = 'Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.';
       }
       saveMockDb(db);
       return {
         success: false,
         data: null,
-        message: isLocked ? 'Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.' : 'Username atau password tidak valid.',
+        message: msg,
         error: { code: isLocked ? 'TOO_MANY_REQUESTS' : 'INVALID_CREDENTIALS' }
       };
     }
 
-    // Reset percobaan gagal saat sukses
+    // Jika akun berstatus nonaktif
+    if (String(targetUser.status || '').toLowerCase() === 'nonaktif') {
+      return {
+        success: false,
+        data: null,
+        message: 'Akun Anda berstatus nonaktif. Silakan hubungi Administrator.',
+        error: { code: 'ACCOUNT_INACTIVE' }
+      };
+    }
+
+    // Verifikasi password (mendukung teks polos maupun PBKDF2 hash)
+    let isPasswordValid = false;
+    if (targetUser.password === p) {
+      isPasswordValid = true;
+    } else if (typeof targetUser.password === 'string' && targetUser.password.startsWith('pbkdf2$')) {
+      const parts = targetUser.password.split('$');
+      if (parts.length === 3) {
+        const iter = parseInt(parts[1], 10);
+        const salt = targetUser.salt || 'default_salt';
+        const expected = hashPasswordPBKDF2Simulator(p, salt, iter);
+        if (expected === targetUser.password) {
+          isPasswordValid = true;
+        }
+      }
+    }
+
+    if (!isPasswordValid) {
+      db.failedAttempts[u] = (db.failedAttempts[u] || 0) + 1;
+      let isLocked = false;
+      let msg = 'Username atau password tidak valid.';
+      if (db.failedAttempts[u] >= 5) {
+        db.lockouts[u] = Date.now() + 15 * 60 * 1000;
+        delete db.failedAttempts[u];
+        isLocked = true;
+        msg = 'Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.';
+      }
+      saveMockDb(db);
+      return {
+        success: false,
+        data: null,
+        message: msg,
+        error: { code: isLocked ? 'TOO_MANY_REQUESTS' : 'INVALID_CREDENTIALS' }
+      };
+    }
+
+    // Login sukses: reset penghitung gagal & lockout seketika
     delete db.failedAttempts[u];
     delete db.lockouts[u];
 
-    const token = 'DPRD_SES_' + matched.id + '_' + Date.now();
+    const token = 'DPRD_SES_' + targetUser.id + '_' + Date.now();
     const userObj = {
-      id: matched.id,
-      username: matched.username,
-      nama: matched.nama,
-      role: matched.role,
-      mustChangePassword: Boolean(matched.must_change_password)
+      id: targetUser.id,
+      username: targetUser.username,
+      nama: targetUser.nama,
+      role: targetUser.role,
+      mustChangePassword: Boolean(targetUser.must_change_password)
     };
 
     safeSessionStorage.setItem('dprd_token', token);
@@ -1814,6 +1882,11 @@ async function handleMockRequest(action, payload) {
       }
 
       target.status = payload.status;
+      if (payload.status === 'aktif') {
+        const cleanU = String(target.username || '').toLowerCase();
+        if (db.failedAttempts) delete db.failedAttempts[cleanU];
+        if (db.lockouts) delete db.lockouts[cleanU];
+      }
       saveMockDb(db);
       // Jika akun dinonaktifkan, cabut sesi
       if (payload.status === 'nonaktif' && currentUser.id === payload.id) {
@@ -1859,15 +1932,29 @@ async function handleMockRequest(action, payload) {
       if (target) {
         target.password = payload.newPassword;
         target.must_change_password = true;
+        const cleanU = String(target.username || '').toLowerCase();
+        if (db.failedAttempts) delete db.failedAttempts[cleanU];
+        if (db.lockouts) delete db.lockouts[cleanU];
         saveMockDb(db);
         // Cabut sesi aktif pengguna yang direset
         if (currentUser.id === payload.id) {
           safeSessionStorage.removeItem('dprd_token');
           safeSessionStorage.removeItem('dprd_user');
         }
-        return { success: true, message: 'Password berhasil direset.' };
+        return { success: true, message: 'Password berhasil direset dan kunci akun dipulihkan.' };
       }
       return { success: false, message: 'Pengguna tidak ditemukan.' };
+    }
+
+    case 'unlockUser': {
+      const targetUser = String(payload.username || '').trim().toLowerCase();
+      if (!targetUser) {
+        return { success: false, data: null, message: 'Username target wajib disertakan.', error: { code: 'VALIDATION_ERROR' } };
+      }
+      if (db.failedAttempts) delete db.failedAttempts[targetUser];
+      if (db.lockouts) delete db.lockouts[targetUser];
+      saveMockDb(db);
+      return { success: true, data: { username: targetUser }, message: `Kunci akun ${targetUser} berhasil dibuka.` };
     }
 
     case 'clearActivityLog': {
@@ -2049,6 +2136,7 @@ export const api = {
   deleteUser: (id) => callAppsScript('deleteUser', { id }),
   toggleUserStatus: (id, status) => callAppsScript('toggleUserStatus', { id, status }),
   resetUserPassword: (id, newPassword) => callAppsScript('resetUserPassword', { id, newPassword }),
+  unlockUser: (username) => callAppsScript('unlockUser', { username }),
 
   // Audit Log
   getActivityLog: (limit = 100) => callAppsScript('getActivityLog', { limit }),
