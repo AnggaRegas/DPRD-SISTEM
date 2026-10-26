@@ -37,97 +37,101 @@
     </header>
 
     <!-- MAIN CONTENT -->
-    <main class="main-content" style="max-width: 900px;">
-      <div class="page-title-bar">
-        <div class="page-title-text">
-          <h1>Unggah Berkas Fisik & Metadata Arsip</h1>
-          <p>Berkas fisik akan diunggah ke Google Drive dan metadata dicatat ke basis data DPRD Kota Parepare.</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">Formulir Pengarsipan Berkas</h2>
-            <p class="card-subtitle">Lengkapi identitas kedewanan, klasifikasi, dan pilih berkas dokumen.</p>
+    <main class="main-content">
+      <div class="form-page-container">
+        <div class="page-title-bar">
+          <div class="page-title-text">
+            <h1>Unggah Berkas Fisik & Metadata Arsip</h1>
+            <p>Berkas fisik akan diunggah ke Google Drive dan metadata dicatat ke basis data DPRD Kota Parepare.</p>
           </div>
         </div>
-        <div class="card-body">
-          <form id="uploadDokumenForm">
-            <div class="form-group">
-              <label for="selectDewan" class="form-label">Anggota DPRD Terkait <span class="required">*</span></label>
-              <select id="selectDewan" class="form-select" required>
-                <option value="">-- Pilih Anggota DPRD --</option>
-              </select>
-            </div>
 
-            <div class="form-group">
-              <label for="selectKategori" class="form-label">Kategori Arsip Dokumen <span class="required">*</span></label>
-              <select id="selectKategori" class="form-select" required>
-                <option value="">-- Pilih Kategori Dokumen --</option>
-              </select>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Formulir Pengarsipan Berkas</h2>
+              <p class="card-subtitle">Lengkapi identitas kedewanan, klasifikasi, dan pilih berkas dokumen.</p>
             </div>
+          </div>
+          <div class="card-body">
+            <form id="uploadDokumenForm">
+              <div class="form-grid-2col">
+                <div class="form-group">
+                  <label for="selectDewan" class="form-label">Anggota DPRD Terkait <span class="required">*</span></label>
+                  <select id="selectDewan" class="form-select" required>
+                    <option value="">-- Pilih Anggota DPRD --</option>
+                  </select>
+                </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px;">
+                <div class="form-group">
+                  <label for="selectKategori" class="form-label">Kategori Arsip Dokumen <span class="required">*</span></label>
+                  <select id="selectKategori" class="form-select" required>
+                    <option value="">-- Pilih Kategori Dokumen --</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-year-folder">
+                <div class="form-group">
+                  <label for="inputTahun" class="form-label">Tahun Anggaran <span class="required">*</span></label>
+                  <input type="number" id="inputTahun" class="form-input" min="2020" max="2035" value="2026" required>
+                </div>
+                <div class="form-group">
+                  <label for="inputFolder" class="form-label">Nama Folder Berkas <span class="required">*</span></label>
+                  <input type="text" id="inputFolder" class="form-input" placeholder="Contoh: Masa Sidang I" required>
+                </div>
+              </div>
+
               <div class="form-group">
-                <label for="inputTahun" class="form-label">Tahun Anggaran <span class="required">*</span></label>
-                <input type="number" id="inputTahun" class="form-input" min="2020" max="2035" value="2026" required>
+                <label for="inputNamaDokumen" class="form-label">Judul / Nama Dokumen Resmi <span class="required">*</span></label>
+                <input type="text" id="inputNamaDokumen" class="form-input" placeholder="Contoh: Laporan Pokir Masa Persidangan I Tahun 2026" required>
               </div>
+
+              <!-- DROPZONE BERKAS FISIK -->
               <div class="form-group">
-                <label for="inputFolder" class="form-label">Nama Folder Berkas <span class="required">*</span></label>
-                <input type="text" id="inputFolder" class="form-input" placeholder="Contoh: Masa Sidang I" required>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="inputNamaDokumen" class="form-label">Judul / Nama Dokumen Resmi <span class="required">*</span></label>
-              <input type="text" id="inputNamaDokumen" class="form-input" placeholder="Contoh: Laporan Pokir Masa Persidangan I Tahun 2026" required>
-            </div>
-
-            <!-- DROPZONE BERKAS FISIK -->
-            <div class="form-group">
-              <label class="form-label">Berkas Fisik Dokumen (Maks. 20 MB) <span class="required">*</span></label>
-              <div class="upload-dropzone" id="dropzone">
-                <input type="file" id="inputFile" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
-                <div class="upload-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
+                <label class="form-label">Berkas Fisik Dokumen (Maks. 20 MB) <span class="required">*</span></label>
+                <div class="upload-dropzone" id="dropzone">
+                  <input type="file" id="inputFile" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                  <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <div class="upload-title">Klik atau seret berkas dokumen ke sini</div>
+                  <div class="upload-subtitle">Format resmi didukung: PDF, DOCX, DOC, XLSX, XLS, JPG, PNG</div>
                 </div>
-                <div class="upload-title">Klik atau seret berkas dokumen ke sini</div>
-                <div class="upload-subtitle">Format resmi didukung: PDF, DOCX, DOC, XLSX, XLS, JPG, PNG</div>
+
+                <!-- PREVIEW BERKAS DIPILIH -->
+                <div id="filePreviewCard" class="file-preview-card" style="display: none;">
+                  <div class="archive-card-icon" style="width: 38px; height: 38px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </div>
+                  <div style="flex: 1; overflow: hidden;">
+                    <strong id="previewFileName" style="display: block; font-size: 13.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">nama_file.pdf</strong>
+                    <span id="previewFileSize" style="font-size: 12px; color: var(--text-muted);">0 KB</span>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnChangeFile">Ganti Berkas</button>
+                </div>
               </div>
 
-              <!-- PREVIEW BERKAS DIPILIH -->
-              <div id="filePreviewCard" class="file-preview-card" style="display: none;">
-                <div class="archive-card-icon" style="width: 38px; height: 38px;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                </div>
-                <div style="flex: 1; overflow: hidden;">
-                  <strong id="previewFileName" style="display: block; font-size: 13.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">nama_file.pdf</strong>
-                  <span id="previewFileSize" style="font-size: 12px; color: var(--text-muted);">0 KB</span>
-                </div>
-                <button type="button" class="btn btn-secondary btn-sm" id="btnChangeFile">Ganti Berkas</button>
+              <div class="form-group">
+                <label for="inputKeterangan" class="form-label">Catatan / Ringkasan Dokumen (Opsional)</label>
+                <textarea id="inputKeterangan" class="form-textarea" rows="3" placeholder="Tambahkan informasi penting mengenai isi dokumen arsip"></textarea>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label for="inputKeterangan" class="form-label">Catatan / Ringkasan Dokumen (Opsional)</label>
-              <textarea id="inputKeterangan" class="form-textarea" placeholder="Tambahkan informasi penting mengenai isi dokumen arsip"></textarea>
-            </div>
-
-            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-light);">
-              <a href="arsip_dewan.html" class="btn btn-secondary">Batal</a>
-              <button type="submit" class="btn btn-gold" id="btnSubmitUpload">
-                <span id="btnSubmitText">Unggah ke Google Drive</span>
-              </button>
-            </div>
-          </form>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+                <a href="arsip_dewan.html" class="btn btn-secondary">Batal</a>
+                <button type="submit" class="btn btn-gold" id="btnSubmitUpload">
+                  <span id="btnSubmitText">Unggah ke Google Drive</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </main>

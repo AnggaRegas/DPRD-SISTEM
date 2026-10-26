@@ -37,80 +37,82 @@
     </header>
 
     <!-- MAIN CONTENT -->
-    <main class="main-content" style="max-width: 800px;">
-      <div class="page-title-bar">
-        <div class="page-title-text">
-          <h1>Edit Dokumen Arsip</h1>
-          <p>Perbarui judul dokumen, kategori, atau perbarui berkas fisik di Google Drive.</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">Formulir Metadata Dokumen</h2>
-            <p class="card-subtitle">Perubahan metadata dan berkas akan disinkronkan ke database Google Sheets dan Drive.</p>
+    <main class="main-content">
+      <div class="form-page-container">
+        <div class="page-title-bar">
+          <div class="page-title-text">
+            <h1>Edit Dokumen Arsip</h1>
+            <p>Perbarui judul dokumen, kategori, atau perbarui berkas fisik di Google Drive.</p>
           </div>
         </div>
-        <div class="card-body">
-          <div id="loadingBox" class="loading-state" style="padding: 40px 0;">
-            <div class="spinner"></div>
-            <p>Memuat data dokumen arsip...</p>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Formulir Metadata Dokumen</h2>
+              <p class="card-subtitle">Perubahan metadata dan berkas akan disinkronkan ke database Google Sheets dan Drive.</p>
+            </div>
           </div>
-
-          <form id="editDokumenForm" style="display:none;">
-            <input type="hidden" id="docId">
-
-            <div class="form-group">
-              <label for="inputNamaDokumen" class="form-label">Nama / Judul Dokumen <span class="required">*</span></label>
-              <input type="text" id="inputNamaDokumen" class="form-input" required autofocus>
+          <div class="card-body">
+            <div id="loadingBox" class="loading-state" style="padding: 40px 0;">
+              <div class="spinner"></div>
+              <p>Memuat data dokumen arsip...</p>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-              <div class="form-group">
-                <label for="selectKategori" class="form-label">Kategori Dokumen <span class="required">*</span></label>
-                <select id="selectKategori" class="form-select" required></select>
-              </div>
+            <form id="editDokumenForm" style="display:none;">
+              <input type="hidden" id="docId">
 
               <div class="form-group">
-                <label for="inputTahun" class="form-label">Tahun Dokumen <span class="required">*</span></label>
-                <input type="number" id="inputTahun" class="form-input" min="1900" max="2100" required>
+                <label for="inputNamaDokumen" class="form-label">Nama / Judul Dokumen <span class="required">*</span></label>
+                <input type="text" id="inputNamaDokumen" class="form-input" required autofocus>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label class="form-label">Berkas Fisik Saat Ini di Google Drive</label>
-              <div style="padding: 12px 16px; background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--navy-600)" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                  <span id="currentFileName" style="font-weight: 600; color: var(--navy-900);">Memuat nama berkas...</span>
+              <div class="form-grid-2col">
+                <div class="form-group">
+                  <label for="selectKategori" class="form-label">Kategori Dokumen <span class="required">*</span></label>
+                  <select id="selectKategori" class="form-select" required></select>
                 </div>
-                <a href="#" id="currentFileLink" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Buka di Drive &rarr;</a>
+
+                <div class="form-group">
+                  <label for="inputTahun" class="form-label">Tahun Dokumen <span class="required">*</span></label>
+                  <input type="number" id="inputTahun" class="form-input" min="1900" max="2100" required>
+                </div>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label for="inputFileBaru" class="form-label">Ganti Berkas Fisik (Opsional)</label>
-              <input type="file" id="inputFileBaru" class="form-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
-              <p class="form-hint" style="margin-top: 6px;">Biarkan kosong jika tidak ingin mengganti file yang ada. Format didukung: PDF, Word, Excel, Gambar (Maks 20MB).</p>
-            </div>
-
-            <div class="form-group">
-              <label for="inputKeterangan" class="form-label">Keterangan / Catatan</label>
-              <textarea id="inputKeterangan" class="form-textarea" rows="3" placeholder="Opsional"></textarea>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px;">
-              <div style="display:flex; gap:10px;">
-                <button type="submit" id="btnSubmitEdit" class="btn btn-gold">Simpan Perubahan</button>
-                <button type="button" id="btnBatal" class="btn btn-secondary">Batal</button>
+              <div class="form-group">
+                <label class="form-label">Berkas Fisik Saat Ini di Google Drive</label>
+                <div style="padding: 12px 16px; background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--navy-600)" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span id="currentFileName" style="font-weight: 600; color: var(--navy-900);">Memuat nama berkas...</span>
+                  </div>
+                  <a href="#" id="currentFileLink" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Buka di Drive &rarr;</a>
+                </div>
               </div>
-              <button type="button" id="btnDeleteDoc" class="btn btn-danger">Hapus Dokumen</button>
-            </div>
-          </form>
+
+              <div class="form-group">
+                <label for="inputFileBaru" class="form-label">Ganti Berkas Fisik (Opsional)</label>
+                <input type="file" id="inputFileBaru" class="form-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
+                <p class="form-hint" style="margin-top: 6px;">Biarkan kosong jika tidak ingin mengganti file yang ada. Format didukung: PDF, Word, Excel, Gambar (Maks 20MB).</p>
+              </div>
+
+              <div class="form-group">
+                <label for="inputKeterangan" class="form-label">Keterangan / Catatan</label>
+                <textarea id="inputKeterangan" class="form-textarea" rows="3" placeholder="Opsional"></textarea>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px;">
+                <div style="display:flex; gap:10px;">
+                  <button type="submit" id="btnSubmitEdit" class="btn btn-gold">Simpan Perubahan</button>
+                  <button type="button" id="btnBatal" class="btn btn-secondary">Batal</button>
+                </div>
+                <button type="button" id="btnDeleteDoc" class="btn btn-danger">Hapus Dokumen</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </main>

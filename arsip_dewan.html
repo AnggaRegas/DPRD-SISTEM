@@ -146,9 +146,9 @@
               </button>
             </div>
           </div>
-          <div class="card-body">
-            <div class="archive-grid" id="kategoriGrid">
-              <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">
+          <div class="card-body" style="padding: 0;">
+            <div id="kategoriGrid" style="width: 100%;">
+              <div style="text-align: center; padding: 36px; color: var(--text-muted);">
                 Memuat kategori dokumen...
               </div>
             </div>
@@ -160,7 +160,7 @@
 
   <!-- MODAL TAMBAH KATEGORI ARSIP -->
   <div class="modal-backdrop" id="modalTambahKatBackdrop" style="display: none;">
-    <div class="modal-content" style="max-width: 520px;">
+    <div class="modal-content" style="width: min(100% - 32px, 520px); max-width: 520px;">
       <div class="modal-header">
         <h3 class="modal-title">Tambah Kategori Arsip Dokumen</h3>
         <button type="button" class="modal-close" id="btnCloseModalTambahKat">&times;</button>
@@ -186,7 +186,7 @@
 
   <!-- MODAL EDIT KATEGORI ARSIP -->
   <div class="modal-backdrop" id="modalEditKatBackdrop" style="display: none;">
-    <div class="modal-content" style="max-width: 520px;">
+    <div class="modal-content" style="width: min(100% - 32px, 520px); max-width: 520px;">
       <div class="modal-header">
         <h3 class="modal-title">Edit Kategori Arsip Dokumen</h3>
         <button type="button" class="modal-close" id="btnCloseModalEditKat">&times;</button>
@@ -566,46 +566,55 @@
             return;
           }
 
-          grid.innerHTML = categories.map((k) => {
-            const isProtected = isResesCategory(k.nama_kategori) || isPokirCategory(k.nama_kategori);
-            return `
-              <div class="archive-card" style="border-top: 3px solid var(--gold-primary);">
-                <div class="archive-card-header">
-                  <div class="archive-card-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--gold-primary);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="archive-card-title">${k.nama_kategori || '-'}</div>
-                    <div class="archive-card-desc">${k.deskripsi || 'Arsip resmi dokumen dewan'}</div>
-                  </div>
-                </div>
-                <div class="archive-card-footer">
-                  <span class="status-pill aktif" style="font-size:11.5px;">
-                    <span class="status-pill-dot"></span>
-                    <span class="jumlah-dokumen">${Number(k.jumlah_dokumen || 0)} Dokumen</span>
-                  </span>
-                  <a href="dokumen_tahun.html?dewan_id=${encodeURIComponent(id)}&kategori_id=${encodeURIComponent(k.id)}" class="btn btn-gold btn-sm btn-pilih-tahun">
-                    Pilih Tahun &rarr;
-                  </a>
-                </div>
-                ${canManage ? `
-                  <div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border-light);flex-wrap:wrap;">
-                    <button type="button" class="btn btn-secondary btn-sm btn-edit-kategori" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" data-deskripsi="${k.deskripsi || ''}">
-                      Edit
-                    </button>
-                    ${!isProtected ? `
-                      <button type="button" class="btn btn-secondary btn-sm btn-hapus-kategori" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" style="color:var(--status-danger);">
-                        Hapus
-                      </button>
-                    ` : ''}
-                  </div>
-                ` : ''}
+          grid.innerHTML = `
+            <div class="category-table-list" style="border: none; border-radius: 0;">
+              <div class="category-table-head">
+                <div>Kategori Dokumen</div>
+                <div>Jumlah Dokumen</div>
+                <div style="text-align: right;">Aksi</div>
               </div>
-            `;
-          }).join('');
+              ${categories.map((k) => {
+                const isProtected = isResesCategory(k.nama_kategori) || isPokirCategory(k.nama_kategori);
+                return `
+                  <div class="category-row-item">
+                    <div class="category-row-main">
+                      <div class="category-row-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                      </div>
+                      <div class="category-row-info">
+                        <div class="category-row-title">${k.nama_kategori || '-'}</div>
+                        <div class="category-row-desc">${k.deskripsi || 'Arsip resmi dokumen dewan'}</div>
+                      </div>
+                    </div>
+                    <div class="category-row-count">
+                      <span class="status-pill aktif" style="font-size:12px;">
+                        <span class="status-pill-dot"></span>
+                        <span class="jumlah-dokumen">${Number(k.jumlah_dokumen || 0)} Dokumen</span>
+                      </span>
+                    </div>
+                    <div class="category-row-actions">
+                      <a href="dokumen_tahun.html?dewan_id=${encodeURIComponent(id)}&kategori_id=${encodeURIComponent(k.id)}" class="btn btn-gold btn-sm btn-pilih-tahun">
+                        Pilih Tahun &rarr;
+                      </a>
+                      ${canManage ? `
+                        <button type="button" class="btn btn-secondary btn-sm btn-edit-kategori" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" data-deskripsi="${k.deskripsi || ''}">
+                          Edit
+                        </button>
+                        ${!isProtected ? `
+                          <button type="button" class="btn btn-secondary btn-sm btn-hapus-kategori" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" style="color:var(--status-danger);">
+                            Hapus
+                          </button>
+                        ` : ''}
+                      ` : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
 
           if (canManage) {
             // Pasang event edit

@@ -1618,9 +1618,10 @@ body.sidebar-collapsed .main-wrapper {
   border-radius: var(--border-radius-xl);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
   border: 1px solid rgba(212, 175, 55, 0.25);
-  width: 100%;
+  width: min(100% - 32px, 580px);
   max-width: 580px;
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -2042,5 +2043,163 @@ body.mobile-nav-open {
 
   .btn {
     min-height: 44px;
+  }
+}
+
+/* ==========================================================================
+   DAFTAR KATEGORI ARSIP HORIZONTAL (TABLE-LIKE ROW LIST)
+   Mengubah kartu persegi menjadi baris horizontal elegan membentang penuh
+   ========================================================================== */
+.category-table-list {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  overflow: hidden;
+}
+
+.category-table-head {
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) minmax(130px, 1fr) auto;
+  align-items: center;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid var(--border-light);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.category-row-item {
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) minmax(130px, 1fr) auto;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-light);
+  background-color: #ffffff;
+  transition: all 0.18s ease;
+  gap: 20px;
+}
+
+.category-row-item:last-child {
+  border-bottom: none;
+}
+
+.category-row-item:hover {
+  background-color: #fbfcfd;
+  box-shadow: inset 3px 0 0 var(--gold-primary);
+}
+
+.category-row-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.category-row-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--border-radius-md);
+  background: rgba(184, 134, 11, 0.1);
+  color: var(--gold-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.category-row-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.category-row-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.category-row-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy-900);
+  margin-bottom: 4px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.category-row-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.category-row-count {
+  display: flex;
+  align-items: center;
+}
+
+.category-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .category-table-head {
+    display: none;
+  }
+
+  .category-row-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 16px 18px;
+  }
+
+  .category-row-actions {
+    justify-content: flex-start;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-light);
+  }
+}
+
+/* ==========================================================================
+   CONTAINER FORMULIR SEIMBANG & PROPORSIONAL
+   Mencegah formulir terisolasi sempit di kiri pada layar desktop lebar
+   ========================================================================== */
+.form-page-container {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-grid-year-folder {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .form-grid-2col,
+  .form-grid-year-folder {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
