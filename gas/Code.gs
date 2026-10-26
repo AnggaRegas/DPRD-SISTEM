@@ -419,6 +419,15 @@ function isKategoriMatching(ss, katParam, recordKatId) {
   const r = String(recordKatId).trim().toLowerCase();
   if (p === r) return true;
 
+  // Pencocokan numerik murni jika format KAT-01 vs 1, KAT-02 vs 2, dsb.
+  const numP = p.replace(/[^0-9]/g, '');
+  const numR = r.replace(/[^0-9]/g, '');
+  if (numP && numR && parseInt(numP, 10) === parseInt(numR, 10)) {
+    const isPrefixP = p.indexOf('kat-') === 0 || /^\d+$/.test(p);
+    const isPrefixR = r.indexOf('kat-') === 0 || /^\d+$/.test(r);
+    if (isPrefixP && isPrefixR) return true;
+  }
+
   const isPokir = function(val) {
     return val === 'kat-01' || val === '1' || val === 'pokir' || val === 'pokok-pokok pikiran' || val === 'pokok pikiran' || val.indexOf('pokir') !== -1 || val.indexOf('pokok') !== -1;
   };
@@ -428,6 +437,18 @@ function isKategoriMatching(ss, katParam, recordKatId) {
 
   if (isPokir(p) && isPokir(r)) return true;
   if (isReses(p) && isReses(r)) return true;
+
+  // Jika ss tersedia, cocokkan nama kategori di sheet kategori_dokumen
+  if (ss) {
+    try {
+      const allKat = getSheetData(ss, 'kategori_dokumen');
+      const objP = allKat.find(function(k) { return String(k.id || '').trim().toLowerCase() === p || String(k.nama_kategori || '').trim().toLowerCase() === p; });
+      const objR = allKat.find(function(k) { return String(k.id || '').trim().toLowerCase() === r || String(k.nama_kategori || '').trim().toLowerCase() === r; });
+      const nameP = objP ? String(objP.nama_kategori || '').trim().toLowerCase() : p;
+      const nameR = objR ? String(objR.nama_kategori || '').trim().toLowerCase() : r;
+      if (nameP === nameR) return true;
+    } catch (e) {}
+  }
 
   return false;
 }
@@ -1262,8 +1283,8 @@ function doPost(e) {
     }
 
     if (action === 'createKategori') {
-      if (session.role !== 'superadmin') {
-        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menambah kategori.', 'FORBIDDEN');
+      if (session.role !== 'superadmin' && session.role !== 'admin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin dan Admin yang dapat menambah kategori.', 'FORBIDDEN');
       }
 
       const nama = String(payload.nama_kategori || '').trim();
@@ -1288,8 +1309,8 @@ function doPost(e) {
     }
 
     if (action === 'updateKategori') {
-      if (session.role !== 'superadmin') {
-        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat mengubah kategori.', 'FORBIDDEN');
+      if (session.role !== 'superadmin' && session.role !== 'admin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin dan Admin yang dapat mengubah kategori.', 'FORBIDDEN');
       }
 
       const id = String(payload.id || '').trim();
@@ -1302,6 +1323,13 @@ function doPost(e) {
 
       if (!target) return jsonResponse(false, null, 'Kategori tidak ditemukan.', 'NOT_FOUND');
 
+      if (nama && nama.toLowerCase() !== String(target.nama_kategori || '').toLowerCase()) {
+        const dup = allKat.some(function(k) {
+          return String(k.id || '').trim() !== id && String(k.nama_kategori || '').trim().toLowerCase() === nama.toLowerCase();
+        });
+        if (dup) return jsonResponse(false, null, 'Kategori dengan nama "' + nama + '" sudah ada.', 'DUPLICATE_CATEGORY');
+      }
+
       const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
       if (nama) katSheet.getRange(target._rowIndex, 2).setValue(sanitizeSheetValue(nama));
       if (deskripsi !== null) katSheet.getRange(target._rowIndex, 3).setValue(sanitizeSheetValue(deskripsi));
@@ -1312,25 +1340,30 @@ function doPost(e) {
     }
 
     if (action === 'deleteKategori') {
-      if (session.role !== 'superadmin') {
-        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menghapus kategori.', 'FORBIDDEN');
+      if (session.role !== 'superadmin' && session.role !== 'admin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin dan Admin yang dapat menghapus kategori.', 'FORBIDDEN');
       }
 
       const id = String(payload.id || '').trim();
-      const allDocs = getSheetData(ss, 'dokumen');
-      const hasDocs = allDocs.some(function(doc) {
-        return String(doc.kategori_id || '').trim() === id && String(doc.status || '').toLowerCase() === 'aktif';
-      });
-
-      if (hasDocs) {
-        return jsonResponse(false, null, 'Kategori tidak dapat dihapus karena masih digunakan oleh dokumen arsip aktif.', 'HAS_DEPENDENT_RECORDS');
-      }
-
       const katSheet = ss.getSheetByName('kategori_dokumen');
       const allKat = getSheetData(ss, 'kategori_dokumen');
       const target = allKat.find(function(k) { return String(k.id || '').trim() === id; });
 
       if (!target) return jsonResponse(false, null, 'Kategori tidak ditemukan.', 'NOT_FOUND');
+
+      const namaLow = String(target.nama_kategori || '').toLowerCase();
+      if (namaLow.indexOf('reses') !== -1 || namaLow.indexOf('pokir') !== -1 || namaLow.indexOf('pokok') !== -1) {
+        return jsonResponse(false, null, 'Kategori bawaan sistem (Hasil Reses / Pokir) tidak dapat dihapus.', 'SYSTEM_CATEGORY_PROTECTED');
+      }
+
+      const allDocs = getSheetData(ss, 'dokumen');
+      const hasDocs = allDocs.some(function(doc) {
+        return isKategoriMatching(ss, id, doc.kategori_id) && String(doc.status || '').toLowerCase() === 'aktif';
+      });
+
+      if (hasDocs) {
+        return jsonResponse(false, null, 'Kategori tidak dapat dihapus karena masih digunakan oleh dokumen arsip aktif.', 'HAS_DEPENDENT_RECORDS');
+      }
 
       katSheet.deleteRow(target._rowIndex);
       recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_KATEGORI', 'Menghapus kategori: ' + target.nama_kategori);
@@ -2063,7 +2096,7 @@ function doPost(e) {
       const namaDokumen = String(data.nama_dokumen || data.judul || '').trim();
       const keterangan = String(data.keterangan || '').trim();
       const fileName = String(data.fileName || data.nama_file || 'rdp.pdf').trim();
-      const base64Data = data.base64;
+      const base64Data = data.base64 || data.fileData;
 
       if (!tahun || !namaDokumen || !base64Data) {
         return jsonResponse(false, null, 'Tahun, judul dokumen, dan berkas fisik wajib diisi.', 'VALIDATION_ERROR');

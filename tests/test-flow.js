@@ -1139,6 +1139,127 @@ async function runAllTests() {
   });
   assert(!pokirSub3.success && (pokirSub3.error?.code === 'DUPLICATE_REALIZED_PROPOSAL' || pokirSub3.message.includes('terealisasi')), 'Pengajuan usulan Pokir yang telah terealisasi ditolak backend dengan pesan resmi');
 
+  // --- 20. Pengujian Validasi Upload Dokumen RDP & Pengelolaan Kategori Arsip Dewan ---
+  console.log(`\n--- 20. Pengujian Validasi Upload Dokumen RDP & Pengelolaan Kategori Arsip Dewan ---`);
+
+  // Login kembali sebagai superadmin
+  await api.login('superadmin', 'PasswordBaruSuper2026!');
+
+  // Test 20.1: Upload RDP tanpa nama dokumen / judul ditolak
+  const upRdpNoJudul = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: 2026,
+    nama_dokumen: '',
+    fileName: 'berkas.pdf',
+    base64: 'dGVzdA=='
+  });
+  assert(!upRdpNoJudul.success && upRdpNoJudul.error?.code === 'VALIDATION_ERROR', 'Upload RDP tanpa judul ditolak (VALIDATION_ERROR)');
+
+  // Test 20.2: Upload RDP tanpa tahun ditolak
+  const upRdpNoTahun = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: '',
+    nama_dokumen: 'RDP Pembahasan Anggaran',
+    fileName: 'berkas.pdf',
+    base64: 'dGVzdA=='
+  });
+  assert(!upRdpNoTahun.success && upRdpNoTahun.error?.code === 'VALIDATION_ERROR', 'Upload RDP tanpa tahun ditolak (VALIDATION_ERROR)');
+
+  // Test 20.3: Upload RDP dengan berkas kosong ditolak
+  const upRdpNoFile = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: 2026,
+    nama_dokumen: 'RDP Tanpa Berkas',
+    fileName: '',
+    base64: ''
+  });
+  assert(!upRdpNoFile.success && upRdpNoFile.error?.code === 'VALIDATION_ERROR', 'Upload RDP tanpa berkas fisik ditolak (VALIDATION_ERROR)');
+
+  // Test 20.4: Upload RDP dengan payload base64 berhasil
+  const upRdpBase64 = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: 2026,
+    nama_dokumen: 'RDP Uji Payload Base64',
+    keterangan: 'Uji format payload base64',
+    fileName: 'uji_base64.pdf',
+    base64: 'JVBERi0xLjQKJcTl8uXr...'
+  });
+  assert(upRdpBase64.success && upRdpBase64.data?.id, 'Upload RDP dengan format payload base64 berhasil');
+
+  // Test 20.5: Upload RDP dengan payload fileData berhasil (kompatibilitas FileReader)
+  const upRdpFileData = await api.uploadRdpDokumen({
+    komisi_id: 'KOM-1',
+    tahun: 2026,
+    nama_dokumen: 'RDP Uji Payload FileData',
+    keterangan: 'Uji format payload fileData',
+    fileName: 'uji_filedata.pdf',
+    fileData: 'JVBERi0xLjQKJcTl8uXr...'
+  });
+  assert(upRdpFileData.success && upRdpFileData.data?.id, 'Upload RDP dengan format payload fileData berhasil');
+
+  // Hapus dokumen RDP uji
+  await api.deleteRdpDokumen(upRdpBase64.data.id);
+  await api.deleteRdpDokumen(upRdpFileData.data.id);
+
+  // Buat akun Admin untuk pengujian hak kelola kategori
+  const adminTestUser = await api.createUser({
+    username: 'admin_kategori_test',
+    nama: 'Admin Kategori Test',
+    role: 'admin',
+    password: 'PasswordAdminKat2026!'
+  });
+  assert(adminTestUser.success, 'Akun admin uji kategori berhasil dibuat');
+
+  // Login sebagai Admin
+  await api.logout();
+  await api.login('admin_kategori_test', 'PasswordAdminKat2026!');
+  await api.changePassword('PasswordAdminKat2026!', 'PasswordAdminKatValid123!');
+
+  // Test 20.6: Admin berhak menambah kategori arsip baru
+  const katBaruRes = await api.createKategori('Sosialisasi Perda 2026', 'Kategori arsip sosialisasi perda anggota dewan');
+  assert(katBaruRes.success && katBaruRes.data?.id, 'Admin berhak menambahkan kategori arsip baru (createKategori)');
+
+  // Test 20.7: Tambah kategori tanpa nama ditolak
+  const katEmptyRes = await api.createKategori('', 'Deskripsi');
+  assert(!katEmptyRes.success && katEmptyRes.error?.code === 'VALIDATION_ERROR', 'Tambah kategori tanpa nama ditolak (VALIDATION_ERROR)');
+
+  // Test 20.8: Tambah kategori duplikat ditolak
+  const katDupRes = await api.createKategori('sosialisasi perda 2026', 'Deskripsi duplikat');
+  assert(!katDupRes.success && katDupRes.error?.code === 'DUPLICATE_CATEGORY', 'Tambah kategori dengan nama duplikat ditolak (DUPLICATE_CATEGORY)');
+
+  // Test 20.9: Admin berhak memperbarui kategori arsip
+  const updateKatRes = await api.updateKategori(katBaruRes.data.id, 'Sosialisasi Perda & Wawasan Kebangsaan', 'Deskripsi diperbarui');
+  assert(updateKatRes.success, 'Admin berhak memperbarui kategori arsip (updateKategori)');
+
+  // Test 20.10: Perlindungan kategori bawaan sistem (Hasil Reses & Pokir tidak dapat dihapus)
+  const delResesTry = await api.deleteKategori('KAT-02');
+  assert(!delResesTry.success && delResesTry.error?.code === 'SYSTEM_CATEGORY_PROTECTED', 'Kategori bawaan Hasil Reses ditolak dihapus (SYSTEM_CATEGORY_PROTECTED)');
+
+  const delPokirTry = await api.deleteKategori('KAT-01');
+  assert(!delPokirTry.success && delPokirTry.error?.code === 'SYSTEM_CATEGORY_PROTECTED', 'Kategori bawaan Pokok-Pokok Pikiran ditolak dihapus (SYSTEM_CATEGORY_PROTECTED)');
+
+  // Test 20.11: Kategori baru yang dibuat terdaftar di getKategoriWithDocCount
+  const listKatDewan = await api.getKategoriWithDocCount('DWN-01');
+  assert(listKatDewan.success && listKatDewan.data.some(k => k.id === katBaruRes.data.id), 'Kategori baru aktif terdaftar dalam daftar kategori anggota dewan');
+
+  // Test 20.12: Kategori baru tanpa dokumen aktif dapat dihapus oleh Admin
+  const delKatBaruRes = await api.deleteKategori(katBaruRes.data.id);
+  assert(delKatBaruRes.success, 'Kategori baru tanpa berkas berhasil dihapus');
+
+  // Test 20.13: RBAC Staf ditolak menambah kategori
+  await api.logout();
+  await api.login('staf_keuangan', 'PasswordStafBValid123!');
+  const stafCreateKat = await api.createKategori('Kategori Ilegal Staf', 'Staf coba buat');
+  assert(!stafCreateKat.success && stafCreateKat.error?.code === 'FORBIDDEN', 'Staf dilarang menambah kategori baru (RBAC: FORBIDDEN)');
+
+  const stafDeleteKat = await api.deleteKategori('KAT-02');
+  assert(!stafDeleteKat.success && stafDeleteKat.error?.code === 'FORBIDDEN', 'Staf dilarang menghapus kategori (RBAC: FORBIDDEN)');
+
+  // Bersihkan akun admin uji
+  await api.logout();
+  await api.login('superadmin', 'PasswordBaruSuper2026!');
+  await api.deleteUser(adminTestUser.data.id);
+
   // Pembersihan akun dan data uji audit
   await api.deleteLaporan(target1.id);
   await api.deleteLaporan(lapPokir2.id);

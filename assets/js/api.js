@@ -376,10 +376,10 @@ const MOCK_ACTION_PERMISSIONS = {
   'updateDewan': ['superadmin'],
   'toggleDewanStatus': ['superadmin'],
   'deleteDewan': ['superadmin'],
-  'createKategori': ['superadmin'],
-  'updateKategori': ['superadmin'],
-  'toggleKategoriStatus': ['superadmin'],
-  'deleteKategori': ['superadmin'],
+  'createKategori': ['superadmin', 'admin'],
+  'updateKategori': ['superadmin', 'admin'],
+  'toggleKategoriStatus': ['superadmin', 'admin'],
+  'deleteKategori': ['superadmin', 'admin'],
   'deleteTahun': ['superadmin'],
   'deleteFolder': ['superadmin'],
   'deleteDokumen': ['staff', 'admin', 'superadmin'],
@@ -682,6 +682,15 @@ async function handleMockRequest(action, payload) {
     const r = String(recordKatId).trim().toLowerCase();
     if (p === r) return true;
 
+    // Pencocokan numerik bila satu KAT-01 dan satu lagi 1 atau format angka murni
+    const numP = p.replace(/[^0-9]/g, '');
+    const numR = r.replace(/[^0-9]/g, '');
+    if (numP && numR && parseInt(numP, 10) === parseInt(numR, 10)) {
+      const isPrefixP = p.startsWith('kat-') || /^\d+$/.test(p);
+      const isPrefixR = r.startsWith('kat-') || /^\d+$/.test(r);
+      if (isPrefixP && isPrefixR) return true;
+    }
+
     const katObjP = (db.kategori || []).find((k) => String(k.id).toLowerCase() === p || String(k.nama_kategori).toLowerCase() === p);
     const katObjR = (db.kategori || []).find((k) => String(k.id).toLowerCase() === r || String(k.nama_kategori).toLowerCase() === r);
 
@@ -949,44 +958,62 @@ async function handleMockRequest(action, payload) {
     }
 
     case 'createKategori': {
-      const nama = String(payload.nama_kategori || '').trim();
+      const data = payload.data || payload;
+      const nama = String(data.nama_kategori || '').trim();
+      if (!nama) return { success: false, message: 'Nama kategori wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
       const duplicate = db.kategori.some((k) => k.nama_kategori.toLowerCase() === nama.toLowerCase());
-      if (duplicate) return { success: false, message: 'Kategori dengan nama tersebut sudah ada.' };
-      const newId = 'KAT-' + (db.kategori.length + 1);
-      const item = { id: newId, nama_kategori: nama, deskripsi: payload.deskripsi || '', status: 'aktif' };
+      if (duplicate) return { success: false, message: 'Kategori dengan nama tersebut sudah ada.', error: { code: 'DUPLICATE_CATEGORY' } };
+      const nextNum = db.kategori.reduce((max, k) => {
+        const m = String(k.id).match(/\d+/);
+        return m ? Math.max(max, parseInt(m[0], 10)) : max;
+      }, 0) + 1;
+      const newId = 'KAT-' + String(nextNum).padStart(2, '0');
+      const item = { id: newId, nama_kategori: nama, deskripsi: data.deskripsi || '', status: 'aktif' };
       db.kategori.push(item);
       saveMockDb(db);
       return { success: true, data: item, message: 'Kategori berhasil ditambahkan.' };
     }
 
     case 'updateKategori': {
-      const id = String(payload.id);
+      const data = payload.data || payload;
+      const id = String(data.id || '').trim();
       const target = db.kategori.find((k) => String(k.id) === id);
-      if (target) {
-        target.nama_kategori = payload.nama_kategori || target.nama_kategori;
-        target.deskripsi = payload.deskripsi !== undefined ? payload.deskripsi : target.deskripsi;
-        saveMockDb(db);
-        return { success: true, data: target, message: 'Kategori berhasil diperbarui.' };
+      if (!target) return { success: false, message: 'Kategori tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      const nama = String(data.nama_kategori || '').trim();
+      if (nama && nama.toLowerCase() !== target.nama_kategori.toLowerCase()) {
+        const duplicate = db.kategori.some((k) => String(k.id) !== id && k.nama_kategori.toLowerCase() === nama.toLowerCase());
+        if (duplicate) return { success: false, message: 'Kategori dengan nama tersebut sudah ada.', error: { code: 'DUPLICATE_CATEGORY' } };
+        target.nama_kategori = nama;
       }
-      return { success: false, message: 'Kategori tidak ditemukan.' };
+      if (data.deskripsi !== undefined) target.deskripsi = String(data.deskripsi).trim();
+      saveMockDb(db);
+      return { success: true, data: target, message: 'Kategori berhasil diperbarui.' };
     }
 
     case 'toggleKategoriStatus': {
-      const id = String(payload.id);
+      const data = payload.data || payload;
+      const id = String(data.id || '').trim();
       const target = db.kategori.find((k) => String(k.id) === id);
       if (target) {
-        target.status = payload.status || (target.status === 'aktif' ? 'nonaktif' : 'aktif');
+        target.status = data.status || (target.status === 'aktif' ? 'nonaktif' : 'aktif');
         saveMockDb(db);
         return { success: true, data: target, message: 'Status kategori berhasil diubah.' };
       }
-      return { success: false, message: 'Kategori tidak ditemukan.' };
+      return { success: false, message: 'Kategori tidak ditemukan.', error: { code: 'NOT_FOUND' } };
     }
 
     case 'deleteKategori': {
-      const id = String(payload.id);
-      const hasDocs = db.dokumen.some((d) => isKategoriMatching(id, d.kategori_id));
+      const data = payload.data || payload;
+      const id = String(data.id || '').trim();
+      const target = db.kategori.find((k) => String(k.id) === id);
+      if (!target) return { success: false, message: 'Kategori tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      const namaLow = target.nama_kategori.toLowerCase();
+      if (namaLow.includes('reses') || namaLow.includes('pokir') || namaLow.includes('pokok')) {
+        return { success: false, message: 'Kategori bawaan sistem (Hasil Reses / Pokir) tidak dapat dihapus.', error: { code: 'SYSTEM_CATEGORY_PROTECTED' } };
+      }
+      const hasDocs = db.dokumen.some((d) => isKategoriMatching(id, d.kategori_id) && d.status === 'aktif');
       if (hasDocs) {
-        return { success: false, message: 'Kategori masih digunakan oleh dokumen arsip. Silakan nonaktifkan kategori ini.', error: { code: 'HAS_DEPENDENT_RECORDS' } };
+        return { success: false, message: 'Kategori masih digunakan oleh dokumen arsip aktif. Silakan nonaktifkan kategori ini jika tidak ingin digunakan.', error: { code: 'HAS_DEPENDENT_RECORDS' } };
       }
       db.kategori = db.kategori.filter((k) => String(k.id) !== id);
       saveMockDb(db);
@@ -1416,11 +1443,32 @@ async function handleMockRequest(action, payload) {
         return { success: false, message: 'Nama/judul dokumen RDP wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
       }
 
+      const hasExplicitFileProp = Object.prototype.hasOwnProperty.call(data, 'base64') || Object.prototype.hasOwnProperty.call(data, 'fileData');
+      const base64Data = data.base64 || data.fileData;
+      if (hasExplicitFileProp && !base64Data) {
+        return { success: false, message: 'Tahun, judul dokumen, dan berkas fisik wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+      }
+      if (!data.fileName && !data.nama_file && !base64Data) {
+        return { success: false, message: 'Tahun, judul dokumen, dan berkas fisik wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
       const fileName = String(data.fileName || data.nama_file || 'rdp.pdf').trim();
       const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
       const allowedExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
       if (!allowedExts.includes(ext)) {
         return { success: false, message: 'Ekstensi berkas tidak diizinkan.', error: { code: 'FILE_VALIDATION_ERROR' } };
+      }
+
+      // Idempotensi: deteksi duplikasi dokumen RDP aktif
+      const existingDoc = db.dokumen.find((d) =>
+        String(d.dewan_id || '').trim() === komisiId &&
+        parseInt(d.tahun, 10) === yr &&
+        String(d.nama_folder || '').trim().toUpperCase() === 'RDP' &&
+        String(d.nama_dokumen || '').trim().toLowerCase() === namaDokumen.toLowerCase() &&
+        String(d.status || '').toLowerCase() === 'aktif'
+      );
+      if (existingDoc) {
+        return { success: true, data: existingDoc, message: 'Dokumen RDP berhasil diunggah.' };
       }
 
       const newId = 'DOC-RDP-' + Date.now();
@@ -1880,10 +1928,25 @@ export const api = {
   // Kategori Arsip
   getKategoriList: () => callAppsScript('getKategoriList'),
   getKategoriWithDocCount: (dewan_id) => callAppsScript('getKategoriWithDocCount', { dewan_id }),
-  createKategori: (nama_kategori, deskripsi = '') => callAppsScript('createKategori', { nama_kategori, deskripsi }),
-  updateKategori: (id, nama_kategori, deskripsi = '') => callAppsScript('updateKategori', { id, nama_kategori, deskripsi }),
+  createKategori: (nama_kategori, deskripsi = '') => {
+    if (typeof nama_kategori === 'object' && nama_kategori !== null) {
+      return callAppsScript('createKategori', nama_kategori);
+    }
+    return callAppsScript('createKategori', { nama_kategori, deskripsi });
+  },
+  updateKategori: (id, nama_kategori, deskripsi = '') => {
+    if (typeof id === 'object' && id !== null) {
+      return callAppsScript('updateKategori', id);
+    }
+    return callAppsScript('updateKategori', { id, nama_kategori, deskripsi });
+  },
   toggleKategoriStatus: (id, status) => callAppsScript('toggleKategoriStatus', { id, status }),
-  deleteKategori: (id) => callAppsScript('deleteKategori', { id }),
+  deleteKategori: (id) => {
+    if (typeof id === 'object' && id !== null) {
+      return callAppsScript('deleteKategori', id);
+    }
+    return callAppsScript('deleteKategori', { id });
+  },
 
   // Tahun Anggaran
   getTahunList: (dewan_id, kategori_id) => callAppsScript('getTahunList', { dewan_id, kategori_id }),
@@ -1941,7 +2004,20 @@ export const api = {
   createKomisi: (data) => callAppsScript('createKomisi', { data }),
   deleteKomisi: (id) => callAppsScript('deleteKomisi', { id }),
   getRdpDokumenList: (komisi_id, tahun = '') => callAppsScript('getRdpDokumenList', { komisi_id, tahun }),
-  uploadRdpDokumen: (data) => callAppsScript('uploadRdpDokumen', data, { timeout: 40000 }),
+  uploadRdpDokumen: (data) => {
+    const payload = {
+      ...data,
+      nama_dokumen: data.nama_dokumen || data.judul || '',
+      judul: data.judul || data.nama_dokumen || '',
+      fileName: data.fileName || data.nama_file || '',
+      nama_file: data.nama_file || data.fileName || ''
+    };
+    if (data.base64 !== undefined || data.fileData !== undefined) {
+      payload.base64 = data.base64 !== undefined ? data.base64 : data.fileData;
+      payload.fileData = data.fileData !== undefined ? data.fileData : data.base64;
+    }
+    return callAppsScript('uploadRdpDokumen', payload, { timeout: 40000 });
+  },
   updateRdpDokumen: (data) => callAppsScript('updateRdpDokumen', data),
   deleteRdpDokumen: (id) => callAppsScript('deleteRdpDokumen', { id }),
 

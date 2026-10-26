@@ -828,6 +828,15 @@
           }
 
           const file = fileInput.files[0];
+          const fileName = file.name || 'dokumen.pdf';
+          const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+          const allowedExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
+
+          if (!allowedExts.includes(ext)) {
+            showToast('Format berkas tidak didukung. Gunakan PDF, DOCX, XLSX, JPG, atau PNG.', 'warning');
+            return;
+          }
+
           if (file.size > 10 * 1024 * 1024) {
             showToast('Ukuran berkas tidak boleh melebihi 10 MB.', 'warning');
             return;
@@ -838,26 +847,46 @@
           btnSubmit.textContent = 'Mengunggah Dokumen...';
 
           try {
-            // Konversi file ke base64 jika ada
+            // Konversi file ke base64
             const reader = new FileReader();
+            reader.onerror = () => {
+              showToast('Gagal membaca berkas fisik dari perangkat Anda.', 'error');
+              isSubmitting = false;
+              btnSubmit.disabled = false;
+              btnSubmit.textContent = 'Mulai Unggah';
+            };
+
             reader.onload = async () => {
               const base64Content = reader.result ? reader.result.split(',')[1] : '';
+              if (!base64Content) {
+                showToast('Gagal memproses data berkas fisik.', 'error');
+                isSubmitting = false;
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Mulai Unggah';
+                return;
+              }
+
               try {
                 const res = await api.uploadRdpDokumen({
                   komisi_id: id,
                   tahun: parseInt(tahun, 10),
                   nama_dokumen: judul,
+                  judul: judul,
                   keterangan: keterangan,
-                  fileName: file.name,
-                  fileData: base64Content
+                  fileName: fileName,
+                  nama_file: fileName,
+                  base64: base64Content,
+                  fileData: base64Content,
+                  mimeType: file.type || ''
                 });
 
                 if (res && res.success) {
                   showToast('Dokumen RDP berhasil diunggah!', 'success');
+                  form.reset();
                   closeModal();
                   await loadRdpDocuments(id);
                 } else {
-                  showToast(res.message || 'Gagal mengunggah dokumen RDP.', 'error');
+                  showToast((res && res.message) || 'Gagal mengunggah dokumen RDP.', 'error');
                 }
               } catch (err) {
                 showToast(err.message || 'Kesalahan sistem saat mengunggah.', 'error');
