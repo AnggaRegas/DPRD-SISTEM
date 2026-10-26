@@ -543,14 +543,25 @@
             </td>
             <td style="color: var(--text-secondary); font-size: 13px;">${doc.keterangan || '-'}</td>
             <td>
-              <button type="button" class="btn btn-secondary btn-sm" data-action="download" data-id="${doc.id}" data-filename="${doc.nama_file || 'dokumen.pdf'}" title="Unduh Berkas Resmi">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                ${doc.nama_file || 'Berkas'} (${formatFileSize(doc.ukuran_file)})
-              </button>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="btn btn-secondary btn-sm" data-action="download" data-id="${doc.id}" data-filename="${doc.nama_file || 'dokumen.pdf'}" title="Unduh Berkas Resmi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  ${doc.nama_file || 'Berkas'} (${formatFileSize(doc.ukuran_file)})
+                </button>
+                ${(doc.view_url && doc.view_url !== '#') || doc.file_id ? `
+                  <button type="button" class="btn btn-secondary btn-sm" data-action="preview" data-id="${doc.id}" data-fileid="${doc.file_id || ''}" data-viewurl="${doc.view_url || ''}" data-filename="${doc.nama_file || 'dokumen.pdf'}" title="Buka Dokumen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Buka
+                  </button>
+                ` : ''}
+              </div>
             </td>
             <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
               ${formatDateIndonesia(doc.tanggal_upload)}
@@ -613,6 +624,50 @@
                 </svg>
                 ${fileName}
               `;
+            }
+          });
+        });
+
+        // Event Buka / Pratinjau Dokumen
+        tbody.querySelectorAll('button[data-action="preview"]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const docId = btn.dataset.id;
+            const fileId = btn.dataset.fileid;
+            const viewUrl = btn.dataset.viewurl;
+            const fileName = btn.dataset.filename;
+
+            if (viewUrl && viewUrl.startsWith('http')) {
+              window.open(viewUrl, '_blank', 'noopener,noreferrer');
+              return;
+            }
+
+            if (fileId && fileId.trim() && !fileId.startsWith('mock-')) {
+              window.open(`https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view`, '_blank', 'noopener,noreferrer');
+              return;
+            }
+
+            // Fallback: unduh berkas base64 dan buka di tab baru
+            btn.disabled = true;
+            try {
+              const res = await api.downloadDokumen(docId);
+              if (res && res.success && res.data && res.data.base64) {
+                const byteCharacters = atob(res.data.base64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: res.data.mime_type || 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                window.open(blobUrl, '_blank');
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+              } else {
+                showToast(res.message || 'Gagal membuka berkas.', 'error');
+              }
+            } catch (err) {
+              showToast(err.message, 'error');
+            } finally {
+              btn.disabled = false;
             }
           });
         });

@@ -72,7 +72,10 @@ function invalidateCacheForAction(action) {
   } else if (action.includes("Activity") || action.includes("Log")) {
     clearApiCache("getActivityLog");
     clearApiCache("getDashboardData");
-  } else if (action.includes("Login") || action.includes("Logout") || action.includes("Password") || action.includes("User")) {
+  } else if (action.includes("Laporan") || action.includes("Pokir")) {
+    clearApiCache("getLaporan");
+    clearApiCache("getDashboardData");
+  } else if (action.includes("Profile") || action.includes("Login") || action.includes("Logout") || action.includes("Password") || action.includes("User")) {
     clearApiCache();
   }
 }
@@ -346,6 +349,7 @@ const MOCK_ACTION_PERMISSIONS = {
   'adminLogin': 'PUBLIC',
   'submitLaporanPublik': 'PUBLIC',
   'getPublicDewanList': 'PUBLIC',
+  'checkPokirDuplication': 'PUBLIC',
   'logout': ['staff', 'admin', 'superadmin'],
   'adminLogout': ['staff', 'admin', 'superadmin'],
   'checkSession': ['staff', 'admin', 'superadmin'],
@@ -389,6 +393,10 @@ const MOCK_ACTION_PERMISSIONS = {
   'getLaporanList': ['staff', 'admin', 'superadmin'],
   'assignLaporan': ['superadmin'],
   'updateLaporanStatus': ['staff', 'admin', 'superadmin'],
+  'downloadLaporanLampiran': ['staff', 'admin', 'superadmin'],
+  'deleteLaporan': ['superadmin'],
+  'approvePokirException': ['superadmin'],
+  'updateProfile': ['staff', 'admin', 'superadmin'],
   'getUserList': ['superadmin'],
   'getActivityLog': ['superadmin'],
   'clearActivityLog': ['superadmin'],
@@ -409,7 +417,78 @@ async function handleMockRequest(action, payload) {
     return { success: false, data: null, message: 'Aksi API tidak dikenali: ' + action, error: { code: 'NOT_FOUND' } };
   }
 
+  // Engine Penyaringan Usulan Berulang Pokir
+  function checkPokirDuplicationRule(data) {
+    const nama = String(data.nama_pelapor || '').trim();
+    const kontak = String(data.kontak_pelapor || '').trim();
+    const kategori = String(data.kategori || '').trim();
+    const tujuan = String(data.tujuan || '').trim();
+    const judul = String(data.judul || '').trim();
+    const cleanContact = kontak.replace(/[^0-9]/g, '');
+    const cleanName = cleanStaffTitle(nama);
+
+    const allLaporan = db.laporan || [];
+
+    // Cari riwayat dari pengusul yang sama berdasarkan kontak atau nama terverifikasi
+    const existingReports = allLaporan.filter(l => {
+      const exContact = String(l.kontak_pelapor || '').replace(/[^0-9]/g, '');
+      const exName = cleanStaffTitle(l.nama_pelapor || '');
+      const contactMatch = cleanContact && exContact && cleanContact.length >= 8 && cleanContact === exContact;
+      const nameMatch = cleanName && exName && cleanName.length >= 3 && cleanName === exName;
+      return contactMatch || nameMatch;
+    });
+
+    if (!existingReports.length) {
+      return { status: 'A', allowed: true, perluVerifikasi: false, message: 'Tidak terindikasi berulang.' };
+    }
+
+    // Periksa apakah sudah ada usulan yang BENAR-BENAR terealisasi / didanai untuk program/kategori yang sama
+    const realizedMatch = existingReports.find(l => {
+      const st = String(l.status || '').toLowerCase();
+      const realSt = String(l.realisasi_status || '').toLowerCase();
+      const isRealized = st === 'terealisasi' || st === 'didanai' || realSt === 'terealisasi';
+      const isSameCategory = String(l.kategori || '').toLowerCase() === kategori.toLowerCase();
+      const isSameTujuan = String(l.tujuan || '').toLowerCase() === tujuan.toLowerCase();
+      return isRealized && (isSameCategory || isSameTujuan);
+    });
+
+    if (realizedMatch && String(realizedMatch.status_duplikasi || '') !== 'disetujui_pengecualian') {
+      return {
+        status: 'C',
+        allowed: false,
+        perluVerifikasi: false,
+        message: 'Pengajuan belum dapat diterima karena berdasarkan riwayat sistem, pihak pengusul telah memiliki usulan yang terealisasi untuk program ini dan memenuhi ketentuan pembatasan. Silakan hubungi petugas berwenang apabila data tersebut tidak sesuai.',
+        priorTicket: realizedMatch.nomor_tiket
+      };
+    }
+
+    // Periksa apakah ada indikasi berulang (program sama tetapi belum terealisasi / sedang diproses)
+    const pendingSameProgram = existingReports.find(l => {
+      const isSameCategory = String(l.kategori || '').toLowerCase() === kategori.toLowerCase();
+      const isSameTujuan = String(l.tujuan || '').toLowerCase() === tujuan.toLowerCase();
+      return isSameCategory && isSameTujuan;
+    });
+
+    if (pendingSameProgram) {
+      return {
+        status: 'B',
+        allowed: true,
+        perluVerifikasi: true,
+        message: 'Pengajuan Anda memerlukan pemeriksaan lebih lanjut karena sistem menemukan kemungkinan kesamaan dengan usulan yang pernah diajukan. Petugas akan memeriksa data tersebut sebelum keputusan diberikan.',
+        priorTicket: pendingSameProgram.nomor_tiket
+      };
+    }
+
+    return { status: 'A', allowed: true, perluVerifikasi: false, message: 'Tidak terindikasi berulang.' };
+  }
+
   // 2. Aksi Publik (Tanpa Autentikasi)
+  if (action === 'checkPokirDuplication') {
+    const d = payload.data || payload;
+    const res = checkPokirDuplicationRule(d);
+    return { success: true, data: res, message: res.message };
+  }
+
   if (action === 'submitLaporanPublik') {
     const d = payload.data || payload;
     const nama = String(d.nama_pelapor || '').trim();
@@ -430,6 +509,24 @@ async function handleMockRequest(action, payload) {
       return { success: false, message: 'Kecamatan harus berada di wilayah resmi Kota Parepare.', error: { code: 'VALIDATION_ERROR' } };
     }
 
+    // Jalankan Penyaringan Usulan Berulang Pokir
+    const pokirCheck = checkPokirDuplicationRule({
+      nama_pelapor: nama,
+      kontak_pelapor: kontak,
+      kategori: kat,
+      tujuan: tujuan,
+      judul: judul
+    });
+
+    if (!pokirCheck.allowed) {
+      return {
+        success: false,
+        decision: 'MELANGGAR_PEMBATASAN',
+        message: pokirCheck.message,
+        error: { code: 'DUPLICATE_REALIZED_PROPOSAL' }
+      };
+    }
+
     const now = new Date();
     const ymd = now.toISOString().slice(0, 10).replace(/-/g, '');
     const hex = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -447,7 +544,12 @@ async function handleMockRequest(action, payload) {
       judul: judul,
       isi: isi,
       lampiran_nama: d.fileName || '',
+      lampiran_base64: d.base64 || d.fileData || '',
+      lampiran_file_id: d.fileName ? 'mock-lap-' + Date.now() : '',
+      lampiran_url: d.fileName ? '#' : '',
       status: 'menunggu',
+      status_duplikasi: pokirCheck.perluVerifikasi ? 'perlu_verifikasi' : 'normal',
+      catatan_duplikasi: pokirCheck.perluVerifikasi ? pokirCheck.message : '',
       assigned_to: '',
       tanggapan: '',
       created_at: now.toISOString(),
@@ -458,8 +560,12 @@ async function handleMockRequest(action, payload) {
 
     return {
       success: true,
-      data: { nomor_tiket: nomorTiket, created_at: newReport.created_at },
-      message: 'Aspirasi / pengaduan Anda telah berhasil diterima oleh Sekretariat DPRD Kota Parepare.'
+      data: {
+        nomor_tiket: nomorTiket,
+        created_at: newReport.created_at,
+        status_duplikasi: newReport.status_duplikasi
+      },
+      message: pokirCheck.perluVerifikasi ? pokirCheck.message : 'Aspirasi / pengaduan Anda telah berhasil diterima oleh Sekretariat DPRD Kota Parepare.'
     };
   }
 
@@ -570,6 +676,31 @@ async function handleMockRequest(action, payload) {
       .toLowerCase();
   }
 
+  function isKategoriMatching(katParam, recordKatId) {
+    if (!katParam || !recordKatId) return false;
+    const p = String(katParam).trim().toLowerCase();
+    const r = String(recordKatId).trim().toLowerCase();
+    if (p === r) return true;
+
+    const katObjP = (db.kategori || []).find((k) => String(k.id).toLowerCase() === p || String(k.nama_kategori).toLowerCase() === p);
+    const katObjR = (db.kategori || []).find((k) => String(k.id).toLowerCase() === r || String(k.nama_kategori).toLowerCase() === r);
+
+    const nameP = (katObjP ? katObjP.nama_kategori : p).toLowerCase();
+    const nameR = (katObjR ? katObjR.nama_kategori : r).toLowerCase();
+
+    if (nameP === nameR) return true;
+
+    const isPokirP = nameP.includes('pokir') || nameP.includes('pokok-pokok pikiran') || nameP.includes('pokok pikiran') || p === 'kat-01' || p === '1';
+    const isPokirR = nameR.includes('pokir') || nameR.includes('pokok-pokok pikiran') || nameR.includes('pokok pikiran') || r === 'kat-01' || r === '1';
+    if (isPokirP && isPokirR) return true;
+
+    const isResesP = nameP.includes('reses') || p === 'kat-02' || p === '2';
+    const isResesR = nameR.includes('reses') || r === 'kat-02' || r === '2';
+    if (isResesP && isResesR) return true;
+
+    return false;
+  }
+
   function isMockStaffAuthorizedForDewan(targetDewanId) {
     if (!targetDewanId) return false;
     if (currentUser.role === 'superadmin' || currentUser.role === 'admin') return true;
@@ -577,6 +708,14 @@ async function handleMockRequest(action, payload) {
 
     const idStr = String(targetDewanId).trim();
     if (idStr.startsWith('KOM-')) return false; // Arsip Komisi dilarang untuk staf pendamping
+
+    // Cek apakah penugasan tercatat pada akun pengguna di db.users
+    const userInDb = (db.users || []).find((u) => u.id === currentUser.id || u.username === currentUser.username);
+    if (userInDb && Array.isArray(userInDb.assigned_dewan)) {
+      if (userInDb.assigned_dewan.some((d) => String(d.id || d) === idStr)) {
+        return true;
+      }
+    }
 
     const dwn = (db.dewan || []).find((d) => String(d.id) === idStr || String(d.nomor_urut) === idStr);
     if (!dwn) return false;
@@ -608,6 +747,18 @@ async function handleMockRequest(action, payload) {
       return true;
     }
     if (userNamaClean && pendampingClean && (pendampingClean.includes(userNamaClean) || userNamaClean.includes(pendampingClean))) {
+      return true;
+    }
+
+    // 4. Split multi-pendamping (jika dipisah koma, titik koma, garis miring)
+    const parts = pendampingRaw.split(/[,;/]+/).map((s) => s.trim()).filter(Boolean);
+    if (parts.some((p) => {
+      const pC = cleanStaffTitle(p);
+      return p === userNamaRaw || p === userNameRaw || p === userIdRaw ||
+             (userNamaClean && pC && pC === userNamaClean) ||
+             (userNameRaw && p.includes(userNameRaw)) ||
+             (userNamaClean && pC && (pC.includes(userNamaClean) || userNamaClean.includes(pC)));
+    })) {
       return true;
     }
 
@@ -646,6 +797,48 @@ async function handleMockRequest(action, payload) {
       safeSessionStorage.setItem('dprd_user', JSON.stringify(currentUser));
       saveMockDb(db);
       return { success: true, data: currentUser, message: 'Password berhasil diperbarui.' };
+    }
+
+    case 'updateProfile': {
+      const data = payload.data || payload;
+      const newUsername = data.username !== undefined ? String(data.username).trim().toLowerCase() : '';
+      const newNama = data.nama !== undefined ? String(data.nama).trim() : '';
+
+      if (newUsername) {
+        if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(newUsername)) {
+          return {
+            success: false,
+            message: 'Username harus berupa 3-30 karakter alfanumerik, titik, atau garis bawah/strip.',
+            error: { code: 'VALIDATION_ERROR' }
+          };
+        }
+        const duplicate = db.users.some(u => String(u.id) !== String(currentUser.id) && String(u.username).toLowerCase() === newUsername);
+        if (duplicate) {
+          return {
+            success: false,
+            message: 'Username sudah digunakan oleh akun lain.',
+            error: { code: 'DUPLICATE_USERNAME' }
+          };
+        }
+        const oldUsername = liveUser.username;
+        liveUser.username = newUsername;
+        currentUser.username = newUsername;
+
+        (db.dokumen || []).forEach(d => {
+          if (String(d.uploaded_by || '').toLowerCase() === oldUsername.toLowerCase()) {
+            d.uploaded_by = newUsername;
+          }
+        });
+      }
+
+      if (newNama) {
+        liveUser.nama = newNama;
+        currentUser.nama = newNama;
+      }
+
+      safeSessionStorage.setItem('dprd_user', JSON.stringify(currentUser));
+      saveMockDb(db);
+      return { success: true, data: { ...currentUser, ...liveUser }, message: 'Profil pengguna berhasil diperbarui.' };
     }
 
     case 'getDashboardData':
@@ -695,7 +888,8 @@ async function handleMockRequest(action, payload) {
       const d = payload.data || payload;
       const nextNum = db.dewan.length + 1;
       const idStr = 'DWN-' + (nextNum < 10 ? '0' + nextNum : nextNum);
-      const record = { id: idStr, nomor_urut: nextNum, ...d, kecamatan: d.kecamatan || '', status: 'aktif' };
+      const pendVal = d.nama_pendamping || d.nama_pengawas || '';
+      const record = { id: idStr, nomor_urut: nextNum, ...d, nama_pendamping: pendVal, nama_pengawas: pendVal, kecamatan: d.kecamatan || '', status: 'aktif' };
       db.dewan.push(record);
       saveMockDb(db);
       return { success: true, data: record, message: 'Anggota dewan berhasil ditambahkan.' };
@@ -705,7 +899,15 @@ async function handleMockRequest(action, payload) {
       const d = payload.data || payload;
       const idx = db.dewan.findIndex((x) => String(x.id) === String(d.id));
       if (idx !== -1) {
-        db.dewan[idx] = { ...db.dewan[idx], ...d, kecamatan: d.kecamatan !== undefined ? d.kecamatan : db.dewan[idx].kecamatan };
+        const existing = db.dewan[idx];
+        const pendVal = d.nama_pendamping !== undefined ? d.nama_pendamping : (d.nama_pengawas !== undefined ? d.nama_pengawas : existing.nama_pendamping || existing.nama_pengawas || '');
+        db.dewan[idx] = {
+          ...existing,
+          ...d,
+          nama_pendamping: pendVal,
+          nama_pengawas: pendVal,
+          kecamatan: d.kecamatan !== undefined ? d.kecamatan : existing.kecamatan
+        };
         saveMockDb(db);
         return { success: true, data: db.dewan[idx], message: 'Data dewan berhasil diperbarui.' };
       }
@@ -740,7 +942,7 @@ async function handleMockRequest(action, payload) {
     case 'getKategoriWithDocCount': {
       const dewanId = payload.dewan_id ? String(payload.dewan_id) : null;
       const res = db.kategori.map((k) => {
-        const count = db.dokumen.filter((d) => String(d.kategori_id) === String(k.id) && (!dewanId || String(d.dewan_id) === dewanId) && d.status === 'aktif').length;
+        const count = db.dokumen.filter((d) => isKategoriMatching(k.id, d.kategori_id) && (!dewanId || String(d.dewan_id) === dewanId) && d.status === 'aktif').length;
         return { id: k.id, nama_kategori: k.nama_kategori, deskripsi: k.deskripsi || '', status: k.status || 'aktif', jumlah_dokumen: count };
       });
       return { success: true, data: res, message: 'Kategori berhasil dimuat.' };
@@ -782,7 +984,7 @@ async function handleMockRequest(action, payload) {
 
     case 'deleteKategori': {
       const id = String(payload.id);
-      const hasDocs = db.dokumen.some((d) => String(d.kategori_id) === id);
+      const hasDocs = db.dokumen.some((d) => isKategoriMatching(id, d.kategori_id));
       if (hasDocs) {
         return { success: false, message: 'Kategori masih digunakan oleh dokumen arsip. Silakan nonaktifkan kategori ini.', error: { code: 'HAS_DEPENDENT_RECORDS' } };
       }
@@ -795,10 +997,10 @@ async function handleMockRequest(action, payload) {
       const dewanId = String(payload.dewan_id);
       const katId = String(payload.kategori_id);
       const tahunSet = new Set();
-      db.tahun.filter((t) => String(t.dewan_id) === dewanId && String(t.kategori_id) === katId).forEach((t) => tahunSet.add(t.tahun));
-      db.dokumen.filter((d) => String(d.dewan_id) === dewanId && String(d.kategori_id) === katId).forEach((d) => tahunSet.add(d.tahun));
+      db.tahun.filter((t) => String(t.dewan_id) === dewanId && isKategoriMatching(katId, t.kategori_id)).forEach((t) => tahunSet.add(t.tahun));
+      db.dokumen.filter((d) => String(d.dewan_id) === dewanId && isKategoriMatching(katId, d.kategori_id)).forEach((d) => tahunSet.add(d.tahun));
       const list = Array.from(tahunSet).map((yr) => {
-        const count = db.dokumen.filter((d) => String(d.dewan_id) === dewanId && String(d.kategori_id) === katId && parseInt(d.tahun, 10) === yr && d.status === 'aktif').length;
+        const count = db.dokumen.filter((d) => String(d.dewan_id) === dewanId && isKategoriMatching(katId, d.kategori_id) && parseInt(d.tahun, 10) === yr && d.status === 'aktif').length;
         return { tahun: yr, jumlah_dokumen: count };
       }).sort((a, b) => b.tahun - a.tahun);
       return { success: true, data: list, message: 'Daftar tahun berhasil dimuat.' };
@@ -815,9 +1017,9 @@ async function handleMockRequest(action, payload) {
       const dewanId = String(payload.dewan_id);
       const katId = String(payload.kategori_id);
       const yr = parseInt(payload.tahun, 10);
-      const folders = db.folder.filter((f) => String(f.dewan_id) === dewanId && String(f.kategori_id) === katId && f.tahun === yr);
+      const folders = db.folder.filter((f) => String(f.dewan_id) === dewanId && isKategoriMatching(katId, f.kategori_id) && f.tahun === yr);
       const res = folders.map((f) => {
-        const count = db.dokumen.filter((d) => String(d.dewan_id) === dewanId && String(d.kategori_id) === katId && parseInt(d.tahun, 10) === yr && String(d.nama_folder).trim().toLowerCase() === String(f.nama_folder).trim().toLowerCase() && d.status === 'aktif').length;
+        const count = db.dokumen.filter((d) => String(d.dewan_id) === dewanId && isKategoriMatching(katId, d.kategori_id) && parseInt(d.tahun, 10) === yr && String(d.nama_folder).trim().toLowerCase() === String(f.nama_folder).trim().toLowerCase() && d.status === 'aktif').length;
         return { id: f.id, nama_folder: f.nama_folder, jumlah_dokumen: count };
       });
       return { success: true, data: res, message: 'Daftar folder berhasil dimuat.' };
@@ -830,7 +1032,7 @@ async function handleMockRequest(action, payload) {
       const nama = String(payload.nama_folder || '').trim();
       if (!nama) return { success: false, message: 'Nama folder wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
 
-      const existing = db.folder.find(f => String(f.dewan_id) === dewanId && String(f.kategori_id) === katId && f.tahun === yr && f.nama_folder.toLowerCase() === nama.toLowerCase());
+      const existing = db.folder.find(f => String(f.dewan_id) === dewanId && isKategoriMatching(katId, f.kategori_id) && f.tahun === yr && f.nama_folder.toLowerCase() === nama.toLowerCase());
       if (existing) {
         return { success: true, data: existing, message: 'Folder sudah ada.', already_existed: true };
       }
@@ -849,14 +1051,14 @@ async function handleMockRequest(action, payload) {
       const folderBaru = String(payload.folder_baru || payload.nama_folder_baru || '').trim();
       if (!folderBaru) return { success: false, message: 'Nama folder baru wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
 
-      const target = db.folder.find(f => String(f.dewan_id) === dewanId && String(f.kategori_id) === katId && f.tahun === yr && f.nama_folder.toLowerCase() === folderLama.toLowerCase());
+      const target = db.folder.find(f => String(f.dewan_id) === dewanId && isKategoriMatching(katId, f.kategori_id) && f.tahun === yr && f.nama_folder.toLowerCase() === folderLama.toLowerCase());
       if (target) {
         target.nama_folder = folderBaru;
         if (payload.deskripsi) target.deskripsi = payload.deskripsi;
       }
 
       db.dokumen.forEach(d => {
-        if (String(d.dewan_id) === dewanId && String(d.kategori_id) === katId && parseInt(d.tahun, 10) === yr && String(d.nama_folder || '').toLowerCase() === folderLama.toLowerCase()) {
+        if (String(d.dewan_id) === dewanId && isKategoriMatching(katId, d.kategori_id) && parseInt(d.tahun, 10) === yr && String(d.nama_folder || '').toLowerCase() === folderLama.toLowerCase()) {
           d.nama_folder = folderBaru;
         }
       });
@@ -872,7 +1074,7 @@ async function handleMockRequest(action, payload) {
 
       const activeDocs = db.dokumen.filter(d =>
         String(d.dewan_id) === dewanId &&
-        String(d.kategori_id) === katId &&
+        isKategoriMatching(katId, d.kategori_id) &&
         parseInt(d.tahun, 10) === yr &&
         String(d.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase() &&
         d.status === 'aktif'
@@ -889,7 +1091,7 @@ async function handleMockRequest(action, payload) {
 
       const idx = db.folder.findIndex(f =>
         String(f.dewan_id) === dewanId &&
-        String(f.kategori_id) === katId &&
+        isKategoriMatching(katId, f.kategori_id) &&
         f.tahun === yr &&
         String(f.nama_folder || '').trim().toLowerCase() === namaFolder.toLowerCase()
       );
@@ -918,7 +1120,7 @@ async function handleMockRequest(action, payload) {
         list = list.filter((d) => isMockStaffAuthorizedForDokumen(d));
       }
 
-      if (katId) list = list.filter((d) => String(d.kategori_id) === katId);
+      if (katId) list = list.filter((d) => isKategoriMatching(katId, d.kategori_id));
       if (yr) list = list.filter((d) => parseInt(d.tahun, 10) === yr);
       if (folder) list = list.filter((d) => String(d.nama_folder || '').trim().toLowerCase() === folder);
       return { success: true, data: list, message: 'Daftar dokumen berhasil dimuat.' };
@@ -1292,11 +1494,18 @@ async function handleMockRequest(action, payload) {
 
       let list = (db.laporan || []).slice();
       if (currentUser.role === 'staff') {
-        const staffName = currentUser.nama.toLowerCase();
-        const staffUsername = currentUser.username.toLowerCase();
+        const staffName = String(currentUser.nama || '').trim().toLowerCase();
+        const staffUsername = String(currentUser.username || '').trim().toLowerCase();
+        const staffId = String(currentUser.id || '').trim().toLowerCase();
         list = list.filter((l) => {
           const assigned = String(l.assigned_to || '').toLowerCase().trim();
-          return assigned === staffName || assigned === staffUsername || assigned === currentUser.id;
+          const assignedId = String(l.assigned_staff_id || '').toLowerCase().trim();
+          const assignedName = String(l.assigned_staff_name || '').toLowerCase().trim();
+          return (
+            (assigned && (assigned === staffUsername || assigned === staffName || assigned === staffId || (staffName && assigned.includes(staffName)))) ||
+            (assignedId && assignedId === staffId) ||
+            (assignedName && (assignedName === staffName || (staffName && assignedName.includes(staffName))))
+          );
         });
       }
 
@@ -1325,7 +1534,10 @@ async function handleMockRequest(action, payload) {
       if (!target) {
         return { success: false, message: 'Laporan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
       }
-      target.assigned_to = payload.staff_nama || payload.staff_id || '';
+      const assignedVal = payload.staff_nama || payload.assigned_to || payload.staff_id || '';
+      target.assigned_to = assignedVal;
+      target.assigned_staff_id = payload.staff_id || '';
+      target.assigned_staff_name = payload.staff_nama || '';
       target.status = 'diproses';
       target.updated_at = new Date().toISOString();
       saveMockDb(db);
@@ -1340,10 +1552,18 @@ async function handleMockRequest(action, payload) {
       }
 
       if (currentUser.role === 'staff') {
-        const staffName = currentUser.nama.toLowerCase();
-        const staffUsername = currentUser.username.toLowerCase();
-        const assigned = String(target.assigned_to || '').toLowerCase().trim();
-        if (assigned !== staffName && assigned !== staffUsername && assigned !== currentUser.id) {
+        const staffName = String(currentUser.nama || '').trim().toLowerCase();
+        const staffUsername = String(currentUser.username || '').trim().toLowerCase();
+        const staffId = String(currentUser.id || '').trim().toLowerCase();
+        const assigned = String(target.assigned_to || '').trim().toLowerCase();
+        const assignedId = String(target.assigned_staff_id || '').trim().toLowerCase();
+        const assignedName = String(target.assigned_staff_name || '').trim().toLowerCase();
+        const isMatched = (
+          (assigned && (assigned === staffName || assigned === staffUsername || assigned === staffId || (staffName && assigned.includes(staffName)))) ||
+          (assignedId && (assignedId === staffId || assignedId === staffUsername)) ||
+          (assignedName && (assignedName === staffName || (staffName && assignedName.includes(staffName))))
+        );
+        if (!isMatched) {
           return { success: false, message: 'Akses ditolak: Laporan ini bukan penugasan Anda.', error: { code: 'FORBIDDEN' } };
         }
       }
@@ -1353,6 +1573,85 @@ async function handleMockRequest(action, payload) {
       target.updated_at = new Date().toISOString();
       saveMockDb(db);
       return { success: true, data: target, message: 'Status laporan berhasil diperbarui.' };
+    }
+
+    case 'downloadLaporanLampiran': {
+      const id = String(payload.id || payload.nomor_tiket || '');
+      const target = (db.laporan || []).find((l) => String(l.id) === id || String(l.nomor_tiket) === id);
+      if (!target) {
+        return { success: false, message: 'Laporan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+      if (!target.lampiran_base64 && !target.lampiran_file_id && !target.lampiran_url && !target.lampiran) {
+        return { success: false, message: 'Laporan ini tidak memiliki berkas lampiran.', error: { code: 'NO_ATTACHMENT' } };
+      }
+      const dummyBase64 = 'JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwKL0ZpbHRlciAvRmxhdGVEZWNvZGUKL0xlbmd0aCA2OAo+PgpzdHJlYW0KeJwrSExPTcxLzNFLzs8rSc0r0Y/m0vLiAgAJFgbLCmVuZHN0cmVhbQplbmRvYmoK';
+      return {
+        success: true,
+        data: {
+          base64: target.lampiran_base64 || dummyBase64,
+          fileName: target.lampiran_nama || target.lampiran || 'lampiran.pdf',
+          fileType: target.lampiran_tipe || 'application/pdf',
+          url: target.lampiran_url || ''
+        },
+        message: 'Lampiran laporan berhasil diunduh.'
+      };
+    }
+
+    case 'deleteLaporan': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang berwenang menghapus laporan masyarakat.', error: { code: 'FORBIDDEN' } };
+      }
+      const id = String(payload.id || payload.nomor_tiket || '');
+      const idx = (db.laporan || []).findIndex((l) => String(l.id) === id || String(l.nomor_tiket) === id);
+      if (idx === -1) {
+        return { success: false, message: 'Laporan tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+      const deleted = db.laporan[idx];
+      db.laporan.splice(idx, 1);
+
+      db.logs.push({
+        id: 'LOG-' + Date.now(),
+        waktu: new Date().toISOString(),
+        user_id: currentUser.id,
+        username: currentUser.username,
+        role: currentUser.role,
+        aksi: 'HAPUS_LAPORAN',
+        detail: `Menghapus laporan nomor tiket ${deleted.nomor_tiket} (${deleted.judul})`,
+        ip: '-'
+      });
+
+      saveMockDb(db);
+      return { success: true, data: { nomor_tiket: deleted.nomor_tiket }, message: `Laporan ${deleted.nomor_tiket} berhasil dihapus.` };
+    }
+
+    case 'approvePokirException': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak: Hanya Superadmin yang berwenang memberikan pengecualian pokir.', error: { code: 'FORBIDDEN' } };
+      }
+      const ticket = String(payload.nomor_tiket || payload.id || '');
+      const target = (db.laporan || []).find((l) => String(l.nomor_tiket) === ticket || String(l.id) === ticket);
+      if (!target) {
+        return { success: false, message: 'Usulan Pokir tidak ditemukan.', error: { code: 'NOT_FOUND' } };
+      }
+
+      target.status_duplikasi = 'pengecualian_disetujui';
+      target.catatan_verifikasi = payload.catatan || 'Pengecualian disetujui resmi oleh Superadmin.';
+      target.verified_by = currentUser.username;
+      target.verified_at = new Date().toISOString();
+
+      db.logs.push({
+        id: 'LOG-' + Date.now(),
+        waktu: new Date().toISOString(),
+        user_id: currentUser.id,
+        username: currentUser.username,
+        role: currentUser.role,
+        aksi: 'PENGECUALIAN_POKIR',
+        detail: `Menyetujui pengecualian usulan Pokir nomor tiket ${target.nomor_tiket}. Catatan: ${payload.catatan || '-'}`,
+        ip: '-'
+      });
+
+      saveMockDb(db);
+      return { success: true, data: target, message: 'Pengecualian usulan Pokir berhasil disetujui.' };
     }
 
     case 'getUserList': {
@@ -1555,6 +1854,7 @@ export const api = {
   logout: () => callAppsScript('adminLogout'),
   checkSession: (forceRefresh = false) => callAppsScript('getCurrentUser', {}, { forceRefresh }),
   getProfile: () => callAppsScript('getProfile'),
+  updateProfile: (data) => callAppsScript('updateProfile', { data }),
   changePassword: (oldPassword, newPassword) => callAppsScript('changePassword', { oldPassword, newPassword }),
 
   // Dashboard
@@ -1648,9 +1948,23 @@ export const api = {
   // Laporan Masyarakat (Publik & Terautentikasi)
   submitLaporanPublik: (data) => callAppsScript('submitLaporanPublik', { data }, { timeout: 40000 }),
   getPublicDewanList: () => callAppsScript('getPublicDewanList'),
+  checkPokirDuplication: (data) => callAppsScript('checkPokirDuplication', { data }),
+  approvePokirException: (nomor_tiket, catatan = '') => callAppsScript('approvePokirException', { nomor_tiket, catatan }),
   getLaporanList: (params = {}) => callAppsScript('getLaporanList', params),
-  assignLaporan: (id, staff_id, staff_nama) => callAppsScript('assignLaporan', { id, staff_id, staff_nama }),
+  assignLaporan: (id, staff_id, staff_nama, assigned_to) => {
+    if (typeof id === 'object' && id !== null) {
+      return callAppsScript('assignLaporan', id);
+    }
+    return callAppsScript('assignLaporan', {
+      id,
+      staff_id: staff_id || assigned_to,
+      staff_nama: staff_nama || staff_id,
+      assigned_to: assigned_to || staff_nama || staff_id
+    });
+  },
   updateLaporanStatus: (id, status, tanggapan = '') => callAppsScript('updateLaporanStatus', { id, status, tanggapan }),
+  downloadLaporanLampiran: (id) => callAppsScript('downloadLaporanLampiran', { id }),
+  deleteLaporan: (id, alasan = '') => callAppsScript('deleteLaporan', { id, alasan }),
 
   // Pengguna & Hak Akses
   getUserList: () => callAppsScript('getUserList'),

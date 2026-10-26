@@ -114,7 +114,7 @@
       </div>
 
       <!-- KONTEN DUA KOLOM: DOKUMEN TERBARU & AKTIVITAS -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
+      <div id="dashboardColumns" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
         <!-- DOKUMEN TERBARU -->
         <div class="card" style="margin-bottom: 0;">
           <div class="card-header">
@@ -145,7 +145,7 @@
         </div>
 
         <!-- AKTIVITAS SISTEM TERBARU -->
-        <div class="card" style="margin-bottom: 0;">
+        <div class="card" id="cardRecentActivities" style="margin-bottom: 0;">
           <div class="card-header">
             <div>
               <h2 class="card-title">Aktivitas Terkini</h2>
@@ -184,6 +184,16 @@
     const user = requireAuth();
     if (user) {
       renderSidebar('dashboard');
+
+      // Khusus akun staf pendamping: hapus kartu Aktivitas Terkini dan rapikan layout
+      if (user.role === 'staff') {
+        const actCard = document.getElementById('cardRecentActivities');
+        if (actCard) actCard.remove();
+        const cols = document.getElementById('dashboardColumns');
+        if (cols) {
+          cols.style.gridTemplateColumns = '1fr';
+        }
+      }
 
       document.getElementById('welcomeTitle').textContent = `Selamat Datang, ${user.nama || user.username}`;
       document.getElementById('welcomeSubtitle').textContent = 'Pengelola Arsip Dokumen DPRD Kota Parepare. Sesi aktif terenkripsi.';

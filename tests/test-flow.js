@@ -907,6 +907,244 @@ async function runAllTests() {
   // Cleanup logout
   await api.logout();
 
+  console.log(`\n--- 19. Pengujian Komprehensif Audit 14 Butir (Reses/Pokir, Penugasan Staf, Lampiran, Hapus Laporan, Profil, 3 Status Pokir & Pengecualian) ---`);
+
+  // Login sebagai Superadmin
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+
+  // --- Butir 1: Kategori Arsip Reses & Pokok-Pokok Pikiran (Pokir) ---
+  const katWithCount = await api.getKategoriWithDocCount('DWN-01');
+  assert(katWithCount.success && Array.isArray(katWithCount.data), 'Kategori dengan jumlah dokumen berhasil dimuat');
+  const pokirKat = katWithCount.data.find(k => k.nama_kategori.toLowerCase().includes('pokok') || k.nama_kategori.toLowerCase().includes('pokir'));
+  assert(pokirKat, 'Kategori Pokok-Pokok Pikiran (Pokir) tersedia di daftar kategori');
+
+  // getTahunList & getDokumenList dengan parameter alias 'pokir' dan 'pokok-pokok pikiran'
+  const tahunPokirAlias = await api.getTahunList('DWN-01', 'pokir');
+  assert(tahunPokirAlias.success, 'getTahunList mengenali alias kategori pokir');
+  const docsPokirAlias = await api.getDokumenList({ dewan_id: 'DWN-01', kategori_id: 'Pokok-Pokok Pikiran' });
+  assert(docsPokirAlias.success, 'getDokumenList mengenali alias nama kategori Pokok-Pokok Pikiran');
+
+  // --- Butir 8: Sinkronisasi nama_pendamping dan nama_pengawas ---
+  const dewanSyncRes = await api.updateDewan({
+    id: 'DWN-01',
+    nama_pengawas: 'Staf Pendamping Terintegrasi'
+  });
+  assert(dewanSyncRes.success, 'updateDewan berhasil memperbarui nama_pengawas');
+  const dwn1Check = await api.getDewanById('DWN-01');
+  assert(dwn1Check.data.nama_pendamping === 'Staf Pendamping Terintegrasi' && dwn1Check.data.nama_pengawas === 'Staf Pendamping Terintegrasi', 'nama_pendamping dan nama_pengawas tersinkronisasi dua arah');
+
+  // Buat akun staf uji untuk verifikasi penugasan laporan dan akses
+  const stafAuditRes = await api.createUser({
+    username: 'staf_audit',
+    nama: 'Staf Pendamping Terintegrasi',
+    password: 'PasswordAudit2026!',
+    role: 'staff',
+    assigned_dewan: ['DWN-01']
+  });
+  assert(stafAuditRes.success, 'Akun staf audit baru berhasil dibuat');
+
+  // Login sebagai staf audit dan ganti sandi awal
+  await api.logout();
+  await api.login('staf_audit', 'PasswordAudit2026!');
+  await api.changePassword('PasswordAudit2026!', 'PasswordBaruAudit2026!');
+  await api.logout();
+
+  // --- Butir 3: Pengiriman Laporan Publik dengan Lampiran Dokumen ---
+  const base64Dummy = 'JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwKL0ZpbHRlciAvRmxhdGVEZWNvZGUKL0xlbmd0aCA2OAo+PgpzdHJlYW0KeJwrSExPTcxLzNFLzs8rSc0r0Y/m0vLiAgAJFgbLCmVuZHN0cmVhbQplbmRvYmoK';
+  const laporanWithAttachment = await api.submitLaporanPublik({
+    nama_pelapor: 'Ahmad Dahlan',
+    kontak_pelapor: '081234567890',
+    kecamatan: 'Kecamatan Bacukiki',
+    kategori: 'Aspirasi',
+    tujuan: 'DPRD Kota Parepare',
+    judul: 'Perbaikan Lampu Penerangan Jalan Umum',
+    isi: 'Mohon perbaikan lampu jalan yang padam di RW 02 Bacukiki.',
+    base64: base64Dummy,
+    fileName: 'bukti_foto_lampu.pdf'
+  });
+  assert(laporanWithAttachment.success && laporanWithAttachment.data.nomor_tiket, 'Laporan publik dengan lampiran berhasil dikirim');
+  const tiketLaporan = laporanWithAttachment.data.nomor_tiket;
+
+  // Login sebagai Superadmin untuk memeriksa detail lampiran
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const allLapAdmin = await api.getLaporanList();
+  const lapTarget = allLapAdmin.data.find(l => l.nomor_tiket === tiketLaporan);
+  assert(lapTarget, 'Laporan baru muncul di daftar laporan admin');
+  assert(lapTarget.status === 'menunggu', 'Status awal laporan adalah menunggu');
+
+  // Unduh lampiran melalui endpoint downloadLaporanLampiran
+  const downloadRes = await api.downloadLaporanLampiran(lapTarget.id);
+  assert(downloadRes.success && downloadRes.data && downloadRes.data.base64, 'Lampiran laporan berhasil diunduh via endpoint terotentikasi');
+  assert(downloadRes.data.fileName === 'bukti_foto_lampu.pdf', 'Nama berkas lampiran sesuai dengan yang dikirim');
+
+  // --- Butir 2 & 9: Penugasan Laporan Masyarakat kepada Staf ---
+  // Superadmin menugaskan laporan kepada staf_audit
+  const assignAuditRes = await api.assignLaporan(lapTarget.id, 'staf_audit', 'Staf Pendamping Terintegrasi', stafAuditRes.data.id);
+  assert(assignAuditRes.success, 'Superadmin berhasil menugaskan laporan kepada staf');
+
+  // Verifikasi status laporan di admin langsung berubah menjadi 'diproses'
+  const lapAfterAssign = (await api.getLaporanList()).data.find(l => l.nomor_tiket === tiketLaporan);
+  assert(lapAfterAssign.status === 'diproses', 'Status laporan otomatis berubah menjadi "diproses"');
+  assert(lapAfterAssign.assigned_to.includes('staf_audit') || lapAfterAssign.assigned_to.includes('Staf Pendamping Terintegrasi'), 'Field assigned_to menyimpan identitas staf penerima');
+
+  // Verifikasi laporan muncul pada akun staf_audit
+  await api.logout();
+  await api.login('staf_audit', 'PasswordBaruAudit2026!');
+  const stafReports = await api.getLaporanList();
+  assert(stafReports.success, 'Staf berhasil memuat daftar laporan tugas');
+  const lapInStaff = stafReports.data.find(l => l.nomor_tiket === tiketLaporan);
+  assert(lapInStaff, 'Laporan yang ditugaskan muncul pada akun pendamping terkait');
+
+  // Staf dapat mengunduh lampiran tugasnya
+  const stafDlRes = await api.downloadLaporanLampiran(lapTarget.id);
+  assert(stafDlRes.success, 'Staf yang ditugaskan dapat mengunduh berkas lampiran');
+
+  // Staf memperbarui respon tindak lanjut
+  const updateStatusRes = await api.updateLaporanStatus(lapTarget.id, 'diproses', 'Sedang dikoordinasikan dengan Dinas Perhubungan Parepare.');
+  assert(updateStatusRes.success, 'Staf berhasil memperbarui tindak lanjut laporan');
+
+  // --- Butir 4: Penghapusan Laporan (RBAC Superadmin & Audit Log) ---
+  // Staf mencoba menghapus laporan -> DITOLAK (FORBIDDEN)
+  const stafDeleteRes = await api.deleteLaporan(lapTarget.id);
+  assert(!stafDeleteRes.success && (stafDeleteRes.error?.code === 'FORBIDDEN' || stafDeleteRes.message.includes('Superadmin')), 'Staf dilarang menghapus laporan masyarakat (RBAC: FORBIDDEN)');
+
+  // Login sebagai Superadmin
+  await api.logout();
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+
+  // Superadmin menghapus laporan
+  const superDeleteRes = await api.deleteLaporan(lapTarget.id, 'Laporan uji coba selesai diperiksa');
+  assert(superDeleteRes.success, 'Superadmin berhasil menghapus laporan masyarakat');
+  const lapAfterDelete = (await api.getLaporanList()).data.find(l => l.nomor_tiket === tiketLaporan);
+  assert(!lapAfterDelete, 'Laporan terhapus tidak muncul lagi dalam daftar aktif');
+
+  // Log audit mencatat aksi penghapusan
+  const logsAfterDel = await api.getActivityLog(10);
+  const delLog = logsAfterDel.data.find(l => l.aksi === 'HAPUS_LAPORAN');
+  assert(delLog, 'Penghapusan laporan tercatat dalam riwayat audit log sistem');
+
+  // --- Butir 6: Ubah Username Admin (Validasi Keunikan, Regex & Sesi) ---
+  // Coba username pendek (< 3 karakter) -> GAGAL
+  const shortUserRes = await api.updateProfile({ username: 'ab' });
+  assert(!shortUserRes.success, 'Sistem menolak username kurang dari 3 karakter (VALIDATION_ERROR)');
+
+  // Coba username duplikat -> GAGAL
+  const dupUserRes = await api.updateProfile({ username: 'staf_audit' });
+  assert(!dupUserRes.success && dupUserRes.error?.code === 'DUPLICATE_USERNAME', 'Sistem menolak perubahan ke username yang sudah ada (DUPLICATE_USERNAME)');
+
+  // Ubah username valid
+  const updateProfileRes = await api.updateProfile({ username: 'superadmin_parepare' });
+  assert(updateProfileRes.success, 'Superadmin berhasil mengubah username');
+  const sessionCheck = await api.checkSession();
+  assert(sessionCheck.data.username === 'superadmin_parepare', 'Sesi aktif langsung tersinkronisasi dengan username baru');
+
+  // Kembalikan username ke semula untuk menjaga konsistensi pengujian lain
+  const revertProfileRes = await api.updateProfile({ username: 'superadmin' });
+  assert(revertProfileRes.success, 'Username superadmin berhasil dikembalikan ke default');
+
+  // --- Butir 10-14: Penyaringan Usulan Berulang Pokir (3 Hasil Pemeriksaan) ---
+  const proposerNama = 'Haji Syamsuddin Petani Mandiri';
+  const proposerKontak = '085242001122';
+  const programJudul = 'Bantuan Bibit Jagung Hibrida dan Pupuk Bersubsidi';
+
+  // Skenario A: Usulan pertama oleh pengusul -> Hasil A (Tidak terindikasi berulang / Lolos normal)
+  const pokirCheckA = await api.checkPokirDuplication({
+    nama_pelapor: proposerNama,
+    kontak_pelapor: proposerKontak,
+    kategori: 'Pokok-Pokok Pikiran',
+    tujuan: 'Dinas Pertanian dan Perikanan',
+    judul: programJudul
+  });
+  assert(pokirCheckA.success && pokirCheckA.data.status === 'A' && pokirCheckA.data.allowed === true, 'Pemeriksaan Pokir Hasil A: Tidak terindikasi berulang');
+
+  // Ajukan usulan Pokir pertama
+  const pokirSub1 = await api.submitLaporanPublik({
+    nama_pelapor: proposerNama,
+    kontak_pelapor: proposerKontak,
+    kecamatan: 'Kecamatan Bacukiki',
+    kategori: 'Pokok-Pokok Pikiran',
+    tujuan: 'Dinas Pertanian dan Perikanan',
+    judul: programJudul,
+    isi: 'Pengajuan bantuan bibit jagung hibrida untuk kelompok tani Bacukiki seluas 15 hektar.'
+  });
+  assert(pokirSub1.success && pokirSub1.data.nomor_tiket, 'Usulan Pokir pertama berhasil diserahkan');
+  const tiketPokir1 = pokirSub1.data.nomor_tiket;
+
+  // Skenario B: Usulan kedua diajukan oleh pengusul yang sama selagi usulan pertama masih 'menunggu'/'diproses'
+  // -> Hasil B (Diduga berulang tetapi belum pasti: Diterima dengan flag perlu_verifikasi)
+  const pokirCheckB = await api.checkPokirDuplication({
+    nama_pelapor: 'H. Syamsuddin', // Varian nama tanpa gelar
+    kontak_pelapor: proposerKontak,
+    kategori: 'Pokok-Pokok Pikiran',
+    tujuan: 'Dinas Pertanian dan Perikanan',
+    judul: 'Tambahan Bantuan Bibit Jagung Hibrida dan Pupuk'
+  });
+  assert(pokirCheckB.success && pokirCheckB.data.status === 'B' && pokirCheckB.data.perluVerifikasi === true && pokirCheckB.data.allowed === true, 'Pemeriksaan Pokir Hasil B: Terdeteksi diduga berulang dengan usulan berjalan, ditandai perlu verifikasi');
+
+  const pokirSub2 = await api.submitLaporanPublik({
+    nama_pelapor: 'H. Syamsuddin',
+    kontak_pelapor: proposerKontak,
+    kecamatan: 'Kecamatan Bacukiki',
+    kategori: 'Pokok-Pokok Pikiran',
+    tujuan: 'Dinas Pertanian dan Perikanan',
+    judul: 'Tambahan Bantuan Bibit Jagung Hibrida dan Pupuk',
+    isi: 'Usulan penambahan alokasi bibit jagung hibrida untuk musim tanam mendatang.'
+  });
+  assert(pokirSub2.success, 'Usulan Pokir kedua tetap diterima ke sistem dengan status verifikasi');
+  const tiketPokir2 = pokirSub2.data.nomor_tiket;
+
+  // Verifikasi flag status_duplikasi pada usulan kedua
+  const lapPokir2 = (await api.getLaporanList()).data.find(l => l.nomor_tiket === tiketPokir2);
+  assert(lapPokir2 && lapPokir2.status_duplikasi === 'perlu_verifikasi', 'Usulan kedua berstatus_duplikasi: "perlu_verifikasi"');
+
+  // Pengecualian Resmi Superadmin untuk Usulan Bertanda Perlu Verifikasi
+  // Staf mencoba menyetujui pengecualian -> DITOLAK (FORBIDDEN)
+  await api.logout();
+  await api.login('staf_audit', 'PasswordBaruAudit2026!');
+  const stafExceptRes = await api.approvePokirException(tiketPokir2, 'Disetujui staf');
+  assert(!stafExceptRes.success && (stafExceptRes.error?.code === 'FORBIDDEN' || stafExceptRes.message.includes('Superadmin')), 'Staf dilarang memberikan pengecualian pokir (RBAC: FORBIDDEN)');
+
+  // Superadmin menyetujui pengecualian usulan kedua
+  await api.logout();
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  const superExceptRes = await api.approvePokirException(tiketPokir2, 'Pengecualian resmi disetujui: Penambahan kuota petani terdampak kekeringan.');
+  assert(superExceptRes.success, 'Superadmin berhasil menyetujui pengecualian usulan Pokir');
+  const lapPokir2After = (await api.getLaporanList()).data.find(l => l.nomor_tiket === tiketPokir2);
+  assert(lapPokir2After.status_duplikasi === 'pengecualian_disetujui', 'Status duplikasi berubah menjadi "pengecualian_disetujui"');
+
+  // Skenario C: Usulan pertama telah berstatus 'terealisasi' / 'didanai'
+  // Ubah status usulan pertama menjadi 'terealisasi'
+  const target1 = (await api.getLaporanList()).data.find(l => l.nomor_tiket === tiketPokir1);
+  await api.updateLaporanStatus(target1.id, 'terealisasi', 'Program telah disalurkan penuh.');
+
+  // Usulan ketiga diajukan untuk program yang sama -> Hasil C (Terbukti melanggar pembatasan karena sudah TEREALISASI)
+  const pokirCheckC = await api.checkPokirDuplication({
+    nama_pelapor: proposerNama,
+    kontak_pelapor: proposerKontak,
+    kategori: 'Pokok-Pokok Pikiran',
+    tujuan: 'Dinas Pertanian dan Perikanan',
+    judul: 'Permintaan Bibit Jagung Hibrida dan Pupuk Bersubsidi'
+  });
+  assert(pokirCheckC.success && pokirCheckC.data.status === 'C' && pokirCheckC.data.allowed === false, 'Pemeriksaan Pokir Hasil C: Terdeteksi melanggar pembatasan program terealisasi');
+
+  // Pengajuan usulan ketiga DITOLAK oleh validasi backend
+  const pokirSub3 = await api.submitLaporanPublik({
+    nama_pelapor: proposerNama,
+    kontak_pelapor: proposerKontak,
+    kecamatan: 'Kecamatan Bacukiki',
+    kategori: 'Pokok-Pokok Pikiran',
+    tujuan: 'Dinas Pertanian dan Perikanan',
+    judul: 'Permintaan Bibit Jagung Hibrida dan Pupuk Bersubsidi',
+    isi: 'Mengajukan kembali bibit jagung.'
+  });
+  assert(!pokirSub3.success && (pokirSub3.error?.code === 'DUPLICATE_REALIZED_PROPOSAL' || pokirSub3.message.includes('terealisasi')), 'Pengajuan usulan Pokir yang telah terealisasi ditolak backend dengan pesan resmi');
+
+  // Pembersihan akun dan data uji audit
+  await api.deleteLaporan(target1.id);
+  await api.deleteLaporan(lapPokir2.id);
+  await api.deleteUser(stafAuditRes.data.id);
+  await api.logout();
+
   console.log(`\n=======================================================`);
   console.log(`HASIL TOTAL PENGUJIAN: ${passed} PASS, ${failed} FAIL`);
   console.log(`=======================================================`);

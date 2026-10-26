@@ -363,7 +363,7 @@ function isStaffAuthorizedForDewan(ss, session, dewanId) {
   });
   if (!target) return false;
 
-  const pendamping = String(target.nama_pendamping || '').trim().toLowerCase();
+  const pendamping = String(target.nama_pendamping || target.nama_pengawas || '').trim().toLowerCase();
   if (!pendamping) return false;
 
   const staffUsername = String(session.username || '').trim().toLowerCase();
@@ -411,6 +411,113 @@ function isStaffAuthorizedForDokumen(ss, session, doc) {
     return true;
   }
   return false;
+}
+
+function isKategoriMatching(ss, katParam, recordKatId) {
+  if (!katParam || !recordKatId) return false;
+  const p = String(katParam).trim().toLowerCase();
+  const r = String(recordKatId).trim().toLowerCase();
+  if (p === r) return true;
+
+  const isPokir = function(val) {
+    return val === 'kat-01' || val === '1' || val === 'pokir' || val === 'pokok-pokok pikiran' || val === 'pokok pikiran' || val.indexOf('pokir') !== -1 || val.indexOf('pokok') !== -1;
+  };
+  const isReses = function(val) {
+    return val === 'kat-02' || val === '2' || val === 'reses' || val.indexOf('reses') !== -1;
+  };
+
+  if (isPokir(p) && isPokir(r)) return true;
+  if (isReses(p) && isReses(r)) return true;
+
+  return false;
+}
+
+function checkPokirDuplicationRule(ss, data) {
+  const nama = String(data.nama_pelapor || '').trim();
+  const kontak = String(data.kontak_pelapor || '').trim();
+  const kategori = String(data.kategori || '').trim();
+  const tujuan = String(data.tujuan || '').trim();
+  const judul = String(data.judul || '').trim();
+  const cleanContact = kontak.replace(/[^0-9]/g, '');
+
+  function cleanTitle(s) {
+    return String(s || '').replace(/[,.]/g, ' ')
+      .replace(/\b(h|hj|ir|drs|dra|dr|prof|m\.si|msi|s\.ip|sip|s\.kom|skom|s\.e|se|s\.h|sh|s\.sos|ssos|m\.m|mm|m\.pd|mpd|s\.pd|spd)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+  const cleanName = cleanTitle(nama);
+
+  const lapSheet = ss.getSheetByName('laporan_masyarakat');
+  if (!lapSheet) {
+    return { status: 'A', allowed: true, perluVerifikasi: false, message: 'Tidak terindikasi berulang.' };
+  }
+  const allLaporan = getSheetData(ss, 'laporan_masyarakat');
+
+  // Identifikasi pengusul yang sama (nomor kontak stabil atau kecocokan nama bersih)
+  const sameProposerReports = allLaporan.filter(function(l) {
+    const lKontak = String(l.kontak_pelapor || '').replace(/[^0-9]/g, '');
+    const lName = cleanTitle(l.nama_pelapor || '');
+    const contactMatch = cleanContact.length >= 8 && lKontak.length >= 8 && (cleanContact === lKontak || cleanContact.indexOf(lKontak) !== -1 || lKontak.indexOf(cleanContact) !== -1);
+    const nameMatch = cleanName && lName && (cleanName === lName || cleanName.indexOf(lName) !== -1 || lName.indexOf(cleanName) !== -1);
+    return contactMatch || nameMatch;
+  });
+
+  if (sameProposerReports.length === 0) {
+    return { status: 'A', allowed: true, perluVerifikasi: false, message: 'Tidak terindikasi berulang.' };
+  }
+
+  function normalizeText(txt) {
+    return String(txt || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  const targetTujuan = normalizeText(tujuan);
+  const targetJudul = normalizeText(judul);
+
+  const isSameProgram = function(l) {
+    const lTujuan = normalizeText(l.tujuan || '');
+    const lJudul = normalizeText(l.judul || '');
+    const sameTujuan = (targetTujuan && lTujuan && (targetTujuan === lTujuan || targetTujuan.indexOf(lTujuan) !== -1 || lTujuan.indexOf(targetTujuan) !== -1));
+    const titleTokens = targetJudul.split(' ').filter(function(t) { return t.length >= 4; });
+    const sharedTokens = titleTokens.filter(function(t) { return lJudul.indexOf(t) !== -1; });
+    const sameJudul = sharedTokens.length >= 2;
+    return sameTujuan || sameJudul;
+  };
+
+  const realizedSameProgram = sameProposerReports.find(function(l) {
+    const st = String(l.status || '').toLowerCase().trim();
+    const realisasi = st === 'terealisasi' || st === 'didanai';
+    return realisasi && isSameProgram(l);
+  });
+
+  if (realizedSameProgram) {
+    return {
+      status: 'C',
+      allowed: false,
+      perluVerifikasi: false,
+      error: { code: 'DUPLICATE_REALIZED_PROPOSAL' },
+      message: 'Usulan Pokir tidak dapat diajukan kembali karena program serupa telah terealisasi/didanai pada usulan sebelumnya (' + realizedSameProgram.nomor_tiket + ').',
+      priorTicket: realizedSameProgram.nomor_tiket
+    };
+  }
+
+  const pendingSameProgram = sameProposerReports.find(function(l) {
+    const st = String(l.status || '').toLowerCase().trim();
+    const isOngoing = st === 'menunggu' || st === 'diproses' || st === 'disetujui';
+    return isOngoing && isSameProgram(l);
+  });
+
+  if (pendingSameProgram) {
+    return {
+      status: 'B',
+      allowed: true,
+      perluVerifikasi: true,
+      message: 'Diduga berulang dengan usulan yang sedang berjalan (' + pendingSameProgram.nomor_tiket + '). Membutuhkan verifikasi petugas.',
+      priorTicket: pendingSameProgram.nomor_tiket
+    };
+  }
+
+  return { status: 'A', allowed: true, perluVerifikasi: false, message: 'Tidak terindikasi berulang.' };
 }
 
 function revokeUserSessions(userId) {
@@ -741,6 +848,19 @@ function doPost(e) {
         return jsonResponse(false, null, 'Kecamatan harus berada di wilayah resmi Kota Parepare (Bacukiki, Bacukiki Barat, Soreang, Ujung).', 'VALIDATION_ERROR');
       }
 
+      // Jalankan Penyaringan Usulan Berulang Pokir
+      const pokirCheck = checkPokirDuplicationRule(ss, {
+        nama_pelapor: namaPelapor,
+        kontak_pelapor: kontakPelapor,
+        kategori: kategori,
+        tujuan: tujuan,
+        judul: judul
+      });
+
+      if (!pokirCheck.allowed) {
+        return jsonResponse(false, null, pokirCheck.message, 'DUPLICATE_REALIZED_PROPOSAL');
+      }
+
       // Proteksi anti-spam rate limiting: maks 5 laporan per 10 menit
       const cache = CacheService.getScriptCache();
       const spamKey = 'spam_lap_' + kontakPelapor.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
@@ -760,7 +880,7 @@ function doPost(e) {
           const driveFolder = getDocFolder();
           const blob = Utilities.newBlob(validatedFile.bytes, validatedFile.mimeType, d.fileName);
           const newFile = driveFolder.createFile(blob);
-          newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          // Berkas disimpan privat pada Drive Sekretariat (akses via download terotentikasi)
           fileId = newFile.getId();
           fileUrl = newFile.getUrl();
           fileName = d.fileName;
@@ -813,6 +933,12 @@ function doPost(e) {
       }, 'Aspirasi / pengaduan Anda telah berhasil diterima oleh Sekretariat DPRD Kota Parepare. Simpan nomor referensi Anda untuk bukti pengajuan.');
     }
 
+    if (action === 'checkPokirDuplication') {
+      const d = payload.data || payload;
+      const res = checkPokirDuplicationRule(ss, d);
+      return jsonResponse(true, res, res.message);
+    }
+
     if (action === 'getPublicDewanList') {
       const dewanList = getSheetData(ss, 'dewan').filter(function(d) {
         return String(d.status || '').toLowerCase() === 'aktif';
@@ -849,9 +975,9 @@ function doPost(e) {
       'createFolder', 'updateFolder', 'deleteFolder',
       'uploadDokumen', 'updateDokumen', 'deleteDokumen',
       'uploadRdpDokumen', 'updateRdpDokumen', 'deleteRdpDokumen',
-      'assignLaporan', 'updateLaporanStatus',
+      'assignLaporan', 'updateLaporanStatus', 'deleteLaporan', 'approvePokirException',
       'createUser', 'updateUser', 'toggleUserStatus', 'deleteUser', 'resetUserPassword',
-      'changePassword', 'clearActivityLog'
+      'changePassword', 'updateProfile', 'clearActivityLog'
     ];
 
     if (WRITE_ACTIONS.indexOf(action) !== -1) {
@@ -1048,7 +1174,8 @@ function doPost(e) {
       if (d.nama) dewanSheet.getRange(rowIdx, 3).setValue(sanitizeSheetValue(String(d.nama).trim()));
       if (d.jabatan) dewanSheet.getRange(rowIdx, 4).setValue(sanitizeSheetValue(String(d.jabatan).trim()));
       if (d.periode) dewanSheet.getRange(rowIdx, 5).setValue(sanitizeSheetValue(String(d.periode).trim()));
-      if (d.nama_pendamping !== undefined) dewanSheet.getRange(rowIdx, 6).setValue(sanitizeSheetValue(String(d.nama_pendamping).trim()));
+      const pendVal = d.nama_pendamping !== undefined ? d.nama_pendamping : d.nama_pengawas;
+      if (pendVal !== undefined) dewanSheet.getRange(rowIdx, 6).setValue(sanitizeSheetValue(String(pendVal).trim()));
       if (d.nama_partai) dewanSheet.getRange(rowIdx, 7).setValue(sanitizeSheetValue(String(d.nama_partai).trim()));
       if (d.kecamatan !== undefined) dewanSheet.getRange(rowIdx, 11).setValue(sanitizeSheetValue(String(d.kecamatan).trim()));
       dewanSheet.getRange(rowIdx, 10).setValue(nowIso);
@@ -1116,7 +1243,7 @@ function doPost(e) {
 
       const result = kategoriList.map(function(k) {
         const count = dokumenList.filter(function(d) {
-          const matchKat = String(d.kategori_id || '').trim() === String(k.id || '').trim();
+          const matchKat = isKategoriMatching(ss, k.id, d.kategori_id);
           const matchDewan = !dewanId || String(d.dewan_id || '').trim() === dewanId;
           const matchStatus = String(d.status || '').toLowerCase() === 'aktif';
           return matchKat && matchDewan && matchStatus;
@@ -1220,12 +1347,12 @@ function doPost(e) {
 
       const yearMap = {};
       tahunData.forEach(function(t) {
-        if (String(t.dewan_id).trim() === dewanId && String(t.kategori_id).trim() === katId) {
+        if (String(t.dewan_id).trim() === dewanId && isKategoriMatching(ss, katId, t.kategori_id)) {
           yearMap[t.tahun] = true;
         }
       });
       docData.forEach(function(d) {
-        if (String(d.dewan_id).trim() === dewanId && String(d.kategori_id).trim() === katId && d.tahun) {
+        if (String(d.dewan_id).trim() === dewanId && isKategoriMatching(ss, katId, d.kategori_id) && d.tahun) {
           yearMap[d.tahun] = true;
         }
       });
@@ -1234,7 +1361,7 @@ function doPost(e) {
         const yr = parseInt(yrStr, 10);
         const count = docData.filter(function(d) {
           return String(d.dewan_id).trim() === dewanId &&
-                 String(d.kategori_id).trim() === katId &&
+                 isKategoriMatching(ss, katId, d.kategori_id) &&
                  parseInt(d.tahun, 10) === yr &&
                  String(d.status || '').toLowerCase() === 'aktif';
         }).length;
@@ -1339,14 +1466,14 @@ function doPost(e) {
 
       const folders = folderData.filter(function(f) {
         return String(f.dewan_id).trim() === dewanId &&
-               String(f.kategori_id).trim() === katId &&
+               isKategoriMatching(ss, katId, f.kategori_id) &&
                parseInt(f.tahun, 10) === yr;
       });
 
       const result = folders.map(function(f) {
         const count = docData.filter(function(d) {
           return String(d.dewan_id).trim() === dewanId &&
-                 String(d.kategori_id).trim() === katId &&
+                 isKategoriMatching(ss, katId, d.kategori_id) &&
                  parseInt(d.tahun, 10) === yr &&
                  String(d.nama_folder || '').trim().toLowerCase() === String(f.nama_folder || '').trim().toLowerCase() &&
                  String(d.status || '').toLowerCase() === 'aktif';
@@ -1479,7 +1606,7 @@ function doPost(e) {
       }
 
       if (dewanId) list = list.filter(function(d) { return String(d.dewan_id).trim() === dewanId; });
-      if (katId) list = list.filter(function(d) { return String(d.kategori_id).trim() === katId; });
+      if (katId) list = list.filter(function(d) { return isKategoriMatching(ss, katId, d.kategori_id); });
       if (yr) list = list.filter(function(d) { return parseInt(d.tahun, 10) === yr; });
       if (folderName) list = list.filter(function(d) { return String(d.nama_folder || '').trim().toLowerCase() === folderName; });
 
@@ -2077,11 +2204,12 @@ function doPost(e) {
       let reports = getSheetData(ss, 'laporan_masyarakat');
 
       if (session.role === 'staff') {
+        const staffUsername = session.username ? session.username.toLowerCase() : '';
+        const staffNama = session.nama ? session.nama.toLowerCase() : '';
+        const staffId = session.userId ? String(session.userId).toLowerCase() : '';
         reports = reports.filter(function(r) {
           const assigned = String(r.assigned_to || '').trim().toLowerCase();
-          return assigned === session.username.toLowerCase() ||
-                 (session.nama && assigned === session.nama.toLowerCase()) ||
-                 assigned === String(session.userId).toLowerCase();
+          return (assigned && (assigned === staffUsername || assigned === staffNama || assigned === staffId || (staffNama && assigned.indexOf(staffNama) !== -1)));
         });
       }
 
@@ -2094,7 +2222,7 @@ function doPost(e) {
         return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang dapat menugaskan laporan.', 'FORBIDDEN');
       }
       const id = String(payload.id || '').trim();
-      const staffUser = String(payload.assigned_to || '').trim();
+      const staffUser = String(payload.assigned_to || payload.staff_nama || payload.staff_id || '').trim();
       const lapSheet = ss.getSheetByName('laporan_masyarakat');
       if (!lapSheet) return jsonResponse(false, null, 'Sheet laporan tidak ditemukan.', 'NOT_FOUND');
 
@@ -2141,6 +2269,119 @@ function doPost(e) {
 
       recordActivity(ss, session.userId, session.username, session.role, 'STATUS_LAPORAN', 'Memperbarui status laporan ' + target.nomor_tiket + ' menjadi: ' + newStatus);
       return jsonResponse(true, { id: id, status: newStatus, tanggapan: tanggapan }, 'Status laporan berhasil diperbarui.');
+    }
+
+    if (action === 'downloadLaporanLampiran') {
+      const id = String(payload.id || payload.nomor_tiket || '').trim();
+      const allReports = getSheetData(ss, 'laporan_masyarakat');
+      const target = allReports.find(function(r) { return String(r.id || '').trim() === id || String(r.nomor_tiket || '').trim() === id; });
+      if (!target) return jsonResponse(false, null, 'Laporan tidak ditemukan.', 'NOT_FOUND');
+
+      if (session.role === 'staff') {
+        const staffUsername = session.username ? session.username.toLowerCase() : '';
+        const staffNama = session.nama ? session.nama.toLowerCase() : '';
+        const staffId = session.userId ? String(session.userId).toLowerCase() : '';
+        const assigned = String(target.assigned_to || '').trim().toLowerCase();
+        const isAssigned = (assigned && (assigned === staffUsername || assigned === staffNama || assigned === staffId || (staffNama && assigned.indexOf(staffNama) !== -1)));
+        if (!isAssigned) {
+          return jsonResponse(false, null, 'Akses ditolak: Anda tidak memiliki wewenang untuk lampiran ini.', 'FORBIDDEN');
+        }
+      }
+
+      if (!target.lampiran_file_id && !target.lampiran_url && !target.lampiran_nama) {
+        return jsonResponse(false, null, 'Laporan ini tidak memiliki berkas lampiran.', 'NO_ATTACHMENT');
+      }
+
+      if (target.lampiran_file_id) {
+        try {
+          const file = DriveApp.getFileById(String(target.lampiran_file_id).trim());
+          const blob = file.getBlob();
+          const base64 = Utilities.base64Encode(blob.getBytes());
+          return jsonResponse(true, {
+            base64: base64,
+            fileName: file.getName(),
+            fileType: blob.getContentType(),
+            url: target.lampiran_url || file.getUrl()
+          }, 'Lampiran berhasil diunduh.');
+        } catch (err) {
+          return jsonResponse(false, null, 'Gagal mengambil berkas lampiran dari Drive: ' + err.message, 'DRIVE_ERROR');
+        }
+      }
+
+      return jsonResponse(true, {
+        base64: '',
+        fileName: target.lampiran_nama || 'lampiran.pdf',
+        fileType: 'application/pdf',
+        url: target.lampiran_url || ''
+      }, 'Informasi lampiran dimuat.');
+    }
+
+    if (action === 'deleteLaporan') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang berhak menghapus laporan.', 'FORBIDDEN');
+      }
+      const id = String(payload.id || payload.nomor_tiket || '').trim();
+      const lapSheet = ss.getSheetByName('laporan_masyarakat');
+      if (!lapSheet) return jsonResponse(false, null, 'Sheet laporan tidak ditemukan.', 'NOT_FOUND');
+      const allReports = getSheetData(ss, 'laporan_masyarakat');
+      const target = allReports.find(function(r) { return String(r.id || '').trim() === id || String(r.nomor_tiket || '').trim() === id; });
+      if (!target) return jsonResponse(false, null, 'Laporan tidak ditemukan.', 'NOT_FOUND');
+
+      lapSheet.deleteRow(target._rowIndex);
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_LAPORAN', 'Menghapus laporan nomor tiket ' + target.nomor_tiket + ' (' + target.judul + ')');
+      return jsonResponse(true, { nomor_tiket: target.nomor_tiket }, 'Laporan ' + target.nomor_tiket + ' berhasil dihapus.');
+    }
+
+    if (action === 'approvePokirException') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang berwenang memberikan pengecualian Pokir.', 'FORBIDDEN');
+      }
+      const ticket = String(payload.nomor_tiket || payload.id || '').trim();
+      const lapSheet = ss.getSheetByName('laporan_masyarakat');
+      if (!lapSheet) return jsonResponse(false, null, 'Sheet laporan tidak ditemukan.', 'NOT_FOUND');
+
+      const allReports = getSheetData(ss, 'laporan_masyarakat');
+      const target = allReports.find(function(r) { return String(r.nomor_tiket || '').trim() === ticket || String(r.id || '').trim() === ticket; });
+      if (!target) return jsonResponse(false, null, 'Usulan Pokir tidak ditemukan.', 'NOT_FOUND');
+
+      recordActivity(ss, session.userId, session.username, session.role, 'PENGECUALIAN_POKIR', 'Memberikan pengecualian usulan Pokir nomor tiket ' + target.nomor_tiket + '. Catatan: ' + (payload.catatan || '-'));
+      return jsonResponse(true, { nomor_tiket: target.nomor_tiket, status_duplikasi: 'pengecualian_disetujui' }, 'Pengecualian usulan Pokir berhasil disetujui.');
+    }
+
+    if (action === 'updateProfile') {
+      const data = payload.data || payload;
+      const newUsername = data.username !== undefined ? String(data.username).trim().toLowerCase() : '';
+      const newNama = data.nama !== undefined ? String(data.nama).trim() : '';
+
+      const usersSheet = ss.getSheetByName('users');
+      const allUsers = getSheetData(ss, 'users');
+      const target = allUsers.find(function(u) { return String(u.id || '').trim() === String(session.userId).trim(); });
+      if (!target) return jsonResponse(false, null, 'Pengguna tidak ditemukan.', 'NOT_FOUND');
+
+      if (newUsername) {
+        if (newUsername.length < 3 || !/^[a-zA-Z0-9_.-]+$/.test(newUsername)) {
+          return jsonResponse(false, null, 'Username harus berupa 3-30 karakter alfanumerik, titik, atau garis bawah/strip.', 'VALIDATION_ERROR');
+        }
+        const exists = allUsers.some(function(u) {
+          return String(u.id || '').trim() !== String(session.userId).trim() && String(u.username || '').trim().toLowerCase() === newUsername;
+        });
+        if (exists) {
+          return jsonResponse(false, null, 'Username sudah digunakan oleh akun lain.', 'DUPLICATE_USERNAME');
+        }
+        usersSheet.getRange(target._rowIndex, 2).setValue(newUsername);
+      }
+
+      if (newNama) {
+        usersSheet.getRange(target._rowIndex, 5).setValue(sanitizeSheetValue(newNama));
+      }
+
+      recordActivity(ss, session.userId, newUsername || session.username, session.role, 'UPDATE_PROFILE', 'Memperbarui profil pengguna');
+      return jsonResponse(true, {
+        id: session.userId,
+        username: newUsername || session.username,
+        nama: newNama || session.nama,
+        role: session.role
+      }, 'Profil pengguna berhasil diperbarui.');
     }
 
     // ---------------- AKSI LOG AUDIT & PROFILE FALLBACK ----------------

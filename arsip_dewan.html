@@ -359,8 +359,17 @@
             throw new Error(resKat?.message || 'Gagal memuat kategori.');
           }
 
-          // Hanya menampilkan Reses dan Pokir.
+          // Hanya menampilkan Reses dan Pokir (Pokok-Pokok Pikiran).
           // Kategori lain tidak dihapus dari penyimpanan.
+          const isPokirCategory = (nama) => {
+            const n = (nama || '').trim().toLowerCase();
+            return n.includes('pokir') || n.includes('pokok-pokok pikiran') || n.includes('pokok pikiran');
+          };
+          const isResesCategory = (nama) => {
+            const n = (nama || '').trim().toLowerCase();
+            return n.includes('reses');
+          };
+
           const categories = resKat.data.filter(k => {
             if ((k.status || 'aktif').toLowerCase() !== 'aktif') {
               return false;
@@ -368,16 +377,16 @@
 
             const nama = (k.nama_kategori || '').trim().toLowerCase();
 
-            return nama.includes('reses') || nama.includes('pokir');
+            return isResesCategory(nama) || isPokirCategory(nama);
           });
 
-          // Reses dan Pokir ditampilkan dalam urutan tetap.
+          // Reses dan Pokir ditampilkan dalam urutan tetap (Reses dahulu, lalu Pokir).
           categories.sort((a, b) => {
             const namaA = (a.nama_kategori || '').toLowerCase();
             const namaB = (b.nama_kategori || '').toLowerCase();
 
-            const urutanA = namaA.includes('reses') ? 0 : 1;
-            const urutanB = namaB.includes('reses') ? 0 : 1;
+            const urutanA = isResesCategory(namaA) ? 0 : (isPokirCategory(namaA) ? 1 : 2);
+            const urutanB = isResesCategory(namaB) ? 0 : (isPokirCategory(namaB) ? 1 : 2);
 
             return urutanA - urutanB;
           });
@@ -549,7 +558,7 @@
 
             const namaBaru = nama.trim().toLowerCase();
 
-            if (!namaBaru.includes('reses') && !namaBaru.includes('pokir')) {
+            if (!isResesCategory(namaBaru) && !isPokirCategory(namaBaru)) {
               alert(
                 'Kategori berhasil disimpan, tetapi tampilan halaman ini hanya menampilkan kategori Reses dan Pokir.'
               );
