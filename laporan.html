@@ -174,7 +174,7 @@
 
   <script type="module">
     import { api } from './assets/js/api.js';
-    import { requireAuth, showToast } from './assets/js/auth.js';
+    import { requireAuth, showToast, formatDateIndonesia } from './assets/js/auth.js';
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const currentUser = requireAuth();
@@ -297,7 +297,7 @@
         }
 
         tableBody.innerHTML = list.map((l, idx) => {
-          const tgl = l.created_at ? new Date(l.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+          const tgl = formatDateIndonesia(l.created_at);
 
           let statusClass = 'menunggu';
           let statusText = 'Menunggu';
@@ -411,7 +411,7 @@
         const modal = document.getElementById('modalDetailBackdrop');
         const body = document.getElementById('modalDetailBody');
 
-        const tgl = r.created_at ? new Date(r.created_at).toLocaleString('id-ID') : '-';
+        const tgl = formatDateIndonesia(r.created_at);
 
         body.innerHTML = `
           <div style="background: var(--navy-50); border: 1px solid var(--border-light); padding: 16px; border-radius: 8px; margin-bottom: 20px;">

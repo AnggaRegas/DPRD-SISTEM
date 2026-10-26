@@ -21,6 +21,14 @@ const APP_NAME = 'Sistem Pengarsipan Dokumen DPRD Kota Parepare';
 const TIMEZONE = 'Asia/Makassar';
 const INITIAL_SUPERADMIN_USER = 'superadmin';
 
+/**
+ * Menghasilkan timestamp ISO 8601 dengan offset zona waktu resmi WITA (+08:00).
+ * Contoh output: "2026-10-27T00:15:30+08:00"
+ */
+function getIsoTimestamp(date) {
+  return Utilities.formatDate(date || new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+
 // ID Default Spreadsheet & Folder yang telah terbukti dibuat
 const DEFAULT_DATABASE_ID = '1au0x8Ya46aB3z2kfosAhFn4IW1tx0vYAr4UYoNkHF-Q';
 const DEFAULT_ROOT_FOLDER_ID = '1rI8ew0II_VXmTbLyB5bvsW3rUgeEgObz';
@@ -228,7 +236,7 @@ function bootstrapSuperadmin(initialPassword) {
 
   const salt = generateCryptographicSalt();
   const hash = hashPasswordPBKDF2(cleanPass, salt, PBKDF2_STANDARD_ITERATIONS);
-  const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+  const nowIso = getIsoTimestamp();
 
   if (userRow) {
     // Akun sudah ada: perbarui password in-place tanpa membuat baris baru
@@ -615,7 +623,7 @@ function recordActivity(ss, userId, username, role, aksi, detail) {
   try {
     const sheet = ss.getSheetByName('aktivitas_log');
     if (!sheet) return;
-    const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+    const nowIso = getIsoTimestamp();
     const id = Utilities.getUuid().substring(0, 8);
     sheet.appendRow([
       id,
@@ -721,7 +729,7 @@ function jsonResponse(success, data, message, errorCode) {
     data: data !== undefined ? data : null,
     message: message || '',
     error: errorCode ? { code: errorCode } : null,
-    timestamp: Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    timestamp: getIsoTimestamp()
   };
   return ContentService.createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
@@ -911,7 +919,7 @@ function doPost(e) {
       }
 
       const sessionToken = generateSessionToken(targetUser.id);
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
       const expiresAt = Date.now() + (12 * 60 * 60 * 1000); // 12 Jam
 
       const userRole = String(targetUser.role || 'staff').toLowerCase();
@@ -1032,7 +1040,7 @@ function doPost(e) {
       const randomHex = Utilities.getUuid().substring(0, 4).toUpperCase();
       const nomorTiket = 'LAP-' + ymd + '-' + randomHex;
       const stableId = 'RPT-' + Date.now();
-      const nowIso = Utilities.formatDate(now, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp(now);
 
       lapSheet.appendRow([
         stableId,
@@ -1263,7 +1271,7 @@ function doPost(e) {
       const allDewan = getSheetData(ss, 'dewan');
       const nextNum = allDewan.length + 1;
       const newId = 'DWN-' + (nextNum < 10 ? '0' + nextNum : nextNum);
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
 
       dewanSheet.appendRow([
         newId,
@@ -1298,7 +1306,7 @@ function doPost(e) {
       if (!target) return jsonResponse(false, null, 'Data dewan tidak ditemukan.', 'NOT_FOUND');
 
       const rowIdx = target._rowIndex;
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
 
       if (d.nama) dewanSheet.getRange(rowIdx, 3).setValue(sanitizeSheetValue(String(d.nama).trim()));
       if (d.jabatan) dewanSheet.getRange(rowIdx, 4).setValue(sanitizeSheetValue(String(d.jabatan).trim()));
@@ -1412,7 +1420,7 @@ function doPost(e) {
       if (dup) return jsonResponse(false, null, 'Kategori dengan nama "' + nama + '" sudah ada.', 'DUPLICATE_CATEGORY');
 
       const nextId = 'KAT-' + (allKat.length < 9 ? '0' + (allKat.length + 1) : (allKat.length + 1));
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
 
       katSheet.appendRow([nextId, sanitizeSheetValue(nama), sanitizeSheetValue(deskripsi), 'aktif', nowIso, nowIso]);
       recordActivity(ss, session.userId, session.username, session.role, 'TAMBAH_KATEGORI', 'Menambahkan kategori: ' + nama);
@@ -1441,7 +1449,7 @@ function doPost(e) {
         if (dup) return jsonResponse(false, null, 'Kategori dengan nama "' + nama + '" sudah ada.', 'DUPLICATE_CATEGORY');
       }
 
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
       if (nama) katSheet.getRange(target._rowIndex, 2).setValue(sanitizeSheetValue(nama));
       if (deskripsi !== null) katSheet.getRange(target._rowIndex, 3).setValue(sanitizeSheetValue(deskripsi));
       katSheet.getRange(target._rowIndex, 6).setValue(nowIso);
@@ -1526,7 +1534,7 @@ function doPost(e) {
 
       const tahunSheet = ss.getSheetByName('tahun_dokumen');
       const newId = 'THN-' + Date.now();
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
 
       tahunSheet.appendRow([newId, dewanId, katId, tahun, 'aktif', nowIso]);
       recordActivity(ss, session.userId, session.username, 'superadmin', 'TAMBAH_TAHUN', 'Menambahkan tahun anggaran: ' + tahun);
@@ -1656,7 +1664,7 @@ function doPost(e) {
 
       const folderSheet = ss.getSheetByName('folder_dokumen');
       const newId = 'FLD-' + Date.now();
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
 
       folderSheet.appendRow([newId, dewanId, katId, yr, sanitizeSheetValue(namaFolder), '', 'aktif', nowIso]);
       recordActivity(ss, session.userId, session.username, 'superadmin', 'TAMBAH_FOLDER', 'Membuat folder: ' + namaFolder);
@@ -1843,7 +1851,7 @@ function doPost(e) {
         const driveDownloadUrl = createdDriveFile.getDownloadUrl();
 
         const stableDocId = 'DOC-' + Date.now() + '-' + Utilities.getUuid().substring(0, 4);
-        const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+        const nowIso = getIsoTimestamp();
 
         const docSheet = ss.getSheetByName('dokumen');
         docSheet.appendRow([
@@ -2060,7 +2068,7 @@ function doPost(e) {
       }
 
       const kode = nama.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
 
       komisiSheet.appendRow([
         newId,
@@ -2245,7 +2253,7 @@ function doPost(e) {
         const driveDownloadUrl = createdDriveFile.getDownloadUrl();
 
         const stableDocId = 'RDP-' + Date.now() + '-' + Utilities.getUuid().substring(0, 4);
-        const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+        const nowIso = getIsoTimestamp();
 
         const docSheet = ss.getSheetByName('dokumen');
         docSheet.appendRow([
@@ -2374,7 +2382,7 @@ function doPost(e) {
       const target = allReports.find(function(r) { return String(r.id || '').trim() === id || String(r.nomor_tiket || '').trim() === id; });
       if (!target) return jsonResponse(false, null, 'Laporan tidak ditemukan.', 'NOT_FOUND');
 
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
       lapSheet.getRange(target._rowIndex, 14).setValue(sanitizeSheetValue(staffUser));
       lapSheet.getRange(target._rowIndex, 13).setValue('diproses');
       lapSheet.getRange(target._rowIndex, 17).setValue(nowIso);
@@ -2404,7 +2412,7 @@ function doPost(e) {
         }
       }
 
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
       lapSheet.getRange(target._rowIndex, 13).setValue(newStatus);
       if (tanggapan) {
         lapSheet.getRange(target._rowIndex, 15).setValue(sanitizeSheetValue(tanggapan));
@@ -2622,7 +2630,7 @@ function doPost(e) {
       const salt = generateCryptographicSalt();
       const hash = hashPasswordPBKDF2(password, salt, PBKDF2_STANDARD_ITERATIONS);
       const newUserId = 'USR-' + Date.now();
-      const nowIso = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      const nowIso = getIsoTimestamp();
 
       usersSheet.appendRow([
         newUserId,

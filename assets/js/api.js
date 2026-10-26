@@ -927,7 +927,7 @@ async function handleMockRequest(action, payload) {
           totalDokumen: db.dokumen.filter((d) => d.status === 'aktif').length,
           totalKategori: db.kategori.filter((k) => k.status === 'aktif').length,
           recentDocuments: db.dokumen.slice(0, 5),
-          recentActivities: db.logs.slice(-5)
+          recentActivities: (db.logs || []).slice(-5).reverse()
         },
         message: 'Data dashboard berhasil dimuat.'
       };
@@ -1973,8 +1973,11 @@ async function handleMockRequest(action, payload) {
       return { success: true, data: { cleared: true }, message: 'Seluruh riwayat aktivitas log berhasil dibersihkan.' };
     }
 
-    case 'getActivityLog':
-      return { success: true, data: db.logs, message: 'Log aktivitas dimuat.' };
+    case 'getActivityLog': {
+      const limit = parseInt(payload && payload.limit, 10) || 100;
+      const sorted = (db.logs || []).slice(-limit).reverse();
+      return { success: true, data: sorted, message: 'Log aktivitas dimuat.' };
+    }
 
     default:
       return { success: false, message: 'Aksi mock tidak dikenali: ' + action, error: { code: 'NOT_FOUND' } };

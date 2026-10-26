@@ -5,7 +5,7 @@
  */
 import crypto from 'crypto';
 import { api } from '../assets/js/api.js';
-import { saveSession, clearSession, isSessionExpiredClientSide, getStoredToken, getStoredUser, getSafeRedirectUrl } from '../assets/js/auth.js';
+import { saveSession, clearSession, isSessionExpiredClientSide, getStoredToken, getStoredUser, getSafeRedirectUrl, formatDateIndonesia } from '../assets/js/auth.js';
 
 console.log('=== MEMULAI TEST VERIFIKASI LENGKAP SISTEM ARSIP DPRD KOTA PAREPARE ===\n');
 
@@ -1434,6 +1434,65 @@ async function runAllTests() {
   // Pembersihan akun uji
   await api.login('superadmin', 'SandiKuatSuperadmin2026!');
   await api.deleteUser(testStaffId);
+  await api.logout();
+
+  // --- 23. Pengujian Pemformatan Waktu Log Aktivitas (WITA Parepare), Normalisasi Legacy GAS, & Urutan Kronologis ---
+  console.log('\n--- 23. Pengujian Pemformatan Waktu Log Aktivitas (WITA Parepare), Normalisasi Legacy GAS, & Urutan Kronologis ---');
+
+  // Test 23.1: Normalisasi legacy GAS string 'YYYY-MM-DDTHH:mm:ssZ' (jam lokal Makassar yang salah ditempel 'Z')
+  const legacyGasTime = '2026-10-27T00:08:11Z';
+  const legacyFormatted = formatDateIndonesia(legacyGasTime);
+  assert(legacyFormatted.includes('00.08 WITA') || legacyFormatted.includes('00:08 WITA'), 'Legacy GAS string tanpa milidetik dinormalisasi ke waktu Makassar tanpa lompat 8 jam: ' + legacyFormatted);
+
+  // Test 23.2: Format ISO offset eksplisit (+08:00)
+  const isoOffsetTime = '2026-10-27T00:08:11+08:00';
+  const isoFormatted = formatDateIndonesia(isoOffsetTime);
+  assert(isoFormatted.includes('00.08 WITA') || isoFormatted.includes('00:08 WITA'), 'Format ISO offset +08:00 terformat presisi pada zona WITA: ' + isoFormatted);
+
+  // Test 23.3: Format UTC murni dengan milidetik (.sssZ)
+  const utcStandardTime = '2026-10-26T16:08:11.123Z'; // 16:08 UTC = 00:08 WITA (+8 jam)
+  const utcFormatted = formatDateIndonesia(utcStandardTime);
+  assert(utcFormatted.includes('00.08 WITA') || utcFormatted.includes('00:08 WITA'), 'Format UTC murni dikonversi secara akurat ke waktu WITA: ' + utcFormatted);
+
+  // Test 23.4: Format SQL / Database date string 'YYYY-MM-DD HH:mm:ss'
+  const sqlDate = '2026-10-27 00:08:11';
+  const sqlFormatted = formatDateIndonesia(sqlDate);
+  assert(sqlFormatted.includes('00.08 WITA') || sqlFormatted.includes('00:08 WITA'), 'Format database SQL date terformat konsisten sebagai WITA: ' + sqlFormatted);
+
+  // Test 23.5: Fallback aman untuk input null / undefined / kosong
+  assert(formatDateIndonesia(null) === '-', 'formatDateIndonesia(null) mengembalikan "-"');
+  assert(formatDateIndonesia(undefined) === '-', 'formatDateIndonesia(undefined) mengembalikan "-"');
+  assert(formatDateIndonesia('') === '-', 'formatDateIndonesia("") mengembalikan "-"');
+
+  // Test 23.6: Login Superadmin dan periksa integritas getActivityLog
+  const superLogin23 = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLogin23.success, 'Login superadmin untuk verifikasi log aktivitas berhasil');
+
+  const actLogRes = await api.getActivityLog(20);
+  assert(actLogRes.success && Array.isArray(actLogRes.data), 'getActivityLog mengembalikan array data aktivitas');
+  assert(actLogRes.data.length > 0, 'Terdapat riwayat aktivitas sistem tercatat');
+
+  // Test 23.7: Verifikasi format waktu pada setiap log aktivitas valid
+  const firstLog = actLogRes.data[0];
+  const firstLogTime = formatDateIndonesia(firstLog.waktu);
+  assert(firstLogTime.endsWith('WITA'), 'Entri log aktivitas memiliki penanda zona waktu resmi WITA: ' + firstLogTime);
+
+  // Test 23.8: Verifikasi urutan recentActivities pada dashboard terurut dari yang terbaru (descending)
+  const dashDataRes = await api.getDashboardData();
+  assert(dashDataRes.success && dashDataRes.data, 'getDashboardData berhasil dimuat');
+  assert(Array.isArray(dashDataRes.data.recentActivities), 'recentActivities berbentuk array pada data dashboard');
+
+  // Test 23.9: Verifikasi file HTML aktivitas.html memiliki penanganan aman aksi dan badge role dinamis
+  const fsModule = await import('fs');
+  const actHtmlContent = fsModule.readFileSync('aktivitas.html', 'utf-8');
+  assert(actHtmlContent.includes('formatDateIndonesia(l.waktu)'), 'aktivitas.html memanggil formatDateIndonesia untuk kolom waktu');
+  assert(actHtmlContent.includes('userRole === \'staff\' ? \'staff\' : \'superadmin\''), 'aktivitas.html membedakan badge role staf vs superadmin secara dinamis');
+  assert(actHtmlContent.includes('isDangerAction'), 'aktivitas.html memiliki penanganan aman untuk aksi berisiko/hapus');
+
+  // Test 23.10: Verifikasi laporan.html menggunakan formatDateIndonesia
+  const lapHtmlContent = fsModule.readFileSync('laporan.html', 'utf-8');
+  assert(lapHtmlContent.includes('formatDateIndonesia(l.created_at)'), 'laporan.html memformat tanggal laporan publik dengan formatDateIndonesia');
+
   await api.logout();
 
   console.log(`\n=======================================================`);

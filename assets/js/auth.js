@@ -333,22 +333,48 @@ export function formatFileSize(bytes) {
 }
 
 /**
- * Format Tanggal Lokal Indonesia (WITA Parepare)
+ * Format Tanggal Lokal Indonesia (WITA Parepare / Asia/Makassar)
+ * Mendukung format ISO offset (+08:00), UTC murni (.sssZ), legacy GAS (YYYY-MM-DDTHH:mm:ssZ), dan SQL date
  */
 export function formatDateIndonesia(isoString) {
   if (!isoString) return '-';
   try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return isoString;
+    if (isoString instanceof Date) {
+      if (isNaN(isoString.getTime())) return '-';
+      return isoString.toLocaleDateString('id-ID', {
+        timeZone: 'Asia/Makassar',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }) + ' WITA';
+    }
+
+    let str = String(isoString).trim();
+    // 1. Tangani legacy string dari Google Apps Script: "YYYY-MM-DDTHH:mm:ssZ"
+    //    di mana jam tersebut sebenarnya sudah waktu Makassar (WITA) tetapi ditempel akhiran 'Z'
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(str)) {
+      str = str.slice(0, 19) + '+08:00';
+    } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(str)) {
+      str = str.replace(' ', 'T') + '+08:00';
+    }
+
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return String(isoString);
+
     return d.toLocaleDateString('id-ID', {
+      timeZone: 'Asia/Makassar',
       day: 'numeric',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false
     }) + ' WITA';
   } catch (e) {
-    return isoString;
+    return String(isoString);
   }
 }
 

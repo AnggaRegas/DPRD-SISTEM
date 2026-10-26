@@ -164,26 +164,34 @@
           return;
         }
 
-        tbody.innerHTML = logs.map(l => `
+        tbody.innerHTML = logs.map(l => {
+          const userRole = String(l.role || '').toLowerCase();
+          const roleBadgeClass = userRole === 'staff' ? 'staff' : 'superadmin';
+          const roleLabel = userRole === 'staff' ? 'STAF' : 'PENGELOLA';
+          const actionText = String(l.aksi || '-');
+          const isDangerAction = actionText.includes('GAGAL') || actionText.includes('HAPUS');
+
+          return `
           <tr>
             <td style="font-size: 12.5px; color: var(--text-muted); white-space: nowrap;">
               ${formatDateIndonesia(l.waktu)}
             </td>
             <td>
               <strong>${l.username || 'system'}</strong>
-              <span class="user-role-badge superadmin" style="margin-left: 6px;">PENGELOLA</span>
+              <span class="user-role-badge ${roleBadgeClass}" style="margin-left: 6px;">${roleLabel}</span>
             </td>
             <td>
-              <span class="status-pill ${l.aksi.includes('GAGAL') || l.aksi.includes('HAPUS') ? 'nonaktif' : 'aktif'}">
+              <span class="status-pill ${isDangerAction ? 'nonaktif' : 'aktif'}">
                 <span class="status-pill-dot"></span>
-                ${l.aksi || '-'}
+                ${actionText}
               </span>
             </td>
             <td style="color: var(--text-secondary);">
               ${l.detail || '-'}
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
 
       // Filter Pencarian
