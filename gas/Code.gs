@@ -1470,8 +1470,15 @@ function doPost(e) {
 
       if (!target) return jsonResponse(false, null, 'Kategori tidak ditemukan.', 'NOT_FOUND');
 
+      const targetId = String(target.id || '').trim().toUpperCase();
       const namaLow = String(target.nama_kategori || '').toLowerCase();
-      if (namaLow.indexOf('reses') !== -1 || namaLow.indexOf('pokir') !== -1 || namaLow.indexOf('pokok') !== -1) {
+      const isSystemCategory = targetId === 'KAT-01' || targetId === 'KAT-02' ||
+        /\bpokir\b/i.test(namaLow) ||
+        /\bpokok\s*-\s*pokok\s+pikiran\b/i.test(namaLow) ||
+        /\bpokok\s+pikiran\b/i.test(namaLow) ||
+        /\breses\b/i.test(namaLow);
+
+      if (isSystemCategory) {
         return jsonResponse(false, null, 'Kategori bawaan sistem (Hasil Reses / Pokir) tidak dapat dihapus.', 'SYSTEM_CATEGORY_PROTECTED');
       }
 

@@ -372,13 +372,17 @@
           btnTambah.style.display = 'none';
         }
 
-        const isPokirCategory = (nama) => {
-          const n = (nama || '').trim().toLowerCase();
-          return n.includes('pokir') || n.includes('pokok-pokok pikiran') || n.includes('pokok pikiran');
+        const isPokirCategory = (k) => {
+          const id = String(typeof k === 'object' && k !== null ? k.id : '').trim().toUpperCase();
+          if (id === 'KAT-01') return true;
+          const nama = String(typeof k === 'object' && k !== null ? k.nama_kategori : k || '').trim().toLowerCase();
+          return /\bpokir\b/i.test(nama) || /\bpokok\s*-\s*pokok\s+pikiran\b/i.test(nama) || /\bpokok\s+pikiran\b/i.test(nama);
         };
-        const isResesCategory = (nama) => {
-          const n = (nama || '').trim().toLowerCase();
-          return n.includes('reses');
+        const isResesCategory = (k) => {
+          const id = String(typeof k === 'object' && k !== null ? k.id : '').trim().toUpperCase();
+          if (id === 'KAT-02') return true;
+          const nama = String(typeof k === 'object' && k !== null ? k.nama_kategori : k || '').trim().toLowerCase();
+          return /\breses\b/i.test(nama);
         };
 
         // Modal Tambah & Edit Elements
@@ -405,6 +409,24 @@
         if (btnBatalTambah) btnBatalTambah.addEventListener('click', closeModalTambah);
         if (btnCloseEdit) btnCloseEdit.addEventListener('click', closeModalEdit);
         if (btnBatalEdit) btnBatalEdit.addEventListener('click', closeModalEdit);
+
+        if (modalTambah) {
+          modalTambah.addEventListener('click', (e) => {
+            if (e.target === modalTambah) closeModalTambah();
+          });
+        }
+        if (modalEdit) {
+          modalEdit.addEventListener('click', (e) => {
+            if (e.target === modalEdit) closeModalEdit();
+          });
+        }
+
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            closeModalTambah();
+            closeModalEdit();
+          }
+        });
 
         if (btnTambah && canManage) {
           btnTambah.onclick = () => {
@@ -574,7 +596,7 @@
                 <div style="text-align: right;">Aksi</div>
               </div>
               ${categories.map((k) => {
-                const isProtected = isResesCategory(k.nama_kategori) || isPokirCategory(k.nama_kategori);
+                const isProtected = isResesCategory(k) || isPokirCategory(k);
                 return `
                   <div class="category-row-item">
                     <div class="category-row-main">
@@ -600,14 +622,21 @@
                         Pilih Tahun &rarr;
                       </a>
                       ${canManage ? `
-                        <button type="button" class="btn btn-secondary btn-sm btn-edit-kategori" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" data-deskripsi="${k.deskripsi || ''}">
+                        <button type="button" class="btn btn-secondary btn-sm btn-edit-kategori" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" data-deskripsi="${k.deskripsi || ''}" title="Edit nama dan deskripsi kategori" aria-label="Edit kategori ${k.nama_kategori || ''}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                           Edit
                         </button>
-                        ${!isProtected ? `
-                          <button type="button" class="btn btn-secondary btn-sm btn-hapus-kategori" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" style="color:var(--status-danger);">
+                        ${isProtected ? `
+                          <button type="button" class="btn btn-secondary btn-sm btn-kategori-protected" disabled style="opacity: 0.45; cursor: not-allowed;" title="Kategori bawaan sistem DPRD (Hasil Reses / Pokir) dilindungi dan tidak dapat dihapus" aria-label="Kategori ${k.nama_kategori || ''} dilindungi">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             Hapus
                           </button>
-                        ` : ''}
+                        ` : `
+                          <button type="button" class="btn btn-secondary btn-sm btn-hapus-kategori btn-danger-action" data-id="${k.id}" data-nama="${k.nama_kategori || ''}" title="Hapus kategori ${k.nama_kategori || ''}" aria-label="Hapus kategori ${k.nama_kategori || ''}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            Hapus
+                          </button>
+                        `}
                       ` : ''}
                     </div>
                   </div>
@@ -637,8 +666,8 @@
                 const kId = btn.dataset.id;
                 const kNama = btn.dataset.nama;
                 showConfirmDialog({
-                  title: 'Hapus Kategori?',
-                  message: `Apakah Anda yakin ingin menghapus kategori "${kNama}"?\n\nKategori hanya dapat dihapus jika tidak ada dokumen arsip aktif di dalamnya.`,
+                  title: 'Hapus Kategori Arsip?',
+                  message: `Apakah Anda yakin ingin menghapus kategori "${kNama}"?\n\nKategori hanya dapat dihapus jika tidak ada berkas atau dokumen arsip aktif di dalamnya demi menjaga integritas data.`,
                   confirmText: 'Ya, Hapus Kategori',
                   cancelText: 'Batal',
                   isDanger: true,

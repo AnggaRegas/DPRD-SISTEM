@@ -1495,6 +1495,69 @@ async function runAllTests() {
 
   await api.logout();
 
+  // =========================================================================
+  // TEST SUITE 24: Verifikasi Modul Arsip Dokumen, Daftar Tabel Horizontal Kategori,
+  // Ikon Aksi SVG, Proteksi Hapus Kategori, & Layout Form Centering
+  // =========================================================================
+  console.log('\n--- 24. Pengujian Desain Tabel Horizontal Kategori, Ikon Aksi, Proteksi Hapus, & Form Centering ---');
+
+  // Test 24.1: Periksa arsip_dewan.html memiliki struktur tabel horizontal
+  const arsipHtml = fsModule.readFileSync('arsip_dewan.html', 'utf-8');
+  assert(arsipHtml.includes('class="category-table-list"'), 'arsip_dewan.html menggunakan container .category-table-list');
+  assert(arsipHtml.includes('class="category-table-head"'), 'arsip_dewan.html menyertakan header kolom .category-table-head');
+  assert(arsipHtml.includes('<div>Kategori Dokumen</div>'), 'Header menyertakan kolom Kategori Dokumen');
+  assert(arsipHtml.includes('<div>Jumlah Dokumen</div>'), 'Header menyertakan kolom Jumlah Dokumen');
+  assert(arsipHtml.includes('Aksi</div>'), 'Header menyertakan kolom Aksi');
+
+  // Test 24.2: Periksa tombol Edit memiliki ikon pensil SVG
+  assert(arsipHtml.includes('btn-edit-kategori') && arsipHtml.includes('M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z'), 'Tombol Edit pada baris kategori memiliki ikon pensil SVG');
+
+  // Test 24.3: Periksa tombol Hapus memiliki ikon tempat sampah SVG dan proteksi kategori sistem
+  assert(arsipHtml.includes('btn-hapus-kategori') && arsipHtml.includes('polyline points="3 6 5 6 21 6"'), 'Tombol Hapus pada baris kategori memiliki ikon tempat sampah SVG');
+  assert(arsipHtml.includes('btn-kategori-protected'), 'Kategori sistem memiliki penanda proteksi btn-kategori-protected');
+  assert(arsipHtml.includes('Kategori bawaan sistem DPRD (Hasil Reses / Pokir) dilindungi'), 'Kategori sistem dilindungi dari penghapusan dengan tooltip edukatif');
+
+  // Test 24.4: Periksa konfirmasi dialog sebelum hapus kategori
+  assert(arsipHtml.includes('showConfirmDialog'), 'arsip_dewan.html memanggil showConfirmDialog sebelum menghapus kategori');
+  assert(arsipHtml.includes('Hapus Kategori Arsip?'), 'Dialog konfirmasi memiliki judul yang jelas');
+
+  // Test 24.5: Periksa style.css memiliki aturan grid proporsional dan form centering
+  const styleCss24 = fsModule.readFileSync('assets/css/style.css', 'utf-8');
+  assert(styleCss24.includes('.category-table-head') && styleCss24.includes('grid-template-columns: minmax(0, 1fr) 160px auto;'), 'style.css menerapkan grid template proporsional minmax(0, 1fr) 160px auto pada header kategori');
+  assert(styleCss24.includes('.category-row-item') && styleCss24.includes('grid-template-columns: minmax(0, 1fr) 160px auto;'), 'style.css menerapkan grid template proporsional pada baris kategori');
+  assert(styleCss24.includes('.form-page-container') && styleCss24.includes('margin: 0 auto;'), 'style.css memusatkan .form-page-container secara simetris di layar desktop (margin: 0 auto)');
+  assert(styleCss24.includes('.btn-danger-action'), 'style.css menyediakan class aksi bahaya .btn-danger-action');
+
+  // Test 24.6: Periksa tambah_dokumen.html dan edit_dokumen.html menggunakan .form-page-container
+  const tambahDocHtml = fsModule.readFileSync('tambah_dokumen.html', 'utf-8');
+  const editDocHtml = fsModule.readFileSync('edit_dokumen.html', 'utf-8');
+  assert(tambahDocHtml.includes('class="form-page-container"'), 'tambah_dokumen.html menggunakan .form-page-container');
+  assert(editDocHtml.includes('class="form-page-container"'), 'edit_dokumen.html menggunakan .form-page-container');
+
+  // Test 24.7: Periksa modal tambah dan edit kategori responsif dan centered
+  assert(arsipHtml.includes('id="modalTambahKatBackdrop"'), 'arsip_dewan.html memiliki modal tambah kategori');
+  assert(arsipHtml.includes('id="modalEditKatBackdrop"'), 'arsip_dewan.html memiliki modal edit kategori');
+  assert(styleCss24.includes('.modal-backdrop') && styleCss24.includes('justify-content: center;'), 'Modal backdrop terpusat presisi');
+
+  // Test 24.8: Verifikasi presisi proteksi kategori sistem: tidak salah menolak kata 'pokok' biasa pada kategori kustom
+  const superLogin24 = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLogin24.success, 'Login superadmin untuk verifikasi proteksi presisi kategori berhasil');
+
+  // Buat kategori kustom dengan kata 'pokok' biasa
+  const katKustomPokok = await api.createKategori('Sosialisasi Pokok Pembahasan Perda', 'Kategori kustom pengujian');
+  assert(katKustomPokok.success, 'Kategori kustom dengan kata pokok biasa berhasil dibuat');
+  const katKustomId = katKustomPokok.data.id;
+
+  // Hapus kategori kustom ini (harus diizinkan karena bukan Pokir/Reses sistem dan belum ada dokumen)
+  const delKustomRes = await api.deleteKategori(katKustomId);
+  assert(delKustomRes.success, 'Kategori kustom dengan kata pokok biasa TIDAK salah diklasifikasikan sebagai kategori sistem dan berhasil dihapus');
+
+  // Coba hapus kategori sistem KAT-01 (harus ditolak dengan SYSTEM_CATEGORY_PROTECTED)
+  const delSistemRes = await api.deleteKategori('KAT-01');
+  assert(!delSistemRes.success && delSistemRes.error?.code === 'SYSTEM_CATEGORY_PROTECTED', 'Kategori sistem KAT-01 tetap ditolak keras dihapus (SYSTEM_CATEGORY_PROTECTED)');
+
+  await api.logout();
+
   console.log(`\n=======================================================`);
   console.log(`HASIL TOTAL PENGUJIAN: ${passed} PASS, ${failed} FAIL`);
   console.log(`=======================================================`);

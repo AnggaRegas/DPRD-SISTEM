@@ -81,13 +81,23 @@ function invalidateCacheForAction(action) {
 }
 
 
-// Mode Mock HANYA diizinkan jika secara eksplisit disetel ke 'true' atau saat test runner Node.js berjalan
-const ENV_USE_MOCK = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK_API) || '';
+// Mode Mock HANYA diizinkan jika secara eksplisit disetel via env build, test runner Node.js,
+// atau secara lokal di lingkungan dev (localhost). Di produksi, flag storage diabaikan secara mutlak.
+const ENV_USE_MOCK = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK_API) === 'true';
+const isLocalhost = typeof window !== 'undefined' && window.location && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '[::1]' ||
+  window.location.hostname.endsWith('.local')
+);
+const isDevEnvironment = Boolean((typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) || isLocalhost);
+const STORED_USE_MOCK = isDevEnvironment && safeLocalStorage.getItem('dprd_use_mock') === 'true';
+
 const isNodeTest = typeof process !== 'undefined' && (
   (process.env && (process.env.NODE_ENV === 'test' || process.env.npm_lifecycle_event === 'test')) ||
   (process.argv && process.argv.some(arg => arg.includes('test')))
 );
-export const IS_MOCK_MODE = ENV_USE_MOCK === 'true' || Boolean(isNodeTest);
+export const IS_MOCK_MODE = ENV_USE_MOCK || Boolean(isNodeTest) || STORED_USE_MOCK;
 
 // Simpan active abort controller untuk query pencarian/navigasi yang cepat berganti
 let activeSearchController = null;
@@ -698,7 +708,7 @@ async function handleMockRequest(action, payload) {
 
   // 3. Verifikasi Sesi Terautentikasi
   const storedToken = getStoredToken();
-  const uStr = safeSessionStorage.getItem('dprd_user');
+  const uStr = safeSessionStorage.getItem('dprd_user') || safeLocalStorage.getItem('dprd_user');
   if (!storedToken || !uStr) {
     return { success: false, data: null, message: 'Akses ditolak: Sesi tidak ditemukan atau telah kedaluwarsa.', error: { code: 'UNAUTHORIZED' } };
   }
@@ -1075,8 +1085,15 @@ async function handleMockRequest(action, payload) {
       const id = String(data.id || '').trim();
       const target = db.kategori.find((k) => String(k.id) === id);
       if (!target) return { success: false, message: 'Kategori tidak ditemukan.', error: { code: 'NOT_FOUND' } };
-      const namaLow = target.nama_kategori.toLowerCase();
-      if (namaLow.includes('reses') || namaLow.includes('pokir') || namaLow.includes('pokok')) {
+      const targetId = String(target.id || '').trim().toUpperCase();
+      const namaLow = String(target.nama_kategori || '').toLowerCase();
+      const isProtected = targetId === 'KAT-01' || targetId === 'KAT-02' ||
+        /\bpokir\b/i.test(namaLow) ||
+        /\bpokok\s*-\s*pokok\s+pikiran\b/i.test(namaLow) ||
+        /\bpokok\s+pikiran\b/i.test(namaLow) ||
+        /\breses\b/i.test(namaLow);
+
+      if (isProtected) {
         return { success: false, message: 'Kategori bawaan sistem (Hasil Reses / Pokir) tidak dapat dihapus.', error: { code: 'SYSTEM_CATEGORY_PROTECTED' } };
       }
       const hasDocs = db.dokumen.some((d) => isKategoriMatching(id, d.kategori_id) && d.status === 'aktif');
