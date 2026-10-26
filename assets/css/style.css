@@ -621,20 +621,25 @@ body.sidebar-collapsed .main-wrapper {
 /* Main Container Area */
 .main-content {
   flex: 1;
-  padding: 32px 36px;
-  max-width: 1440px;
+  padding: 28px 28px 36px 28px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 /* Page Title Banner */
 .page-title-bar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
   margin-bottom: 28px;
   flex-wrap: wrap;
+}
+
+.page-title-text {
+  flex: 1;
+  min-width: 260px;
 }
 
 .page-title-text h1 {
@@ -760,6 +765,64 @@ body.sidebar-collapsed .main-wrapper {
 /* Form Controls */
 .form-group {
   margin-bottom: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper .form-input,
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-sm);
+  transition: color 0.15s ease, background-color 0.15s ease;
+  z-index: 2;
+}
+
+.password-toggle-btn:hover {
+  color: var(--navy-900);
+  background-color: var(--bg-subtle);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid var(--gold-500);
+  outline-offset: 1px;
+}
+
+.password-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
 .form-label {
@@ -1695,10 +1758,53 @@ body.sidebar-collapsed .main-wrapper {
   border-radius: var(--border-radius-lg);
   max-width: 440px;
   width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
   padding: 28px;
   text-align: center;
   box-shadow: var(--shadow-lg);
   animation: modalScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Neutral Profile Login Button (Publik Header & Footer) */
+.btn-profile-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-500, #d4af37), var(--gold-600, #b89628));
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.btn-profile-login:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);
+  background: linear-gradient(135deg, var(--gold-400, #f1dfa8), var(--gold-500, #d4af37));
+  color: #ffffff;
+}
+
+.btn-profile-login:focus-visible {
+  outline: 2px solid var(--gold-400, #f1dfa8);
+  outline-offset: 2px;
+}
+
+.btn-profile-login svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
 .confirm-modal-icon {

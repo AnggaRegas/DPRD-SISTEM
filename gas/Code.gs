@@ -604,6 +604,24 @@ function recordActivity(ss, userId, username, role, aksi, detail) {
   }
 }
 
+function getOrEnsureKecamatanColumnIndex(dewanSheet) {
+  try {
+    const lastCol = Math.max(dewanSheet.getLastColumn(), 11);
+    const headers = dewanSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    for (let c = 0; c < headers.length; c++) {
+      const h = String(headers[c] || '').trim().toLowerCase();
+      if (h === 'kecamatan') {
+        return c + 1;
+      }
+    }
+    // Jika belum ada header 'kecamatan', tulis secara aman di kolom 11
+    dewanSheet.getRange(1, 11).setValue('kecamatan');
+    return 11;
+  } catch (e) {
+    return 11;
+  }
+}
+
 function getSheetData(ss, sheetName) {
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
@@ -612,6 +630,25 @@ function getSheetData(ss, sheetName) {
   if (values.length <= 1) return [];
 
   const headers = values[0].map(function(h) { return String(h || '').trim(); });
+
+  // Deteksi dan auto-heal kolom kecamatan pada sheet dewan
+  let dewanKecColIdx = -1;
+  if (sheetName === 'dewan') {
+    for (let h = 0; h < headers.length; h++) {
+      if (headers[h].toLowerCase() === 'kecamatan') {
+        dewanKecColIdx = h;
+        break;
+      }
+    }
+    if (dewanKecColIdx === -1) {
+      dewanKecColIdx = 10; // Kolom ke-11 (0-indexed: 10)
+      try {
+        sheet.getRange(1, 11).setValue('kecamatan');
+        headers[10] = 'kecamatan';
+      } catch (e) {}
+    }
+  }
+
   const rows = [];
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
@@ -620,7 +657,19 @@ function getSheetData(ss, sheetName) {
     }
     const item = { _rowIndex: i + 1 };
     for (let j = 0; j < headers.length; j++) {
-      item[headers[j]] = row[j];
+      if (headers[j]) {
+        item[headers[j]] = row[j];
+      }
+    }
+    // Fallback proteksi nilai kecamatan jika header sheet belum tersinkronisasi
+    if (sheetName === 'dewan' && item.kecamatan === undefined) {
+      if (row.length > 10 && row[10] !== undefined && row[10] !== null && String(row[10]).trim() !== '') {
+        item.kecamatan = String(row[10]).trim();
+      } else if (item[''] !== undefined && item[''] !== null && String(item['']).trim() !== '') {
+        item.kecamatan = String(item['']).trim();
+      } else {
+        item.kecamatan = '';
+      }
     }
     rows.push(item);
   }
@@ -1153,6 +1202,7 @@ function doPost(e) {
       }
 
       const dewanSheet = ss.getSheetByName('dewan');
+      getOrEnsureKecamatanColumnIndex(dewanSheet);
       const allDewan = getSheetData(ss, 'dewan');
       const nextNum = allDewan.length + 1;
       const newId = 'DWN-' + (nextNum < 10 ? '0' + nextNum : nextNum);
@@ -1184,6 +1234,7 @@ function doPost(e) {
       const d = payload.data || payload;
       const id = String(d.id || '').trim();
       const dewanSheet = ss.getSheetByName('dewan');
+      getOrEnsureKecamatanColumnIndex(dewanSheet);
       const allDewan = getSheetData(ss, 'dewan');
       const target = allDewan.find(function(x) { return String(x.id || '').trim() === id; });
 
@@ -1198,11 +1249,12 @@ function doPost(e) {
       const pendVal = d.nama_pendamping !== undefined ? d.nama_pendamping : d.nama_pengawas;
       if (pendVal !== undefined) dewanSheet.getRange(rowIdx, 6).setValue(sanitizeSheetValue(String(pendVal).trim()));
       if (d.nama_partai) dewanSheet.getRange(rowIdx, 7).setValue(sanitizeSheetValue(String(d.nama_partai).trim()));
-      if (d.kecamatan !== undefined) dewanSheet.getRange(rowIdx, 11).setValue(sanitizeSheetValue(String(d.kecamatan).trim()));
+      const kecCol = getOrEnsureKecamatanColumnIndex(dewanSheet);
+      if (d.kecamatan !== undefined) dewanSheet.getRange(rowIdx, kecCol).setValue(sanitizeSheetValue(String(d.kecamatan).trim()));
       dewanSheet.getRange(rowIdx, 10).setValue(nowIso);
 
       recordActivity(ss, session.userId, session.username, session.role, 'UPDATE_DEWAN', 'Memperbarui profil dewan: ' + (d.nama || target.nama));
-      return jsonResponse(true, { id: id }, 'Profil dewan berhasil diperbarui.');
+      return jsonResponse(true, { id: id, kecamatan: d.kecamatan !== undefined ? String(d.kecamatan).trim() : (target.kecamatan || '') }, 'Profil dewan berhasil diperbarui.');
     }
 
     if (action === 'toggleDewanStatus') {
@@ -1213,6 +1265,7 @@ function doPost(e) {
       const id = String(payload.id || '').trim();
       const newStatus = String(payload.status || 'aktif').toLowerCase() === 'aktif' ? 'aktif' : 'nonaktif';
       const dewanSheet = ss.getSheetByName('dewan');
+      getOrEnsureKecamatanColumnIndex(dewanSheet);
       const allDewan = getSheetData(ss, 'dewan');
       const target = allDewan.find(function(x) { return String(x.id || '').trim() === id; });
 
@@ -1239,6 +1292,7 @@ function doPost(e) {
       }
 
       const dewanSheet = ss.getSheetByName('dewan');
+      getOrEnsureKecamatanColumnIndex(dewanSheet);
       const allDewan = getSheetData(ss, 'dewan');
       const target = allDewan.find(function(x) { return String(x.id || '').trim() === id; });
 
@@ -2707,6 +2761,7 @@ function doPost(e) {
 
       // Bersihkan nama pendamping di dewan jika ditugaskan
       const dewanSheet = ss.getSheetByName('dewan');
+      getOrEnsureKecamatanColumnIndex(dewanSheet);
       const allDewan = getSheetData(ss, 'dewan');
       const staffName = String(target.nama || '').toLowerCase();
       const staffUser = String(target.username || '').toLowerCase();

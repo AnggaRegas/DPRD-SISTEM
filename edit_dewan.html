@@ -66,7 +66,7 @@
               <input type="text" id="nama" class="form-input" required>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-row">
               <div class="form-group">
                 <label for="jabatan" class="form-label">Jabatan di DPRD <span class="required">*</span></label>
                 <input type="text" id="jabatan" class="form-input" required>
@@ -78,7 +78,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-row">
               <div class="form-group">
                 <label for="nama_partai" class="form-label">Partai Politik / Fraksi <span class="required">*</span></label>
                 <select id="nama_partai" class="form-select" required>
@@ -182,7 +182,32 @@
             document.getElementById('periode').value = d.periode || '';
             document.getElementById('nama_partai').value = d.nama_partai || '';
             document.getElementById('nama_pengawas').value = d.nama_pengawas || '';
-            document.getElementById('kecamatan').value = d.kecamatan || '';
+            
+            // Pencocokan cerdas nilai kecamatan di dropdown
+            const kecSelect = document.getElementById('kecamatan');
+            const targetKec = String(d.kecamatan || '').trim();
+            if (targetKec) {
+              let matched = false;
+              for (let i = 0; i < kecSelect.options.length; i++) {
+                const optVal = kecSelect.options[i].value;
+                const optText = kecSelect.options[i].text;
+                if (optVal.toLowerCase() === targetKec.toLowerCase() ||
+                    optText.toLowerCase() === targetKec.toLowerCase() ||
+                    optVal.toLowerCase().includes(targetKec.toLowerCase()) ||
+                    targetKec.toLowerCase().includes(optVal.toLowerCase().replace('kecamatan ', ''))) {
+                  kecSelect.selectedIndex = i;
+                  matched = true;
+                  break;
+                }
+              }
+              if (!matched) {
+                const newOpt = new Option(targetKec, targetKec, true, true);
+                kecSelect.add(newOpt);
+              }
+            } else {
+              kecSelect.value = '';
+            }
+
             document.getElementById('keterangan').value = d.keterangan || '';
 
             loadingBox.style.display = 'none';

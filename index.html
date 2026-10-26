@@ -1318,10 +1318,10 @@
       <a href="#dewan" class="public-nav-link">Wakil Rakyat</a>
       <a href="#aspirasi" class="public-nav-link">Formulir Aspirasi</a>
       <a href="#faq" class="public-nav-link">FAQ</a>
-      <a href="login.html" class="btn btn-login-nav">
-        <span>Portal Petugas</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
+      <a href="login.html" class="btn-profile-login" aria-label="Login" title="Login">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
         </svg>
       </a>
     </nav>
@@ -1824,7 +1824,7 @@
 
   <!-- MODAL SUKSES TIKET ASPIRASI -->
   <div class="modal-backdrop" id="modalSuksesBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalSuksesTitle" style="display: none;">
-    <div class="modal-content" style="max-width: 520px; text-align: center; padding: 36px 30px;">
+    <div class="modal-content" style="max-width: 520px; text-align: center; padding: 36px 30px; max-height: calc(100vh - 32px); overflow-y: auto;">
       <div style="width: 64px; height: 64px; background: #ecfdf5; color: #059669; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px auto; border: 2px solid #a7f3d0;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 34px; height: 34px;">
           <polyline points="20 6 9 17 4 12"></polyline>
@@ -1885,11 +1885,14 @@
       </div>
 
       <div class="footer-col">
-        <h4>Portal Layanan DPRD</h4>
-        <p>Akses layanan digital Sekretariat DPRD untuk mendukung pengelolaan informasi dan pelayanan masyarakat secara tertib, transparan, dan mudah diakses oleh pihak yang berwenang.</p>
+        <h4>Akses Masuk Sistem</h4>
+        <p>Akses akun resmi Sekretariat DPRD Kota Parepare untuk pengelolaan dokumen kedewanan dan tindak lanjut laporan masyarakat.</p>
         <div style="margin-top: 16px;">
-          <a href="login.html" class="btn btn-gold btn-sm" style="border-radius: 8px; font-weight: 700; padding: 9px 18px;">
-            Masuk Portal &rarr;
+          <a href="login.html" class="btn-profile-login" aria-label="Login" title="Login" style="width: 44px; height: 44px;">
+            <svg viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
           </a>
         </div>
       </div>

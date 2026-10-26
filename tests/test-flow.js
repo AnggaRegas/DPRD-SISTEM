@@ -1143,7 +1143,8 @@ async function runAllTests() {
   console.log(`\n--- 20. Pengujian Validasi Upload Dokumen RDP & Pengelolaan Kategori Arsip Dewan ---`);
 
   // Login kembali sebagai superadmin
-  await api.login('superadmin', 'PasswordBaruSuper2026!');
+  const superLogin20 = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLogin20.success, 'Login kembali sebagai superadmin berhasil');
 
   // Test 20.1: Upload RDP tanpa nama dokumen / judul ditolak
   const upRdpNoJudul = await api.uploadRdpDokumen({
@@ -1257,13 +1258,89 @@ async function runAllTests() {
 
   // Bersihkan akun admin uji
   await api.logout();
-  await api.login('superadmin', 'PasswordBaruSuper2026!');
+  const superLoginClean = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLoginClean.success, 'Login superadmin untuk pembersihan berhasil');
   await api.deleteUser(adminTestUser.data.id);
 
   // Pembersihan akun dan data uji audit
   await api.deleteLaporan(target1.id);
   await api.deleteLaporan(lapPokir2.id);
   await api.deleteUser(stafAuditRes.data.id);
+  await api.logout();
+
+  // --- 21. Pengujian Penyimpanan Kecamatan Dewan, Toggle Kata Sandi, & Netralisasi Akses Login ---
+  console.log('\n--- 21. Pengujian Penyimpanan Kecamatan Dewan, Toggle Kata Sandi, & Netralisasi Akses Login ---');
+  const superLogin21 = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLogin21.success, 'Login superadmin untuk Test Suite 21 berhasil');
+
+  // Test 21.1: Pembuatan anggota dewan dengan kecamatan tersimpan
+  const dewanKecItem21 = await api.createDewan({
+    nama: 'H. Andi Baso Uji, S.E.',
+    jabatan: 'Anggota Komisi 2',
+    periode: '2024 - 2029',
+    nama_partai: 'Partai Golongan Karya',
+    nama_pendamping: 'Staf Pendamping Uji',
+    kecamatan: 'Kecamatan Bacukiki Barat'
+  });
+  assert(dewanKecItem21.success && dewanKecItem21.data?.id, 'Pembuatan dewan baru dengan data kecamatan berhasil');
+  assert(dewanKecItem21.data.kecamatan === 'Kecamatan Bacukiki Barat', 'Field kecamatan langsung tersimpan pada respons pembuatan dewan');
+
+  // Test 21.2: Pengambilan data dewan via getDewanById mengembalikan kecamatan dengan tepat
+  const fetchDewanKec21 = await api.getDewanById(dewanKecItem21.data.id);
+  assert(fetchDewanKec21.success && fetchDewanKec21.data.kecamatan === 'Kecamatan Bacukiki Barat', 'getDewanById mengembalikan nilai kecamatan secara akurat');
+
+  // Test 21.3: Pembaruan kecamatan anggota dewan via updateDewan
+  const updateDewanKec21 = await api.updateDewan({
+    id: dewanKecItem21.data.id,
+    nama: 'H. Andi Baso Uji, S.E., M.Si.',
+    kecamatan: 'Kecamatan Soreang'
+  });
+  assert(updateDewanKec21.success, 'Pembaruan data kecamatan anggota dewan berhasil disimpan');
+
+  // Test 21.4: Verifikasi pembaruan kecamatan bertahan saat dimuat ulang
+  const verifyUpdatedDewan21 = await api.getDewanById(dewanKecItem21.data.id);
+  assert(verifyUpdatedDewan21.success && verifyUpdatedDewan21.data.kecamatan === 'Kecamatan Soreang', 'Data kecamatan yang diperbarui tersimpan dan termuat ulang secara persisten');
+
+  // Test 21.5: getDewanList memuat seluruh data dewan beserta properti kecamatan
+  const listDewanKec = await api.getDewanList();
+  assert(listDewanKec.success && Array.isArray(listDewanKec.data), 'getDewanList memuat daftar anggota dewan');
+  const foundInList21 = listDewanKec.data.find(d => d.id === dewanKecItem21.data.id);
+  assert(foundInList21 && foundInList21.kecamatan === 'Kecamatan Soreang', 'Item dewan pada getDewanList menyertakan properti kecamatan secara lengkap');
+
+  // Bersihkan dewan uji
+  await api.deleteDewan(dewanKecItem21.data.id);
+
+  // Test 21.6: Verifikasi file HTML login.html memiliki kontrol password-toggle-btn dan atribut aksesibilitas
+  const fs = await import('fs');
+  const loginHtml = fs.readFileSync('login.html', 'utf-8');
+  assert(loginHtml.includes('id="btnTogglePassword"'), 'login.html memiliki tombol #btnTogglePassword');
+  assert(loginHtml.includes('class="password-toggle-btn"'), 'login.html menggunakan class password-toggle-btn');
+  assert(loginHtml.includes('aria-label="Tampilkan kata sandi"'), 'login.html memiliki aria-label aksesibilitas kata sandi');
+  assert(loginHtml.includes('class="password-input-wrapper"'), 'login.html membungkus password dengan .password-input-wrapper');
+
+  // Test 21.7: Verifikasi file profil.html memiliki kontrol toggle password untuk semua field sandi
+  const profilHtml = fs.readFileSync('profil.html', 'utf-8');
+  assert(profilHtml.includes('data-target="oldPassword"'), 'profil.html memiliki tombol toggle untuk oldPassword');
+  assert(profilHtml.includes('data-target="newPassword"'), 'profil.html memiliki tombol toggle untuk newPassword');
+  assert(profilHtml.includes('data-target="confirmPassword"'), 'profil.html memiliki tombol toggle untuk confirmPassword');
+
+  // Test 21.8: Verifikasi index.html bersih dari teks "Portal Petugas" dan "Masuk Portal"
+  const indexHtml = fs.readFileSync('index.html', 'utf-8');
+  assert(!indexHtml.includes('Portal Petugas'), 'index.html bersih total dari label teks "Portal Petugas"');
+  assert(!indexHtml.includes('Masuk Portal'), 'index.html bersih total dari label teks "Masuk Portal"');
+
+  // Test 21.9: Verifikasi index.html memiliki ikon profil netral menuju login.html pada header dan footer
+  assert(indexHtml.includes('class="btn-profile-login"'), 'index.html menggunakan class .btn-profile-login untuk akses login');
+  assert(indexHtml.includes('href="login.html" class="btn-profile-login" aria-label="Login" title="Login"'), 'Header index.html memiliki tautan netral ke login.html dengan tooltip dan aria-label Login');
+
+  // Test 21.10: Verifikasi style.css menyertakan perbaikan layout
+  const styleCss = fs.readFileSync('assets/css/style.css', 'utf-8');
+  assert(styleCss.includes('.password-input-wrapper'), 'style.css mendefinisikan kelas .password-input-wrapper');
+  assert(styleCss.includes('.password-toggle-btn'), 'style.css mendefinisikan kelas .password-toggle-btn');
+  assert(styleCss.includes('.btn-profile-login'), 'style.css mendefinisikan kelas .btn-profile-login');
+  assert(styleCss.includes('.form-row'), 'style.css mendefinisikan layout responsif .form-row');
+  assert(styleCss.includes('max-height: calc(100vh - 32px)'), 'style.css memastikan modal dialog konfirmasi responsif pada viewport pendek');
+
   await api.logout();
 
   console.log(`\n=======================================================`);
