@@ -100,7 +100,7 @@
 
   <script type="module">
     import { api } from './assets/js/api.js';
-    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { requireAuth, showToast, showConfirmDialog, escapeHtml } from './assets/js/auth.js';
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const currentUser = requireAuth();
@@ -168,22 +168,29 @@
           const isAktif = (d.status || 'aktif').toLowerCase() === 'aktif';
           const canAccessArsip = isSuperadmin || Boolean(d.is_assigned);
 
+          const safeId = escapeHtml(d.id || '');
+          const safeNama = escapeHtml(d.nama || '');
+          const safeJabatan = escapeHtml(d.jabatan || 'Anggota DPRD');
+          const safePartai = escapeHtml(d.nama_partai || '-');
+          const safeKecamatan = escapeHtml(d.kecamatan || '');
+          const safePendamping = escapeHtml(d.nama_pendamping || '');
+
           return `
             <tr>
-              <td style="text-align: center; color: var(--text-light); font-size: 12px;">${d.nomor_urut || i + 1}</td>
+              <td style="text-align: center; color: var(--text-light); font-size: 12px;">${escapeHtml(d.nomor_urut || i + 1)}</td>
               <td>
-                <strong style="color: var(--navy-900); font-size: 13.5px;">${d.nama}</strong>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">ID: ${d.id}</div>
+                <strong style="color: var(--navy-900); font-size: 13.5px;">${safeNama}</strong>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">ID: ${safeId}</div>
               </td>
-              <td>${d.jabatan || 'Anggota DPRD'}</td>
-              <td>${d.nama_partai || '-'}</td>
+              <td>${safeJabatan}</td>
+              <td>${safePartai}</td>
               <td>
                 <span style="display:inline-block; padding: 2px 8px; background: var(--gray-100); border-radius: 4px; font-size: 11.5px; font-weight: 500; color: var(--navy-800);">
-                  ${d.kecamatan || '<span style="color:var(--text-light); font-style:italic;">Belum diatur</span>'}
+                  ${safeKecamatan || '<span style="color:var(--text-light); font-style:italic;">Belum diatur</span>'}
                 </span>
               </td>
               <td>
-                ${d.nama_pendamping || '<span style="color:var(--text-light);">-</span>'}
+                ${safePendamping || '<span style="color:var(--text-light);">-</span>'}
                 ${currentUser.role === 'staff' && d.is_assigned ? '<div style="margin-top:3px;"><span style="background:#e0f2fe; color:#0369a1; font-size:10.5px; padding:2px 6px; border-radius:4px; font-weight:600; display:inline-block;">Penugasan Anda</span></div>' : ''}
               </td>
               <td>
@@ -195,7 +202,7 @@
               <td style="text-align: center;">
                 <div class="action-buttons" style="justify-content: center;">
                   ${canAccessArsip ? `
-                    <a href="arsip_dewan.html?dewan_id=${d.id}" class="btn btn-secondary btn-sm" title="Buka Arsip Dokumen">
+                    <a href="arsip_dewan.html?dewan_id=${encodeURIComponent(d.id)}" class="btn btn-secondary btn-sm" title="Buka Arsip Dokumen">
                       Buka Arsip &rarr;
                     </a>
                   ` : `
@@ -204,13 +211,13 @@
                     </span>
                   `}
                   ${isSuperadmin ? `
-                    <a href="edit_dewan.html?id=${d.id}" class="btn-icon-action" title="Ubah Data Dewan">
+                    <a href="edit_dewan.html?id=${encodeURIComponent(d.id)}" class="btn-icon-action" title="Ubah Data Dewan">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                       </svg>
                     </a>
-                    <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${d.id}" data-nama="${d.nama}" title="Hapus Anggota Dewan">
+                    <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${safeId}" data-nama="${safeNama}" title="Hapus Anggota Dewan">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

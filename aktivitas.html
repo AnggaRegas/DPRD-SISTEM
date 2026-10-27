@@ -106,7 +106,7 @@
 
   <script type="module">
     import { api } from './assets/js/api.js';
-    import { requireAuth, formatDateIndonesia, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { requireAuth, formatDateIndonesia, showToast, showConfirmDialog, escapeHtml } from './assets/js/auth.js';
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const currentUser = requireAuth();
@@ -174,20 +174,20 @@
           return `
           <tr>
             <td style="font-size: 12.5px; color: var(--text-muted); white-space: nowrap;">
-              ${formatDateIndonesia(l.waktu)}
+              ${escapeHtml(formatDateIndonesia(l.waktu))}
             </td>
             <td>
-              <strong>${l.username || 'system'}</strong>
-              <span class="user-role-badge ${roleBadgeClass}" style="margin-left: 6px;">${roleLabel}</span>
+              <strong>${escapeHtml(l.username || 'system')}</strong>
+              <span class="user-role-badge ${roleBadgeClass}" style="margin-left: 6px;">${escapeHtml(roleLabel)}</span>
             </td>
             <td>
               <span class="status-pill ${isDangerAction ? 'nonaktif' : 'aktif'}">
                 <span class="status-pill-dot"></span>
-                ${actionText}
+                ${escapeHtml(actionText)}
               </span>
             </td>
             <td style="color: var(--text-secondary);">
-              ${l.detail || '-'}
+              ${escapeHtml(l.detail || '-')}
             </td>
           </tr>
         `;

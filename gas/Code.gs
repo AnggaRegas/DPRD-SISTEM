@@ -389,8 +389,9 @@ function isStaffAuthorizedForDewan(ss, session, dewanId) {
   const staffId = String(session.userId || '').trim().toLowerCase();
 
   function cleanStr(s) {
-    return String(s || '').replace(/[,.]/g, ' ')
+    return String(s || '')
       .replace(/\b(h|hj|ir|drs|dra|dr|prof|m\.si|msi|s\.ip|sip|s\.kom|skom|s\.e|se|s\.h|sh|s\.sos|ssos|m\.m|mm|m\.pd|mpd|s\.pd|spd)\b/gi, '')
+      .replace(/[,.]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
@@ -399,23 +400,29 @@ function isStaffAuthorizedForDewan(ss, session, dewanId) {
   const pClean = cleanStr(pendamping);
   const nClean = cleanStr(staffNama);
 
-  if (pendamping === staffUsername || pendamping === staffNama || (staffId && pendamping === staffId)) {
+  // 1. Direct equality / ID / Username
+  if (pendamping === staffNama || pendamping === staffUsername || pendamping === staffId) {
     return true;
   }
-  if (pClean && nClean && pClean === nClean) {
-    return true;
-  }
-  if (staffUsername && (pendamping.indexOf(staffUsername) !== -1 || staffUsername.indexOf(pendamping) !== -1)) {
-    return true;
-  }
-  if (staffNama && (pendamping.indexOf(staffNama) !== -1 || staffNama.indexOf(pendamping) !== -1)) {
-    return true;
-  }
-  if (pClean && nClean && (pClean.indexOf(nClean) !== -1 || nClean.indexOf(pClean) !== -1)) {
+  // 2. Clean title equality pada string utuh
+  if (nClean && pClean && pClean === nClean) {
     return true;
   }
 
-  return false;
+  // 3. Pecah daftar pendamping jika berisi multiple entri penugasan (misal: "Staf 1; Staf 2")
+  const tokens = pendamping.split(/[,;/|]+/).map(function(t) { return t.trim().toLowerCase(); }).filter(Boolean);
+
+  // Verifikasi penugasan eksak berdasarkan ID staf, username, nama lengkap, atau nama bersih gelar
+  const isMatch = tokens.some(function(token) {
+    if (staffId && token === staffId) return true;
+    if (staffUsername && (token === staffUsername || token === '@' + staffUsername)) return true;
+    if (staffNama && token === staffNama) return true;
+    const tClean = cleanStr(token);
+    if (nClean && tClean && tClean === nClean) return true;
+    return false;
+  });
+
+  return isMatch;
 }
 
 function isStaffAuthorizedForDokumen(ss, session, doc) {
@@ -447,10 +454,10 @@ function isKategoriMatching(ss, katParam, recordKatId) {
   }
 
   const isPokir = function(val) {
-    return val === 'kat-01' || val === '1' || val === 'pokir' || val === 'pokok-pokok pikiran' || val === 'pokok pikiran' || val.indexOf('pokir') !== -1 || val.indexOf('pokok') !== -1;
+    return val === 'kat-01' || val === '1' || val === 'pokir' || val === 'pokok-pokok pikiran' || val === 'pokok pikiran';
   };
   const isReses = function(val) {
-    return val === 'kat-02' || val === '2' || val === 'reses' || val.indexOf('reses') !== -1;
+    return val === 'kat-02' || val === '2' || val === 'reses';
   };
 
   if (isPokir(p) && isPokir(r)) return true;
@@ -946,9 +953,9 @@ function doPost(e) {
       return jsonResponse(true, {
         token: sessionToken,
         user: {
-          id: matchedUser.id,
-          username: matchedUser.username,
-          nama: matchedUser.nama,
+          id: targetUser.id,
+          username: targetUser.username,
+          nama: targetUser.nama || 'Pengguna Sistem',
           role: userRole,
           mustChangePassword: false
         }
@@ -1579,40 +1586,52 @@ function doPost(e) {
     }
 
     if (action === 'deleteTahun') {
+      if (session.role !== 'superadmin') {
+        return jsonResponse(false, null, 'Akses ditolak: Hanya Superadmin yang berwenang menghapus tahun anggaran.', 'FORBIDDEN');
+      }
+
       const dewanId = String(payload.dewan_id || '').trim();
       const katId = String(payload.kategori_id || '').trim();
       const tahun = parseInt(payload.tahun, 10);
 
-      const docSheet = ss.getSheetByName('dokumen');
+      if (!dewanId || !katId || isNaN(tahun)) {
+        return jsonResponse(false, null, 'Parameter dewan, kategori, dan tahun wajib ditentukan.', 'VALIDATION_ERROR');
+      }
+
       const allDocs = getSheetData(ss, 'dokumen');
-      const docsToDelete = allDocs.filter(function(d) {
-        return String(d.dewan_id).trim() === dewanId && String(d.kategori_id).trim() === katId && parseInt(d.tahun, 10) === tahun;
+      const activeDocs = allDocs.filter(function(d) {
+        return String(d.dewan_id || '').trim() === dewanId &&
+               isKategoriMatching(ss, katId, d.kategori_id) &&
+               parseInt(d.tahun, 10) === tahun &&
+               String(d.status || '').toLowerCase() === 'aktif';
       });
 
-      docsToDelete.forEach(function(doc) {
-        if (doc.file_id) {
-          try { DriveApp.getFileById(String(doc.file_id).trim()).setTrashed(true); } catch (e) {}
-        }
-      });
-
-      for (let i = allDocs.length - 1; i >= 0; i--) {
-        const d = allDocs[i];
-        if (String(d.dewan_id).trim() === dewanId && String(d.kategori_id).trim() === katId && parseInt(d.tahun, 10) === tahun) {
-          docSheet.deleteRow(d._rowIndex);
-        }
+      if (activeDocs.length > 0) {
+        return jsonResponse(false, null, 'Tahun anggaran ' + tahun + ' tidak dapat dihapus karena masih berisi ' + activeDocs.length + ' berkas dokumen arsip aktif. Hapus berkas dokumen di dalamnya terlebih dahulu demi integritas arsip.', 'HAS_DEPENDENT_RECORDS');
       }
 
       const tahunSheet = ss.getSheetByName('tahun_dokumen');
       const allTahun = getSheetData(ss, 'tahun_dokumen');
       for (let i = allTahun.length - 1; i >= 0; i--) {
         const t = allTahun[i];
-        if (String(t.dewan_id).trim() === dewanId && String(t.kategori_id).trim() === katId && parseInt(t.tahun, 10) === tahun) {
+        if (String(t.dewan_id || '').trim() === dewanId && isKategoriMatching(ss, katId, t.kategori_id) && parseInt(t.tahun, 10) === tahun) {
           tahunSheet.deleteRow(t._rowIndex);
         }
       }
 
-      recordActivity(ss, session.userId, session.username, 'superadmin', 'HAPUS_TAHUN', 'Menghapus arsip tahun: ' + tahun);
-      return jsonResponse(true, null, 'Folder tahun beserta dokumen terkait berhasil dihapus.');
+      const folderSheet = ss.getSheetByName('folder_dokumen');
+      if (folderSheet) {
+        const allFolder = getSheetData(ss, 'folder_dokumen');
+        for (let i = allFolder.length - 1; i >= 0; i--) {
+          const f = allFolder[i];
+          if (String(f.dewan_id || '').trim() === dewanId && isKategoriMatching(ss, katId, f.kategori_id) && parseInt(f.tahun, 10) === tahun) {
+            folderSheet.deleteRow(f._rowIndex);
+          }
+        }
+      }
+
+      recordActivity(ss, session.userId, session.username, session.role, 'HAPUS_TAHUN', 'Menghapus arsip tahun: ' + tahun);
+      return jsonResponse(true, { dewan_id: dewanId, kategori_id: katId, tahun: tahun }, 'Tahun anggaran berhasil dihapus.');
     }
 
     if (action === 'getFolderList') {

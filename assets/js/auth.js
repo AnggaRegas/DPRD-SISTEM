@@ -113,6 +113,33 @@ export function getSafeRedirectUrl(rawUrl, defaultUrl = 'dashboard.html') {
 }
 
 /**
+ * Melindungi string dari Stored XSS saat dirender ke DOM / innerHTML
+ */
+export function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Sanitasi URL untuk atribut href/src agar kebal terhadap javascript: / data: URI injection
+ */
+export function sanitizeUrl(url, fallback = '#') {
+  if (!url || typeof url !== 'string') return fallback;
+  const clean = url.trim();
+  if (clean.startsWith('//') || clean.startsWith('\\\\')) return fallback;
+  if (/^(?:https?:\/\/|\/(?!\/)|\.\/|\.\.\/)/i.test(clean) && !/[\r\n\t]/.test(clean)) {
+    return clean;
+  }
+  return fallback;
+}
+
+
+/**
  * Arahkan pengguna ke halaman login dengan pengawetan URL target
  */
 export function redirectToLogin(isExpired = false) {

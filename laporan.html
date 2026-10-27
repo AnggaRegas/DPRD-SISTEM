@@ -174,7 +174,7 @@
 
   <script type="module">
     import { api } from './assets/js/api.js';
-    import { requireAuth, showToast, formatDateIndonesia } from './assets/js/auth.js';
+    import { requireAuth, showToast, formatDateIndonesia, escapeHtml } from './assets/js/auth.js';
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const currentUser = requireAuth();
@@ -305,54 +305,57 @@
           else if (l.status === 'selesai') { statusClass = 'aktif'; statusText = 'Selesai'; }
           else if (l.status === 'ditolak') { statusClass = 'nonaktif'; statusText = 'Ditolak'; }
 
+          const safeId = escapeHtml(l.id || l.nomor_tiket || '');
+          const safeTiket = escapeHtml(l.nomor_tiket || '');
+
           return `
             <tr>
               <td style="text-align: center; color: var(--text-light); font-size: 12px;">${idx + 1}</td>
               <td>
                 <span class="badge" style="background:#e0f2fe; color:#0369a1; font-family: monospace; font-size: 11px; padding: 3px 6px; border-radius: 4px; font-weight: 700;">
-                  ${l.nomor_tiket}
+                  ${safeTiket}
                 </span>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">${tgl}</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">${escapeHtml(tgl)}</div>
               </td>
               <td>
-                <strong style="color: var(--navy-900); font-size: 13px;">${l.nama_pelapor}</strong>
-                <div style="font-size: 11.5px; color: var(--text-muted);">${l.kontak_pelapor || '-'}</div>
+                <strong style="color: var(--navy-900); font-size: 13px;">${escapeHtml(l.nama_pelapor || '')}</strong>
+                <div style="font-size: 11.5px; color: var(--text-muted);">${escapeHtml(l.kontak_pelapor || '-')}</div>
               </td>
               <td>
                 <span style="display:inline-block; padding: 2px 7px; background: var(--gray-100); border-radius: 4px; font-size: 11.5px; font-weight: 500; color: var(--navy-800);">
-                  ${l.kecamatan}
+                  ${escapeHtml(l.kecamatan || '')}
                 </span>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Tujuan: ${l.tujuan || 'DPRD'}</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Tujuan: ${escapeHtml(l.tujuan || 'DPRD')}</div>
               </td>
               <td>
-                <strong style="color: var(--navy-900); font-size: 13px; display: block;">${l.judul}</strong>
+                <strong style="color: var(--navy-900); font-size: 13px; display: block;">${escapeHtml(l.judul || '')}</strong>
                 <div style="font-size: 12px; color: var(--text-muted); max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  ${l.isi}
+                  ${escapeHtml(l.isi || '')}
                 </div>
               </td>
               <td>
                 <span class="status-pill ${statusClass}" style="font-size: 11px;">
                   <span class="status-pill-dot"></span>
-                  ${statusText}
+                  ${escapeHtml(statusText)}
                 </span>
               </td>
               <td>
                 ${l.assigned_to ? `
-                  <strong style="color: var(--navy-800); font-size: 12px;">${l.assigned_to}</strong>
+                  <strong style="color: var(--navy-800); font-size: 12px;">${escapeHtml(l.assigned_to)}</strong>
                 ` : `
                   <span style="color: var(--text-light); font-style: italic; font-size: 12px;">Belum ditugaskan</span>
                 `}
               </td>
               <td style="text-align: center;">
                 <div class="action-buttons" style="justify-content: center; gap: 6px;">
-                  <button type="button" class="btn btn-secondary btn-sm" data-action="detail" data-id="${l.id || l.nomor_tiket}">
+                  <button type="button" class="btn btn-secondary btn-sm" data-action="detail" data-id="${safeId}">
                     Detail
                   </button>
                   ${isSuperadmin ? `
-                    <button type="button" class="btn btn-gold btn-sm" data-action="assign" data-id="${l.id || l.nomor_tiket}" data-tiket="${l.nomor_tiket}" title="Tugaskan ke staf">
+                    <button type="button" class="btn btn-gold btn-sm" data-action="assign" data-id="${safeId}" data-tiket="${safeTiket}" title="Tugaskan ke staf">
                       Tugaskan
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-action="delete" data-id="${l.id || l.nomor_tiket}" data-tiket="${l.nomor_tiket}" style="color:var(--status-danger);" title="Hapus Laporan">
+                    <button type="button" class="btn btn-secondary btn-sm" data-action="delete" data-id="${safeId}" data-tiket="${safeTiket}" style="color:var(--status-danger);" title="Hapus Laporan">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;vertical-align:-2px;">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -417,11 +420,11 @@
           <div style="background: var(--navy-50); border: 1px solid var(--border-light); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <div>
-                <span class="badge" style="background:#0284c7; color:#fff; font-family: monospace; font-size: 12px; padding: 4px 8px; border-radius: 4px;">${r.nomor_tiket}</span>
-                <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">${tgl}</span>
+                <span class="badge" style="background:#0284c7; color:#fff; font-family: monospace; font-size: 12px; padding: 4px 8px; border-radius: 4px;">${escapeHtml(r.nomor_tiket)}</span>
+                <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">${escapeHtml(tgl)}</span>
               </div>
               <div>
-                <span class="status-pill ${r.status === 'selesai' ? 'aktif' : (r.status === 'diproses' ? 'proses' : 'menunggu')}">${r.status || 'menunggu'}</span>
+                <span class="status-pill ${r.status === 'selesai' ? 'aktif' : (r.status === 'diproses' ? 'proses' : 'menunggu')}">${escapeHtml(r.status || 'menunggu')}</span>
               </div>
             </div>
           </div>
@@ -429,28 +432,28 @@
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
             <div>
               <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Nama Pelapor</label>
-              <div style="font-weight:600; color:var(--navy-900);">${r.nama_pelapor}</div>
+              <div style="font-weight:600; color:var(--navy-900);">${escapeHtml(r.nama_pelapor || '')}</div>
             </div>
             <div>
               <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Kontak / WhatsApp</label>
-              <div style="color:var(--navy-900);">${r.kontak_pelapor || '-'}</div>
+              <div style="color:var(--navy-900);">${escapeHtml(r.kontak_pelapor || '-')}</div>
             </div>
             <div>
               <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Wilayah / Kecamatan</label>
-              <div style="font-weight:500; color:var(--navy-900);">${r.kecamatan}</div>
+              <div style="font-weight:500; color:var(--navy-900);">${escapeHtml(r.kecamatan || '')}</div>
             </div>
             <div>
               <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Tujuan / Kategori</label>
-              <div style="color:var(--navy-900);">${r.tujuan || 'DPRD'} &bull; ${r.kategori || 'Aspirasi'}</div>
+              <div style="color:var(--navy-900);">${escapeHtml(r.tujuan || 'DPRD')} &bull; ${escapeHtml(r.kategori || 'Aspirasi')}</div>
             </div>
           </div>
 
           <div style="margin-bottom: 20px;">
             <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Judul Aspirasi</label>
-            <div style="font-weight:600; font-size:15px; color:var(--navy-900); margin-bottom: 6px;">${r.judul}</div>
+            <div style="font-weight:600; font-size:15px; color:var(--navy-900); margin-bottom: 6px;">${escapeHtml(r.judul || '')}</div>
             <label class="form-label" style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Isi Lengkap Laporan</label>
             <div style="background:var(--gray-50); border:1px solid var(--border-light); padding:14px; border-radius:6px; line-height:1.6; font-size:13.5px; white-space:pre-wrap; color:var(--navy-950);">
-              ${r.isi}
+              ${escapeHtml(r.isi || '')}
             </div>
             ${r.lampiran_nama ? `
               <div style="margin-top:12px; padding:12px 14px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -458,7 +461,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px; flex-shrink:0;">
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
                   </svg>
-                  <span>Lampiran Warga: <strong>${r.lampiran_nama}</strong></span>
+                  <span>Lampiran Warga: <strong>${escapeHtml(r.lampiran_nama)}</strong></span>
                 </div>
                 <div style="display:flex; gap:6px;">
                   <button type="button" class="btn btn-secondary btn-sm" id="btnDownloadLampiran">

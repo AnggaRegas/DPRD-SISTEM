@@ -747,8 +747,8 @@ async function handleMockRequest(action, payload) {
   function cleanStaffTitle(str) {
     if (!str) return '';
     return String(str)
-      .replace(/[,.]/g, ' ')
       .replace(/\b(h|hj|ir|drs|dra|dr|prof|m\.si|msi|s\.ip|sip|s\.kom|skom|s\.e|se|s\.h|sh|s\.sos|ssos|m\.m|mm|m\.pd|mpd|s\.pd|spd)\b/gi, '')
+      .replace(/[,.]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
@@ -821,35 +821,23 @@ async function handleMockRequest(action, payload) {
       return true;
     }
 
-    // 2. Normalized clean name equality
-    if (userNamaClean && pendampingClean && (pendampingClean === userNamaClean)) {
+    // 2. Clean title equality pada string utuh
+    if (userNamaClean && pendampingClean && pendampingClean === userNamaClean) {
       return true;
     }
 
-    // 3. Substring / inclusion matching
-    if (userNameRaw && (pendampingRaw.includes(userNameRaw) || userNameRaw.includes(pendampingRaw))) {
-      return true;
-    }
-    if (userNamaRaw && (pendampingRaw.includes(userNamaRaw) || userNamaRaw.includes(pendampingRaw))) {
-      return true;
-    }
-    if (userNamaClean && pendampingClean && (pendampingClean.includes(userNamaClean) || userNamaClean.includes(pendampingClean))) {
-      return true;
-    }
+    // 3. Multi-pendamping tokens (jika dipisah koma, titik koma, garis miring)
+    const tokens = pendampingRaw.split(/[,;/|]+/).map((s) => s.trim()).filter(Boolean);
+    const isMatch = tokens.some((token) => {
+      if (userIdRaw && token === userIdRaw) return true;
+      if (userNameRaw && (token === userNameRaw || token === '@' + userNameRaw)) return true;
+      if (userNamaRaw && token === userNamaRaw) return true;
+      const tClean = cleanStaffTitle(token);
+      if (userNamaClean && tClean && tClean === userNamaClean) return true;
+      return false;
+    });
 
-    // 4. Split multi-pendamping (jika dipisah koma, titik koma, garis miring)
-    const parts = pendampingRaw.split(/[,;/]+/).map((s) => s.trim()).filter(Boolean);
-    if (parts.some((p) => {
-      const pC = cleanStaffTitle(p);
-      return p === userNamaRaw || p === userNameRaw || p === userIdRaw ||
-             (userNamaClean && pC && pC === userNamaClean) ||
-             (userNameRaw && p.includes(userNameRaw)) ||
-             (userNamaClean && pC && (pC.includes(userNamaClean) || userNamaClean.includes(pC)));
-    })) {
-      return true;
-    }
-
-    return false;
+    return isMatch;
   }
 
   function isMockStaffAuthorizedForDokumen(doc) {
@@ -1123,6 +1111,43 @@ async function handleMockRequest(action, payload) {
       db.tahun.push(rec);
       saveMockDb(db);
       return { success: true, data: rec, message: 'Tahun berhasil ditambahkan.' };
+    }
+
+    case 'deleteTahun': {
+      if (currentUser.role !== 'superadmin') {
+        return { success: false, message: 'Akses ditolak. Hanya Superadmin yang berhak menghapus struktur tahun.', error: { code: 'FORBIDDEN' } };
+      }
+      const dewanId = String(payload.dewan_id || '').trim();
+      const katId = String(payload.kategori_id || '').trim();
+      const yr = parseInt(payload.tahun, 10);
+      if (!dewanId || !katId || isNaN(yr)) {
+        return { success: false, message: 'Parameter dewan_id, kategori_id, dan tahun wajib diisi.', error: { code: 'VALIDATION_ERROR' } };
+      }
+
+      const targetDewan = (db.dewan || []).find(d => String(d.id) === dewanId || String(d.nomor_urut) === dewanId);
+      const matchDewanId = targetDewan ? targetDewan.id : dewanId;
+
+      // Periksa dependensi dokumen aktif
+      const hasDocs = db.dokumen.some(d =>
+        (String(d.dewan_id) === dewanId || String(d.dewan_id) === matchDewanId) &&
+        isKategoriMatching(katId, d.kategori_id) &&
+        parseInt(d.tahun, 10) === yr &&
+        d.status === 'aktif'
+      );
+      if (hasDocs) {
+        return {
+          success: false,
+          message: 'Tahun ' + yr + ' masih memiliki dokumen arsip aktif dan tidak dapat dihapus. Silakan arsipkan atau hapus dokumen terlebih dahulu.',
+          error: { code: 'HAS_DEPENDENT_RECORDS' }
+        };
+      }
+
+      // Hapus entri tahun
+      db.tahun = db.tahun.filter(t => !((String(t.dewan_id) === dewanId || String(t.dewan_id) === matchDewanId) && isKategoriMatching(katId, t.kategori_id) && parseInt(t.tahun, 10) === yr));
+      // Bersihkan juga entri folder_dokumen terkait tahun tersebut agar tidak terjadi orphan
+      db.folder = db.folder.filter(f => !((String(f.dewan_id) === dewanId || String(f.dewan_id) === matchDewanId) && isKategoriMatching(katId, f.kategori_id) && parseInt(f.tahun, 10) === yr));
+      saveMockDb(db);
+      return { success: true, message: 'Struktur tahun ' + yr + ' berhasil dihapus.' };
     }
 
     case 'getFolderList': {

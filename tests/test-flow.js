@@ -5,7 +5,7 @@
  */
 import crypto from 'crypto';
 import { api } from '../assets/js/api.js';
-import { saveSession, clearSession, isSessionExpiredClientSide, getStoredToken, getStoredUser, getSafeRedirectUrl, formatDateIndonesia } from '../assets/js/auth.js';
+import { saveSession, clearSession, isSessionExpiredClientSide, getStoredToken, getStoredUser, getSafeRedirectUrl, formatDateIndonesia, escapeHtml, sanitizeUrl } from '../assets/js/auth.js';
 
 console.log('=== MEMULAI TEST VERIFIKASI LENGKAP SISTEM ARSIP DPRD KOTA PAREPARE ===\n');
 
@@ -1558,7 +1558,162 @@ async function runAllTests() {
 
   await api.logout();
 
-  console.log(`\n=======================================================`);
+  // ================= 25. VERIFIKASI INTEGRITAS SIMBOL DAN LOGIKA BACKEND GAS/CODE.GS =================
+  console.log('\n--- 25. Verifikasi Statis & Integritas Simbol gas/Code.gs ---');
+  const codeGsContent = fsModule.readFileSync('gas/Code.gs', 'utf-8');
+
+  // Test 25.1: Bug matchedUser tidak ada di Code.gs
+  assert(!codeGsContent.includes('matchedUser'), 'Variabel undefined matchedUser telah dibersihkan sepenuhnya dari gas/Code.gs');
+
+  // Test 25.2: targetUser digunakan pada respons login
+  assert(codeGsContent.includes('id: targetUser.id') && codeGsContent.includes('username: targetUser.username'), 'Respons autentikasi di gas/Code.gs menggunakan targetUser yang terdefinisi');
+
+  // Test 25.3: Otorisasi deleteTahun di gas/Code.gs memvalidasi role superadmin
+  assert(codeGsContent.includes("action === 'deleteTahun'") && codeGsContent.includes("session.role !== 'superadmin'"), 'Action deleteTahun di gas/Code.gs membatasi hak akses strictly untuk role superadmin');
+
+  // Test 25.4: deleteTahun di gas/Code.gs memeriksa dependensi dokumen aktif
+  assert(codeGsContent.includes('HAS_DEPENDENT_RECORDS'), 'Action deleteTahun di gas/Code.gs memeriksa dependensi dokumen aktif sebelum menghapus');
+
+  // Test 25.5: isStaffAuthorizedForDewan di gas/Code.gs tidak menggunakan indexOf !== -1
+  const isStaffAuthSection = codeGsContent.substring(codeGsContent.indexOf('function isStaffAuthorizedForDewan'), codeGsContent.indexOf('function isStaffAuthorizedForDokumen'));
+  assert(!isStaffAuthSection.includes('indexOf !== -1') && !isStaffAuthSection.includes('.includes('), 'isStaffAuthorizedForDewan di gas/Code.gs tidak menggunakan pencocokan substring longgar indexOf / includes');
+
+  // Test 25.6: isKategoriMatching di gas/Code.gs tidak mencocokkan kata "pokok" biasa
+  const isKatMatchingSection = codeGsContent.substring(codeGsContent.indexOf('function isKategoriMatching'), codeGsContent.indexOf('function getOrCreateFolder'));
+  assert(!isKatMatchingSection.includes("val.indexOf('pokok') !== -1"), 'isKategoriMatching di gas/Code.gs tidak mencocokkan substring pokok secara longgar');
+
+  // ================= 26. VERIFIKASI SANITASI ANTI-STORED XSS & OUTPUT ESCAPING =================
+  console.log('\n--- 26. Verifikasi Sanitasi Anti-Stored XSS & Output Escaping ---');
+
+  // Test 26.1: escapeHtml menetralkan tag script dan atribut event handler
+  const xssPayloadScript = "<script>alert('xss')</script>";
+  assert(escapeHtml(xssPayloadScript) === "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;", 'escapeHtml menetralkan tag <script> menjadi entitas HTML');
+
+  const xssPayloadImg = '<img src="x" onerror="alert(1)">';
+  assert(escapeHtml(xssPayloadImg) === '&lt;img src=&quot;x&quot; onerror=&quot;alert(1)&quot;&gt;', 'escapeHtml menetralkan tag <img> dan event onerror');
+
+  const xssPayloadChars = '& < > " \'';
+  assert(escapeHtml(xssPayloadChars) === '&amp; &lt; &gt; &quot; &#39;', 'escapeHtml meng-escape seluruh 5 karakter sensitif HTML secara presisi');
+
+  assert(escapeHtml(null) === '' && escapeHtml(undefined) === '', 'escapeHtml menangani input null dan undefined secara aman');
+
+  // Test 26.2: sanitizeUrl menolak skema berbahaya (javascript:, data:, protocol-relative)
+  assert(sanitizeUrl('javascript:alert(1)') === '#', 'sanitizeUrl menolak skema javascript:');
+  assert(sanitizeUrl('data:text/html,<script>alert(1)</script>') === '#', 'sanitizeUrl menolak skema data: URI');
+  assert(sanitizeUrl('//evil.com/xss') === '#', 'sanitizeUrl menolak protocol-relative URL');
+  assert(sanitizeUrl('https://dprd.pareparekota.go.id/doc.pdf') === 'https://dprd.pareparekota.go.id/doc.pdf', 'sanitizeUrl mengizinkan https: URL yang sah');
+  assert(sanitizeUrl('/assets/docs/rdp.pdf') === '/assets/docs/rdp.pdf', 'sanitizeUrl mengizinkan relative URL yang sah');
+
+  // Test 26.3: Verifikasi statis penutupan Stored XSS pada halaman HTML
+  const lapHtml = fsModule.readFileSync('laporan.html', 'utf-8');
+  assert(lapHtml.includes('escapeHtml(l.nomor_tiket') && lapHtml.includes('escapeHtml(l.nama_pelapor') && lapHtml.includes('escapeHtml(l.judul'), 'laporan.html menerapkan escapeHtml pada rendering tabel laporan');
+
+  const aktHtml = fsModule.readFileSync('aktivitas.html', 'utf-8');
+  assert(aktHtml.includes('escapeHtml(l.username') && aktHtml.includes('escapeHtml(actionText') && aktHtml.includes('escapeHtml(l.detail'), 'aktivitas.html menerapkan escapeHtml pada rendering log aktivitas');
+
+  const komHtml = fsModule.readFileSync('komisi.html', 'utf-8');
+  assert(komHtml.includes('escapeHtml(doc.nama_dokumen') && komHtml.includes('sanitizeUrl(doc.view_url'), 'komisi.html menerapkan escapeHtml dan sanitizeUrl pada dokumen RDP');
+
+  // Test 26.4: komisi.html mengimplementasikan trigger unduh berkas riil menggunakan Blob
+  assert(komHtml.includes('new Blob') && komHtml.includes('URL.createObjectURL') && komHtml.includes('downloadLink.click()'), 'komisi.html memiliki trigger unduh berkas riil menggunakan Blob dan object URL');
+
+  const dewHtml = fsModule.readFileSync('dewan.html', 'utf-8');
+  assert(dewHtml.includes('escapeHtml(d.nama') && dewHtml.includes('escapeHtml(d.jabatan'), 'dewan.html menerapkan escapeHtml pada data anggota dewan');
+
+  const stfHtml = fsModule.readFileSync('staf.html', 'utf-8');
+  assert(stfHtml.includes('escapeHtml(u.nama') && stfHtml.includes('escapeHtml(u.username'), 'staf.html menerapkan escapeHtml pada rendering daftar staf');
+
+  const dshHtml = fsModule.readFileSync('dashboard.html', 'utf-8');
+  assert(dshHtml.includes('escapeHtml(doc.nama_dokumen') && dshHtml.includes('escapeHtml(act.username'), 'dashboard.html menerapkan escapeHtml pada dokumen dan aktivitas terkini');
+
+  // ================= 27. PENGUJIAN KETAT OTORISASI STAF DEWAN =================
+  console.log('\n--- 27. Pengujian Ketat Otorisasi Staf Dewan ---');
+
+  // Login superadmin untuk setup data penugasan dewan
+  const superLogin27 = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLogin27.success, 'Login superadmin untuk penyiapan pengujian otorisasi staf berhasil');
+
+  // Buat anggota dewan pengujian dengan pendamping spesifik "Staf Pendamping Resmi"
+  const dewanList27 = await api.getDewanList();
+  assert(dewanList27.success && dewanList27.data.length > 0, 'Daftar dewan berhasil dimuat');
+  const targetDewan = dewanList27.data[0];
+
+  // Buat staf dengan username yang merupakan substring nama orang lain (misal: "ali")
+  const staffShortRes = await api.createUser({
+    nama: 'Ali Staf Khusus',
+    username: 'ali_khusus',
+    role: 'staff',
+    password: 'SandiKuatStaf2026!',
+    assigned_dewan: []
+  });
+  assert(staffShortRes.success, 'Staf penguji Ali Khusus berhasil dibuat');
+  const aliUserId = staffShortRes.data.id;
+
+  // Login sebagai staf Ali
+  const aliLogin = await api.login('ali_khusus', 'SandiKuatStaf2026!');
+  assert(aliLogin.success, 'Login sebagai staf Ali Khusus berhasil');
+
+  // Selesaikan kewajiban ganti sandi awal agar sesi aktif penuh
+  const aliChangePass = await api.changePassword('SandiKuatStaf2026!', 'SandiValidAli123!');
+  assert(aliChangePass.success, 'Staf Ali berhasil menyelesaikan kewajiban ganti sandi');
+
+  // Coba unggah dokumen ke dewan yang bukan penugasannya
+  const unauthorizedUpload = await api.uploadDokumen({
+    dewan_id: targetDewan.id,
+    kategori_id: 'KAT-01',
+    tahun: 2026,
+    nama_folder: 'Folder Uji Otorisasi',
+    nama_dokumen: 'Dokumen Ilegal',
+    nama_file: 'ilegal.pdf',
+    base64: 'dGVzdA=='
+  });
+  assert(!unauthorizedUpload.success && unauthorizedUpload.error?.code === 'FORBIDDEN', 'Staf Ali yang tidak ditugaskan ke target dewan ditolak mengunggah dokumen (FORBIDDEN)');
+
+  // Bersihkan akun staf penguji
+  await api.logout();
+  await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  await api.deleteUser(aliUserId);
+  await api.logout();
+
+  // ================= 28. PENGUJIAN OTORISASI & DEPENDENSI DELETETAHUN =================
+  console.log('\n--- 28. Pengujian Otorisasi & Dependensi deleteTahun ---');
+
+  // 1. Staf biasa mencoba memanggil deleteTahun -> harus ditolak
+  const staffLogin28 = await api.login('staff', 'PasswordStaff2026!');
+  assert(staffLogin28.success, 'Login staf pendamping untuk uji deleteTahun berhasil');
+
+  const staffDelTahunRes = await api.deleteTahun('DWN-01', 'KAT-01', 2026);
+  assert(!staffDelTahunRes.success && (staffDelTahunRes.error?.code === 'FORBIDDEN' || staffDelTahunRes.message.includes('Akses ditolak')), 'Staf pendamping ditolak keras menghapus struktur tahun (FORBIDDEN)');
+
+  await api.logout();
+
+  // 2. Superadmin mencoba menghapus tahun yang masih memiliki dokumen aktif -> ditolak HAS_DEPENDENT_RECORDS
+  const superLogin28 = await api.login('superadmin', 'SandiKuatSuperadmin2026!');
+  assert(superLogin28.success, 'Login superadmin untuk uji deleteTahun berhasil');
+
+  // Pastikan terdapat struktur tahun dan dokumen aktif pada DWN-01
+  await api.createTahun('DWN-01', 'KAT-01', 2026);
+  await api.uploadDokumen({
+    dewan_id: 'DWN-01',
+    kategori_id: 'KAT-01',
+    tahun: 2026,
+    nama_folder: 'Folder Dependensi Uji',
+    nama_dokumen: 'Dokumen Penguji Dependensi',
+    nama_file: 'dependensi.pdf',
+    base64: 'dGVzdA=='
+  });
+
+  const delTahunActiveRes = await api.deleteTahun('DWN-01', 'KAT-01', 2026);
+  assert(!delTahunActiveRes.success && delTahunActiveRes.error?.code === 'HAS_DEPENDENT_RECORDS', 'Tahun dengan dokumen aktif ditolak dihapus dengan kode HAS_DEPENDENT_RECORDS');
+
+  // 3. Superadmin membuat tahun kosong baru lalu menghapusnya -> berhasil
+  const createEmptyTahunRes = await api.createTahun('DWN-01', 'KAT-01', 2035);
+  assert(createEmptyTahunRes.success, 'Tahun kosong 2035 berhasil dibuat untuk pengujian');
+
+  const delEmptyTahunRes = await api.deleteTahun('DWN-01', 'KAT-01', 2035);
+  assert(delEmptyTahunRes.success, 'Tahun kosong 2035 tanpa dependensi berhasil dihapus oleh superadmin');
+
+  await api.logout();
   console.log(`HASIL TOTAL PENGUJIAN: ${passed} PASS, ${failed} FAIL`);
   console.log(`=======================================================`);
 

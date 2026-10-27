@@ -266,7 +266,7 @@
 
   <script type="module">
     import { api } from './assets/js/api.js';
-    import { requireAuth, showToast, showConfirmDialog } from './assets/js/auth.js';
+    import { requireAuth, showToast, showConfirmDialog, escapeHtml, sanitizeUrl } from './assets/js/auth.js';
     import { renderSidebar } from './assets/js/sidebar.js';
 
     const currentUser = requireAuth();
@@ -343,12 +343,12 @@
                     </svg>
                   </div>
                   <div>
-                    <div class="archive-card-title" style="font-size: 16px;">${k.nama}</div>
-                    <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">${k.bidang}</div>
+                    <div class="archive-card-title" style="font-size: 16px;">${escapeHtml(k.nama)}</div>
+                    <div class="archive-card-desc" style="color: var(--gold-primary); font-weight: 600;">${escapeHtml(k.bidang)}</div>
                   </div>
                 </div>
                 ${isSuper ? `
-                  <button type="button" class="btn-card-delete" data-id="${k.id}" data-nama="${k.nama}" data-bidang="${k.bidang}" aria-label="Hapus komisi ${k.nama}" title="Hapus komisi">
+                  <button type="button" class="btn-card-delete" data-id="${escapeHtml(k.id)}" data-nama="${escapeHtml(k.nama)}" data-bidang="${escapeHtml(k.bidang)}" aria-label="Hapus komisi ${escapeHtml(k.nama)}" title="Hapus komisi">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 17px; height: 17px;">
                       <polyline points="3 6 5 6 21 6"></polyline>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -359,14 +359,14 @@
                 ` : ''}
               </div>
               <div style="font-size: 13px; color: var(--text-muted); margin: 12px 0 20px 0; line-height: 1.5;">
-                ${k.deskripsi || '-'}
+                ${escapeHtml(k.deskripsi || '-')}
               </div>
               <div class="archive-card-footer">
                 <span class="status-pill aktif" style="font-size: 11.5px;">
                   <span class="status-pill-dot"></span>
-                  Kategori: ${k.kategori_folder || 'RDP'}
+                  Kategori: ${escapeHtml(k.kategori_folder || 'RDP')}
                 </span>
-                <a href="komisi.html?komisi_id=${k.id}" class="btn btn-gold btn-sm">
+                <a href="komisi.html?komisi_id=${encodeURIComponent(k.id)}" class="btn btn-gold btn-sm">
                   Buka Folder RDP &rarr;
                 </a>
               </div>
@@ -501,7 +501,7 @@
           <span class="breadcrumb-separator">/</span>
           <a href="komisi.html">Arsip Komisi</a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">${komisiInfo.nama} (RDP)</span>
+          <span class="breadcrumb-current">${escapeHtml(komisiInfo.nama)} (RDP)</span>
         `;
 
         await loadRdpDocuments(id);
@@ -607,38 +607,45 @@
           const isUploader = String(doc.uploaded_by || '').toLowerCase() === currentUser.username.toLowerCase();
           const canModify = isSuper || isUploader;
 
+          const safeId = escapeHtml(doc.id || '');
+          const safeNamaDokumen = escapeHtml(doc.nama_dokumen || '');
+          const safeNamaFile = escapeHtml(doc.nama_file || 'dokumen.pdf');
+          const safeTahun = escapeHtml(doc.tahun || '');
+          const safeKeterangan = escapeHtml(doc.keterangan || '-');
+          const safeViewUrl = sanitizeUrl(doc.view_url, '');
+
           return `
             <tr>
               <td style="text-align: center; color: var(--text-light); font-size: 12px;">${idx + 1}</td>
               <td>
-                <strong style="color: var(--navy-900); font-size: 13.5px; display: block;">${doc.nama_dokumen}</strong>
-                <span style="font-size: 11.5px; color: var(--text-muted);">${doc.nama_file || 'dokumen.pdf'}</span>
+                <strong style="color: var(--navy-900); font-size: 13.5px; display: block;">${safeNamaDokumen}</strong>
+                <span style="font-size: 11.5px; color: var(--text-muted);">${safeNamaFile}</span>
               </td>
               <td style="text-align: center;">
                 <span class="badge" style="background: var(--navy-50); color: var(--navy-800); font-size: 11.5px; padding: 2px 7px; border-radius: 4px; font-weight: 600;">
-                  ${doc.tahun}
+                  ${safeTahun}
                 </span>
               </td>
               <td>
-                <span style="font-size: 12.5px; color: var(--text-muted);">${doc.keterangan || '-'}</span>
+                <span style="font-size: 12.5px; color: var(--text-muted);">${safeKeterangan}</span>
               </td>
               <td>
-                <span style="font-size: 12px; color: var(--text-muted);">${sizeKb}</span>
+                <span style="font-size: 12px; color: var(--text-muted);">${escapeHtml(sizeKb)}</span>
               </td>
               <td>
-                <span style="font-size: 12px; color: var(--text-muted);">${tgl}</span>
+                <span style="font-size: 12px; color: var(--text-muted);">${escapeHtml(tgl)}</span>
               </td>
               <td style="text-align: center;">
                 <div class="action-buttons" style="justify-content: center; gap: 6px;">
-                  ${doc.view_url && doc.view_url !== '#' ? `
-                    <a href="${doc.view_url}" target="_blank" rel="noopener noreferrer" class="btn-icon-action" title="Lihat / Pratinjau Dokumen">
+                  ${safeViewUrl ? `
+                    <a href="${safeViewUrl}" target="_blank" rel="noopener noreferrer" class="btn-icon-action" title="Lihat / Pratinjau Dokumen">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                       </svg>
                     </a>
                   ` : ''}
-                  <button type="button" class="btn-icon-action" data-action="download" data-id="${doc.id}" data-nama="${doc.nama_dokumen}" title="Unduh Dokumen">
+                  <button type="button" class="btn-icon-action" data-action="download" data-id="${safeId}" data-nama="${safeNamaDokumen}" data-filename="${safeNamaFile}" title="Unduh Dokumen">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="7 10 12 15 17 10"></polyline>
@@ -646,13 +653,13 @@
                     </svg>
                   </button>
                   ${canModify ? `
-                    <button type="button" class="btn-icon-action" data-action="edit" data-id="${doc.id}" title="Edit Metadata Dokumen RDP">
+                    <button type="button" class="btn-icon-action" data-action="edit" data-id="${safeId}" title="Edit Metadata Dokumen RDP">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                       </svg>
                     </button>
-                    <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${doc.id}" data-nama="${doc.nama_dokumen}" title="Hapus Dokumen RDP">
+                    <button type="button" class="btn-icon-action btn-danger" data-action="delete" data-id="${safeId}" data-nama="${safeNamaDokumen}" title="Hapus Dokumen RDP">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -669,16 +676,41 @@
         tableBody.querySelectorAll('button[data-action="download"]').forEach(btn => {
           btn.addEventListener('click', async () => {
             const docId = btn.dataset.id;
+            const fallbackFileName = btn.dataset.filename || 'dokumen.pdf';
             btn.disabled = true;
             try {
               const res = await api.downloadDokumen(docId);
               if (res && res.success && res.data) {
-                showToast('Berkas berhasil diunduh.', 'success');
+                if (res.data.base64) {
+                  // Decode base64 dan trigger download langsung di browser
+                  const byteCharacters = atob(res.data.base64);
+                  const byteNumbers = new Array(byteCharacters.length);
+                  for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                  }
+                  const byteArray = new Uint8Array(byteNumbers);
+                  const blob = new Blob([byteArray], { type: res.data.mime_type || 'application/pdf' });
+                  const blobUrl = URL.createObjectURL(blob);
+
+                  const downloadLink = document.createElement('a');
+                  downloadLink.href = blobUrl;
+                  downloadLink.download = res.data.nama_file || fallbackFileName;
+                  document.body.appendChild(downloadLink);
+                  downloadLink.click();
+                  document.body.removeChild(downloadLink);
+                  setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+                  showToast('Berkas berhasil diunduh.', 'success');
+                } else if (res.data.download_url) {
+                  window.open(res.data.download_url, '_blank', 'noopener,noreferrer');
+                  showToast('Mengunduh berkas...', 'success');
+                } else {
+                  showToast(res.message || 'Data berkas tidak tersedia.', 'error');
+                }
               } else {
                 showToast(res.message || 'Gagal mengunduh dokumen.', 'error');
               }
             } catch (err) {
-              showToast('Terjadi kesalahan unduh.', 'error');
+              showToast('Terjadi kesalahan unduh: ' + err.message, 'error');
             } finally {
               btn.disabled = false;
             }
